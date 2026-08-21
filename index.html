@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathQuest V3 - ¡El Camino del Saber Matemático!</title>
+    <meta name="description" content="Aprende Álgebra, Geometría y Razonamiento Lógico con micro-retos y mecánicas de Duolingo y Brain Test para niños de 8 a 12 años.">
+    
+    <!-- Google Fonts: Fredoka & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+    
+    <!-- KaTeX para renderizar ecuaciones LaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Capa de Confeti -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Cabecera Superior Premium -->
+    <header class="app-header">
+        <button id="btn-back-menu" class="btn btn-secondary hidden">
+            ← Volver
+        </button>
+        <div class="logo" id="header-logo">
+            <span class="logo-emoji">📐</span>
+            <span class="logo-text">Math<span class="accent">Quest</span></span>
+            <span class="logo-version">V3</span>
+        </div>
+        <div class="user-stats">
+            <!-- Racha de Días -->
+            <div class="stat-pill streak-pill" title="Racha de Días Activos">
+                <span>🔥</span>
+                <span id="streak-count">1</span>
+            </div>
+            <!-- Estrellas -->
+            <div class="stat-pill stars-pill" title="Estrellas ganadas">
+                <span>⭐</span>
+                <span id="star-count">0</span>
+            </div>
+            <!-- MathCoins / Monedas -->
+            <div class="stat-pill coins-pill" title="Monedas (MathCoins)">
+                <span>🪙 Coins</span>
+                <span id="coins-count">150</span>
+            </div>
+            <!-- Mochila de Pistas -->
+            <div class="stat-pill hints-pill" id="btn-global-hints-bag" title="Pistas Disponibles (Mochila)">
+                <span>💡 Pistas</span>
+                <span id="global-hints-count">2</span>
+            </div>
+            <!-- Nivel / XP -->
+            <div class="stat-pill xp-pill" title="Nivel del Aventurero">
+                <span>⚡ Lvl</span>
+                <span id="user-level">1</span>
+            </div>
+            
+            <!-- Botón Dorado de Bypass VIP (Monetización) -->
+            <button id="btn-header-bypass-vip" class="btn-bypass-gold" title="Desbloquear Todo con el Pase VIP Premium">
+                🔓 Bypass VIP
+            </button>
+
+            <!-- Selector de Tema (Claro / Oscuro) -->
+            <button id="btn-theme-toggle" class="theme-toggle-btn" title="Cambiar Tema">
+                <span class="sun-icon">☀️</span>
+                <span class="moon-icon">🌙</span>
+            </button>
+            
+            <!-- Avatar y Medalla Equipada -->
+            <div class="avatar-header-container">
+                <div id="active-avatar-display" class="header-avatar"></div>
+                <div id="equipped-badge-display" class="badge-overlay" title="Medalla Activa"></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="app-container">
+        
+        <!-- PANTALLA 1: HUB PRINCIPAL -->
+        <section id="screen-hub" class="screen">
+            <!-- Banner de Bienvenida -->
+            <div class="welcome-banner card">
+                <div class="welcome-info">
+                    <h1>¡Bienvenido a MathQuest V3! 🚀</h1>
+                    <p>¡Elige tu tema favorito, desbloquea logros por mérito, compra en la tienda o desbloquea el Pase VIP para jugar todo!</p>
+                </div>
+                <div class="mateo-mascot-container">
+                    <div class="mateo-bubble" id="mateo-hub-bubble">¡Hola! Soy Mateo. ¡Elige un planeta!</div>
+                    <div class="mateo-avatar" id="mateo-hub-avatar">
+                        <!-- Custom SVG Mateo -->
+                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                            <polygon points="50,15 15,85 85,85" fill="#FEF08A" stroke="#1A1A2E" stroke-width="4" stroke-linejoin="round"/>
+                            <circle cx="43" cy="58" r="7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="2"/>
+                            <circle cx="57" cy="58" r="7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="2"/>
+                            <circle cx="43" cy="58" r="3" fill="#1A1A2E"/>
+                            <circle cx="57" cy="58" r="3" fill="#1A1A2E"/>
+                            <circle cx="45" cy="56" r="1.5" fill="#FFFFFF"/>
+                            <circle cx="59" cy="56" r="1.5" fill="#FFFFFF"/>
+                            <path d="M47 70 Q50 73 53 70" stroke="#1A1A2E" stroke-width="3" fill="none" stroke-linecap="round"/>
+                            <polygon points="50,2 70,12 50,22 30,12" fill="#E9D5FF" stroke="#1A1A2E" stroke-width="3"/>
+                            <line x1="70" y1="12" x2="70" y2="25" stroke="#1A1A2E" stroke-width="3" stroke-linecap="round"/>
+                            <circle cx="70" cy="25" r="4" fill="#FED7AA" stroke="#1A1A2E" stroke-width="2"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selector de Avatares Mágicos (Con imágenes 3D premium cargadas) -->
+            <div class="avatar-selection-section card">
+                <h2>Elige tu avatar:</h2>
+                <div class="avatar-grid" id="avatar-picker">
+                    <div class="avatar-option" data-avatar="cubo" id="avatar-opt-cubo" title="Cubo Aventurero">
+                        <img src="avatar_cube.png" alt="Cubo">
+                    </div>
+                    <div class="avatar-option" data-avatar="esfera" id="avatar-opt-esfera" title="Esfera Veloz">
+                        <img src="avatar_sphere.png" alt="Esfera">
+                    </div>
+                    <div class="avatar-option" data-avatar="piramide" id="avatar-opt-piramide" title="Pirámide Sabia">
+                        <img src="avatar_pyramid.png" alt="Pirámide">
+                    </div>
+                    <div class="avatar-option" data-avatar="cilindro" id="avatar-opt-cilindro" title="Cilindro Mágico">
+                        <img src="avatar_cylinder.png" alt="Cilindro">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control de Pestañas del Hub (Camino vs Tienda vs Logros vs Ajustes) -->
+            <div class="hub-tabs-container">
+                <button class="tab-btn active" id="tab-btn-path" style="flex: 1.5;">🗺️ Camino</button>
+                <button class="tab-btn" id="tab-btn-shop">🪙 Tienda</button>
+                <button class="tab-btn" id="tab-btn-achievements">🏅 Logros</button>
+                <button class="tab-btn" id="tab-btn-settings">⚙️ Ajustes</button>
+            </div>
+
+            <!-- SUB-PANTALLA A: EL CAMINO DE APRENDIZAJE DUOLINGO -->
+            <div id="hub-path-view" class="tab-view">
+                
+                <!-- Selector dinámico de temas dentro de la ruta -->
+                <div class="topic-selector-container">
+                    <button class="topic-selector-btn active" data-topic="algebra">🪐 Álgebra y Aritmética</button>
+                    <button class="topic-selector-btn" data-topic="geometry">📐 Geometrica</button>
+                    <button class="topic-selector-btn" data-topic="logic">🧠 Razonamiento Matemático</button>
+                </div>
+
+                <!-- CONTENEDORES DE RUTAS POR TEMA (5 Niveles por juego) -->
+                
+                <!-- 1. RUTA ÁLGEBRA Y ARITMÉTICA (Snake & Slither) -->
+                <div id="path-topic-algebra" class="topic-path-container">
+                    <div class="path-section-header algebra-header">
+                        <h3>Planeta Álgebra y Aritmética: Ecuaciones y Fracciones</h3>
+                        <p>Completa los 5 niveles de cada juego para ganar la medalla **Maestro del Álgebra** 🪐</p>
+                    </div>
+                    <div class="duolingo-path">
+                        <!-- Snake Lvl 1-5 -->
+                        <div class="path-node node-algebra node-pos-0" data-game="snake" data-level="1" title="Snake Algebraico - Nivel 1">
+                            <span class="path-node-icon">🐍</span>
+                            <span class="path-node-badge">1</span>
+                            <span class="path-node-tooltip">Snake Lvl 1</span>
+                        </div>
+                        <div class="path-node node-algebra node-pos-1 locked" data-game="snake" data-level="2" title="Snake Algebraico - Nivel 2">
+                            <span class="path-node-icon">🐍</span>
+                            <span class="path-node-badge">2</span>
+                            <span class="path-node-tooltip">Snake Lvl 2</span>
+                        </div>
+                        <div class="path-node node-algebra node-pos-2 locked" data-game="snake" data-level="3" title="Snake Algebraico - Nivel 3">
+                            <span class="path-node-icon">🐍</span>
+                            <span class="path-node-badge">3</span>
+                            <span class="path-node-tooltip">Snake Lvl 3</span>
+                        </div>
+                        <div class="path-node node-algebra node-pos-3 locked" data-game="snake" data-level="4" title="Snake Algebraico - Nivel 4">
+                            <span class="path-node-icon">🐍</span>
+                            <span class="path-node-badge">4</span>
+                            <span class="path-node-tooltip">Snake Lvl 4</span>
+                        </div>
+                        <div class="path-node node-algebra node-pos-4 locked" data-game="snake" data-level="5" title="Snake Algebraico - Nivel 5 (Reto)">
+                            <span class="path-node-icon">🐍</span>
+                            <span class="path-node-badge">5</span>
+                            <span class="path-node-tooltip">Snake Lvl 5</span>
+                        </div>
+
+                        <!-- Slither Lvl 1-5 -->
+                        <div class="path-node node-algebra node-pos-5 locked" data-game="slider" data-level="1" title="Slither Fracciones - Nivel 1">
+                            <span class="path-node-icon">🐛</span>
+                            <span class="path-node-badge">1</span>
+                            <span class="path-node-tooltip">Slither Lvl 1</span>
+                        </div>
+                        <div class="path-node node-algebra node-pos-0 locked" data-game="slider" data-level="2" title="Slither Fracciones - Nivel 2">
+                            <span class="path-node-icon">🐛</span>
+                            <span class="path-node-badge">2</span>
+                            <span class="path-node-tooltip">Slither Lvl 2</span>
+                        </div>
+                        <div class="path-node node-algebra node-pos-1 locked" data-game="slider" data-level="3" title="Slither Fracciones - Nivel 3">
+                            <span class="path-node-icon">🐛</span>
+                            <span class="path-node-badge">3</span>
+                            <span class="path-node-tooltip">Slither Lvl 3</span>
+                        </div>
+                        <div class="path-node node-algebra node-pos-2 locked" data-game="slider" data-level="4" title="Slither Fracciones - Nivel 4">
+                            <span class="path-node-icon">🐛</span>
+                            <span class="path-node-badge">4</span>
+                            <span class="path-node-tooltip">Slither Lvl 4</span>
+                        </div>
+                        <div class="path-node node-algebra node-pos-3 locked" data-game="slider" data-level="5" title="Slither Fracciones - Nivel 5 (Reto)">
+                            <span class="path-node-icon">🐛</span>
+                            <span class="path-node-badge">5</span>
+                            <span class="path-node-tooltip">Slither Lvl 5</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. RUTA GEOMÉTRICA (Tetris de Ángulos) -->
+                <div id="path-topic-geometry" class="topic-path-container hidden">
+                    <div class="path-section-header geometry-header">
+                        <h3>Planeta Geometrica: Suma de Ángulos y Giros</h3>
+                        <p>Completa los 5 niveles de Tetris para ganar la medalla **Pro de la Geometría** 📐</p>
+                    </div>
+                    <div class="duolingo-path">
+                        <!-- Tetris Lvl 1-5 -->
+                        <div class="path-node node-geometry node-pos-0" data-game="tetris" data-level="1" title="Math-Tetris - Nivel 1">
+                            <span class="path-node-icon">🧱</span>
+                            <span class="path-node-badge">1</span>
+                            <span class="path-node-tooltip">Tetris Lvl 1</span>
+                        </div>
+                        <div class="path-node node-geometry node-pos-1 locked" data-game="tetris" data-level="2" title="Math-Tetris - Nivel 2">
+                            <span class="path-node-icon">🧱</span>
+                            <span class="path-node-badge">2</span>
+                            <span class="path-node-tooltip">Tetris Lvl 2</span>
+                        </div>
+                        <div class="path-node node-geometry node-pos-2 locked" data-game="tetris" data-level="3" title="Math-Tetris - Nivel 3">
+                            <span class="path-node-icon">🧱</span>
+                            <span class="path-node-badge">3</span>
+                            <span class="path-node-tooltip">Tetris Lvl 3</span>
+                        </div>
+                        <div class="path-node node-geometry node-pos-3 locked" data-game="tetris" data-level="4" title="Math-Tetris - Nivel 4">
+                            <span class="path-node-icon">🧱</span>
+                            <span class="path-node-badge">4</span>
+                            <span class="path-node-tooltip">Tetris Lvl 4</span>
+                        </div>
+                        <div class="path-node node-geometry node-pos-4 locked" data-game="tetris" data-level="5" title="Math-Tetris - Nivel 5 (Reto)">
+                            <span class="path-node-icon">🧱</span>
+                            <span class="path-node-badge">5</span>
+                            <span class="path-node-tooltip">Tetris Lvl 5</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. RUTA RAZONAMIENTO MATEMÁTICO (Sudoku & Ahorcado) -->
+                <div id="path-topic-logic" class="topic-path-container hidden">
+                    <div class="path-section-header reasoning-header">
+                        <h3>Planeta Razonamiento: Sodocu 9x9 y Ahorcado de Conceptos</h3>
+                        <p>Completa los 5 niveles de cada juego para ganar la medalla **Mago de la Lógica** 🧠</p>
+                    </div>
+                    <div class="duolingo-path">
+                        <!-- Sudoku Lvl 1-5 -->
+                        <div class="path-node node-reasoning node-pos-0" data-game="sudoku" data-level="1" title="Sodocu 9x9 - Nivel 1">
+                            <span class="path-node-icon">🔢</span>
+                            <span class="path-node-badge">1</span>
+                            <span class="path-node-tooltip">Sudoku Lvl 1</span>
+                        </div>
+                        <div class="path-node node-reasoning node-pos-1 locked" data-game="sudoku" data-level="2" title="Sodocu 9x9 - Nivel 2">
+                            <span class="path-node-icon">🔢</span>
+                            <span class="path-node-badge">2</span>
+                            <span class="path-node-tooltip">Sudoku Lvl 2</span>
+                        </div>
+                        <div class="path-node node-reasoning node-pos-2 locked" data-game="sudoku" data-level="3" title="Sodocu 9x9 - Nivel 3">
+                            <span class="path-node-icon">🔢</span>
+                            <span class="path-node-badge">3</span>
+                            <span class="path-node-tooltip">Sudoku Lvl 3</span>
+                        </div>
+                        <div class="path-node node-reasoning node-pos-3 locked" data-game="sudoku" data-level="4" title="Sodocu 9x9 - Nivel 4">
+                            <span class="path-node-icon">🔢</span>
+                            <span class="path-node-badge">4</span>
+                            <span class="path-node-tooltip">Sudoku Lvl 4</span>
+                        </div>
+                        <div class="path-node node-reasoning node-pos-4 locked" data-game="sudoku" data-level="5" title="Sodocu 9x9 - Nivel 5 (Reto)">
+                            <span class="path-node-icon">🔢</span>
+                            <span class="path-node-badge">5</span>
+                            <span class="path-node-tooltip">Sudoku Lvl 5</span>
+                        </div>
+
+                        <!-- Ahorcado Lvl 1-5 -->
+                        <div class="path-node node-reasoning node-pos-5 locked" data-game="ahorcado" data-level="1" title="Ahorcado - Nivel 1">
+                            <span class="path-node-icon">🪓</span>
+                            <span class="path-node-badge">1</span>
+                            <span class="path-node-tooltip">Ahorcado Lvl 1</span>
+                        </div>
+                        <div class="path-node node-reasoning node-pos-0 locked" data-game="ahorcado" data-level="2" title="Ahorcado - Nivel 2">
+                            <span class="path-node-icon">🪓</span>
+                            <span class="path-node-badge">2</span>
+                            <span class="path-node-tooltip">Ahorcado Lvl 2</span>
+                        </div>
+                        <div class="path-node node-reasoning node-pos-1 locked" data-game="ahorcado" data-level="3" title="Ahorcado - Nivel 3">
+                            <span class="path-node-icon">🪓</span>
+                            <span class="path-node-badge">3</span>
+                            <span class="path-node-tooltip">Ahorcado Lvl 3</span>
+                        </div>
+                        <div class="path-node node-reasoning node-pos-2 locked" data-game="ahorcado" data-level="4" title="Ahorcado - Nivel 4">
+                            <span class="path-node-icon">🪓</span>
+                            <span class="path-node-badge">4</span>
+                            <span class="path-node-tooltip">Ahorcado Lvl 4</span>
+                        </div>
+                        <div class="path-node node-reasoning node-pos-3 locked" data-game="ahorcado" data-level="5" title="Ahorcado - Nivel 5 (Reto)">
+                            <span class="path-node-icon">🪓</span>
+                            <span class="path-node-badge">5</span>
+                            <span class="path-node-tooltip">Ahorcado Lvl 5</span>
+                        </div>
+
+                        <!-- Balanza Lógica Lvl 1-5 -->
+                        <div class="path-node node-reasoning node-pos-4 locked" data-game="balanza" data-level="1" title="Balanza Lógica - Nivel 1">
+                            <span class="path-node-icon">⚖️</span>
+                            <span class="path-node-badge">1</span>
+                            <span class="path-node-tooltip">Balanza Lvl 1</span>
+                        </div>
+                        <div class="path-node node-reasoning node-pos-5 locked" data-game="balanza" data-level="2" title="Balanza Lógica - Nivel 2">
+                            <span class="path-node-icon">⚖️</span>
+                            <span class="path-node-badge">2</span>
+                            <span class="path-node-tooltip">Balanza Lvl 2</span>
+                        </div>
+                        <div class="path-node node-reasoning node-pos-0 locked" data-game="balanza" data-level="3" title="Balanza Lógica - Nivel 3">
+                            <span class="path-node-icon">⚖️</span>
+                            <span class="path-node-badge">3</span>
+                            <span class="path-node-tooltip">Balanza Lvl 3</span>
+                        </div>
+                        <div class="path-node node-reasoning node-pos-1 locked" data-game="balanza" data-level="4" title="Balanza Lógica - Nivel 4">
+                            <span class="path-node-icon">⚖️</span>
+                            <span class="path-node-badge">4</span>
+                            <span class="path-node-tooltip">Balanza Lvl 4</span>
+                        </div>
+                        <div class="path-node node-reasoning node-pos-2 locked" data-game="balanza" data-level="5" title="Balanza Lógica - Nivel 5 (Reto)">
+                            <span class="path-node-icon">⚖️</span>
+                            <span class="path-node-badge">5</span>
+                            <span class="path-node-tooltip">Balanza Lvl 5</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-PANTALLA B: LA TIENDA DE ARTÍCULOS -->
+            <div id="hub-shop-view" class="tab-view hidden">
+                <div class="shop-grid">
+                    <!-- Sección de Skins -->
+                    <div class="shop-category card">
+                        <h3>🐍 Aspectos / Skins de Serpiente (Snake & Slither)</h3>
+                        <div class="shop-items-container" id="shop-container-skins">
+                            <!-- Inyectado dinámicamente -->
+                        </div>
+                    </div>
+                    
+                    <!-- Sección de Potenciadores -->
+                    <div class="shop-category card">
+                        <h3>⚡ Objetos Especiales y Consumibles</h3>
+                        <div class="shop-items-container" id="shop-container-powerups">
+                            <!-- Inyectado dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-PANTALLA C: LOGROS Y MEDALLAS -->
+            <div id="hub-achievements-view" class="tab-view hidden">
+                <div class="card achievements-intro">
+                    <h3>🏅 Salón de Medallas de Honor</h3>
+                    <p>Completa el nivel 5 de cada juego para ganar su respectiva medalla de mérito y lucirla en tu perfil.</p>
+                </div>
+                <div class="achievements-grid" id="achievements-container">
+                    <!-- Inyectado dinámicamente por JS -->
+                </div>
+            </div>
+
+            <!-- SUB-PANTALLA D: SECCIÓN DE AJUSTES -->
+            <div id="hub-settings-view" class="tab-view hidden">
+                <div class="card settings-panel">
+                    <h3>⚙️ Panel de Ajustes del Sistema</h3>
+                    <p class="game-desc">Ajusta los parámetros generales de la plataforma y utiliza herramientas de desarrollador.</p>
+                    
+                    <div class="settings-control-row">
+                        <label class="settings-label">🔊 Efectos de Sonido:</label>
+                        <button id="btn-toggle-sound" class="btn btn-primary">Sonido: ACTIVO</button>
+                    </div>
+
+                    <div class="settings-control-row">
+                        <label class="settings-label">🧼 Restablecer Progreso:</label>
+                        <button id="btn-reset-progress" class="btn btn-accent">Borrar Todo el Historial</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANTALLA 2: JUEGO 1 - MATH SNAKE -->
+        <section id="screen-snake" class="screen hidden">
+            <div class="game-layout">
+                <div class="game-sidebar card">
+                    <h2>🐍 Ecuación-Snake</h2>
+                    <p class="game-desc" id="snake-game-instruction">Resuelve la ecuación comiendo la manzana correcta. ¡Usa WASD o Flechas!</p>
+                    
+                    <div class="lives-display-panel">
+                        <span class="panel-label">Vidas (Corazones):</span>
+                        <div class="hearts-container" id="snake-hearts-box">
+                            ❤️ ❤️ ❤️
+                        </div>
+                    </div>
+
+                    <div class="equation-panel">
+                        <span class="equation-label" id="snake-lbl-prompt">Halla el valor de x:</span>
+                        <!-- Ecuación renderizada en LaTeX KaTeX -->
+                        <div id="snake-equation" class="equation-box"></div>
+                    </div>
+                    
+                    <div class="game-stats-row">
+                        <div class="stat-pill stars-pill">
+                            <span>Manzanas:</span>
+                            <strong id="snake-score">0</strong>
+                        </div>
+                    </div>
+
+                    <button id="btn-use-hint-snake" class="btn btn-secondary w-100 btn-use-hint">
+                        💡 Usar Pista (Mochila)
+                    </button>
+                    
+                    <button id="btn-restart-snake" class="btn btn-accent w-100" style="margin-top: 10px;">Reiniciar</button>
+                </div>
+
+                <div class="game-canvas-area card">
+                    <div class="canvas-container">
+                        <div id="snake-overlay" class="game-overlay">
+                            <div class="overlay-content">
+                                <h3 id="snake-overlay-title">Álgebra Snake 🍏</h3>
+                                <div id="snake-overlay-instructions" class="rules-explanation-box">
+                                    <h4>📜 Reglas del Juego:</h4>
+                                    <ul>
+                                        <li>💡 Resuelve the **ecuación LaTeX** mostrada al lateral.</li>
+                                        <li>🍏 Guía la serpiente hacia la manzana con el resultado exacto.</li>
+                                        <li>⌨️ Controla con **W A S D** o las **Flechas del Teclado**.</li>
+                                        <li>💥 Chocar contra muros o comer la manzana errónea resta **1 vida**.</li>
+                                    </ul>
+                                </div>
+                                <p id="snake-overlay-text">Presiona empezar para jugar.</p>
+                                <button id="btn-start-snake-game" class="btn btn-primary btn-large">¡Empezar!</button>
+                            </div>
+                        </div>
+                        <canvas id="snake-canvas" width="400" height="400"></canvas>
+                    </div>
+
+                    <!-- Mandos táctiles en pantalla -->
+                    <div class="touch-controller">
+                        <div class="touch-row">
+                            <button id="ctrl-up" class="ctrl-btn">▲</button>
+                        </div>
+                        <div class="touch-row">
+                            <button id="ctrl-left" class="ctrl-btn">◀</button>
+                            <div class="ctrl-spacer"></div>
+                            <button id="ctrl-right" class="ctrl-btn">▶</button>
+                        </div>
+                        <div class="touch-row">
+                            <button id="ctrl-down" class="ctrl-btn">▼</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANTALLA 3: JUEGO 2 - MATH TETRIS -->
+        <section id="screen-tetris" class="screen hidden">
+            <div class="game-layout">
+                <div class="game-sidebar card">
+                    <h2>🧱 Math-Tetris (Ángulos)</h2>
+                    <p class="game-desc">Alinea los bloques de ángulos. Si sumas la meta, se fusionan y limpian. ¡Usa WASD o Flechas!</p>
+                    
+                    <div class="lives-display-panel">
+                        <span class="panel-label">Vidas (Corazones):</span>
+                        <div class="hearts-container" id="tetris-hearts-box">
+                            ❤️ ❤️ ❤️
+                        </div>
+                    </div>
+
+                    <div class="target-angle-panel">
+                        <span class="panel-label">Meta Geométrica:</span>
+                        <div id="tetris-target-desc" class="equation-box" style="font-size: 1.15rem; background: var(--color-mint); color: var(--color-dark);">
+                            Suma 90°
+                        </div>
+                    </div>
+
+                    <div class="stat-pill stars-pill">
+                        <span>Puntos:</span>
+                        <strong id="tetris-score">0</strong>
+                    </div>
+
+                    <button id="btn-use-hint-tetris" class="btn btn-secondary w-100 btn-use-hint" style="margin-top: 10px;">
+                        💡 Usar Pista (Mochila)
+                    </button>
+                    
+                    <button id="btn-restart-tetris" class="btn btn-accent w-100" style="margin-top: 10px;">Reiniciar Partida</button>
+                </div>
+
+                <div class="game-canvas-area card">
+                    <div class="canvas-container">
+                        <div id="tetris-overlay" class="game-overlay">
+                            <div class="overlay-content">
+                                <h3 id="tetris-overlay-title">Suma de Ángulos 🧱</h3>
+                                <div id="tetris-overlay-instructions" class="rules-explanation-box">
+                                    <h4>📜 Reglas de Math-Tetris:</h4>
+                                    <ul>
+                                        <li>🎯 Apila bloques para sumar el **ángulo meta** del lateral.</li>
+                                        <li>🧱 Caen bloques 1x1, 2x1 y 1x2 con ángulos y colores neón.</li>
+                                        <li>⌨️ Mueve con **A / D** o **F. Izquierda / F. Derecha**. Cae rápido con **S / F. Abajo**.</li>
+                                        <li>💥 Si se llena el tablero al techo, pierdes **1 vida** y se limpia la mitad inferior.</li>
+                                    </ul>
+                                </div>
+                                <p id="tetris-overlay-text">Consigue que los bloques se alineen.</p>
+                                <button id="btn-start-tetris-game" class="btn btn-primary btn-large">¡A Stackear!</button>
+                            </div>
+                        </div>
+                        <canvas id="tetris-canvas" width="300" height="450"></canvas>
+                    </div>
+
+                    <!-- Botones móviles Tetris -->
+                    <div class="touch-controller">
+                        <div class="touch-row">
+                            <button id="ctrl-tetris-left" class="ctrl-btn">◀</button>
+                            <button id="ctrl-tetris-rotate" class="ctrl-btn">💡 Pista</button>
+                            <button id="ctrl-tetris-right" class="ctrl-btn">▶</button>
+                        </div>
+                        <div class="touch-row">
+                            <button id="ctrl-tetris-down" class="ctrl-btn">▼</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANTALLA 4: JUEGO 3 - SLITHER MATH -->
+        <section id="screen-slider" class="screen hidden">
+            <div class="game-layout">
+                <div class="game-sidebar card">
+                    <h2>🐛 Slither-Fracciones</h2>
+                    <p class="game-desc">Mueve el gusano espacial. ¡Usa WASD o el Ratón! Evita las **bombas 💣** y come fracciones equivalentes.</p>
+                    
+                    <div class="lives-display-panel">
+                        <span class="panel-label">Vidas (Corazones):</span>
+                        <div class="hearts-container" id="slider-hearts-box">
+                            ❤️ ❤️ ❤️
+                        </div>
+                    </div>
+
+                    <div class="equation-panel">
+                        <span class="equation-label">Fracción Objetivo:</span>
+                        <div id="slider-target-equation" class="equation-box"></div>
+                    </div>
+                    
+                    <div class="stat-pill stars-pill">
+                        <span>Largo:</span>
+                        <strong id="slider-score">0</strong>
+                    </div>
+
+                    <button id="btn-use-hint-slider" class="btn btn-secondary w-100 btn-use-hint" style="margin-top: 10px;">
+                        💡 Usar Pista (Mochila)
+                    </button>
+
+                    <button id="btn-restart-slider" class="btn btn-accent w-100" style="margin-top: 10px;">Reiniciar Arena</button>
+                </div>
+
+                <div class="game-canvas-area card">
+                    <div class="canvas-container">
+                        <div id="slider-overlay" class="game-overlay">
+                            <div class="overlay-content">
+                                <h3 id="slider-overlay-title">Gusano Equivalente 🐛</h3>
+                                <div id="slider-overlay-instructions" class="rules-explanation-box">
+                                    <h4>📜 Reglas de Slither-Fracciones:</h4>
+                                    <ul>
+                                        <li>🎯 Devora solo globos con **fracciones equivalentes** al objetivo.</li>
+                                        <li>⌨️ Dirige con el **ratón** o con las teclas **W A S D / Flechas** (movimiento constante).</li>
+                                        <li>⚡ Haz **click / barra espaciadora** para acelerar (Boost) consumiendo cola.</li>
+                                        <li>💣 Evita chocar contra los enemigos IA y las **bombas flotantes**.</li>
+                                        <li>💥 Chocar o tragar una bomba resta **1 vida** y te resetea al centro. Tienes **3 vidas**.</li>
+                                    </ul>
+                                </div>
+                                <button id="btn-start-slider-game" class="btn btn-primary btn-large">¡Entrar!</button>
+                            </div>
+                        </div>
+                        <canvas id="slider-canvas" width="500" height="400"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANTALLA 5: JUEGO 4 - MATH SUDOKU (SODOCU 9x9) -->
+        <section id="screen-sudoku" class="screen hidden">
+            <div class="game-layout">
+                <div class="game-sidebar card">
+                    <h2>🔢 Sodocu Algebraico 9x9</h2>
+                    <p class="game-desc" id="sudoku-instruction-text">Resuelve las variables algebraicas del lateral, y rellena la cuadrícula de 9x9. ¡Cuidado con cometer errores!</p>
+                    
+                    <div class="lives-display-panel">
+                        <span class="panel-label">Vidas (Errores):</span>
+                        <div class="hearts-container" id="sudoku-hearts-box">
+                            ❤️ ❤️ ❤️
+                        </div>
+                    </div>
+
+                    <div class="equation-panel">
+                        <span class="equation-label">Sistemas Claves (LaTeX):</span>
+                        <div id="sudoku-clues-box" class="equation-box" style="font-size: 0.95rem; line-height: 1.3; text-align: left; background: var(--color-bg); font-family: var(--font-primary);">
+                        </div>
+                    </div>
+
+                    <button id="btn-use-hint-sudoku" class="btn btn-secondary w-100 btn-use-hint" style="margin-bottom: 10px;">
+                        💡 Usar Pista (Mochila)
+                    </button>
+
+                    <button id="btn-restart-sudoku" class="btn btn-accent w-100">Reiniciar</button>
+                </div>
+
+                <div class="game-canvas-area card">
+                    <div class="sudoku-container">
+                        <div id="sudoku-overlay" class="game-overlay">
+                            <div class="overlay-content">
+                                <h3>Sodocu 9x9 de Variables 🔢</h3>
+                                <div id="sudoku-overlay-instructions" class="rules-explanation-box">
+                                    <h4>📜 Reglas de Sodocu 9x9:</h4>
+                                    <ul>
+                                        <li>🧮 Despeja las variables algebraicas del panel lateral ($a, b, c, d, e$).</li>
+                                        <li>📋 Haz clic en las celdas con letras e introduce sus valores correctos.</li>
+                                        <li>🔢 Completa el Sudoku 9x9 con números del 1 al 9.</li>
+                                        <li>💥 Cada número incorrecto se pintará de **rojo neón**, sonará una alerta y restará **1 vida**.</li>
+                                    </ul>
+                                </div>
+                                <button id="btn-start-sudoku-game" class="btn btn-primary btn-large">¡Resolver!</button>
+                            </div>
+                        </div>
+
+                        <!-- Tablero de Sudoku 9x9 -->
+                        <div class="sudoku-board-9x9" id="sudoku-board-grid"></div>
+
+                        <!-- Teclado Numérico 1-9 -->
+                        <div class="sudoku-numpad-9x9">
+                            <button class="sudoku-num-btn" data-num="1">1</button>
+                            <button class="sudoku-num-btn" data-num="2">2</button>
+                            <button class="sudoku-num-btn" data-num="3">3</button>
+                            <button class="sudoku-num-btn" data-num="4">4</button>
+                            <button class="sudoku-num-btn" data-num="5">5</button>
+                            <button class="sudoku-num-btn" data-num="6">6</button>
+                            <button class="sudoku-num-btn" data-num="7">7</button>
+                            <button class="sudoku-num-btn" data-num="8">8</button>
+                            <button class="sudoku-num-btn" data-num="9">9</button>
+                            <button class="sudoku-num-btn btn-clear-9x9" id="btn-sudoku-clear">Borrar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANTALLA 6: JUEGO 5 - EL AHORCADO -->
+        <section id="screen-ahorcado" class="screen hidden">
+            <div class="game-layout">
+                <div class="game-sidebar card">
+                    <h2>🪓 Ahorcado de Conceptos</h2>
+                    <p class="game-desc">Adivina la palabra geométrica o algebraica con la ayuda de la adivinanza de Mateo.</p>
+                    
+                    <div class="lives-display-panel">
+                        <span class="panel-label">Vidas (Intentos):</span>
+                        <div class="hearts-container" id="ahorcado-hearts-box">
+                            ❤️ ❤️ ❤️ ❤️ ❤️ ❤️
+                        </div>
+                    </div>
+
+                    <div class="equation-panel">
+                        <span class="equation-label">Riddle / Adivinanza:</span>
+                        <div id="ahorcado-hint" class="equation-box" style="font-size: 1rem; line-height: 1.4; max-height: 140px; overflow-y: auto;">
+                            Cargando adivinanza...
+                        </div>
+                    </div>
+
+                    <button id="btn-use-hint-ahorcado" class="btn btn-secondary w-100 btn-use-hint" style="margin-bottom: 10px;">
+                        💡 Usar Pista (Mochila)
+                    </button>
+
+                    <button id="btn-restart-ahorcado" class="btn btn-accent w-100">Siguiente Concepto</button>
+                </div>
+
+                <div class="game-canvas-area card">
+                    <div class="ahorcado-container">
+                        <div id="ahorcado-overlay" class="game-overlay">
+                            <div class="overlay-content">
+                                <h3>Hangman de Primaria 🪓</h3>
+                                <div id="ahorcado-overlay-instructions" class="rules-explanation-box">
+                                    <h4>📜 Reglas de Ahorcado:</h4>
+                                    <ul>
+                                        <li>📝 Lee la adivinanza de Mateo en el panel.</li>
+                                        <li>🔤 Elige letras en el teclado para completar la palabra secreta.</li>
+                                        <li>💥 Cada letra fallada dibuja una parte del ahorcado y resta **1 vida**. Tienes **6 vidas**.</li>
+                                    </ul>
+                                </div>
+                                <button id="btn-start-ahorcado-game" class="btn btn-primary btn-large">¡Iniciar Ahorcado!</button>
+                            </div>
+                        </div>
+
+                        <!-- Canvas de Horca -->
+                        <canvas id="ahorcado-canvas" width="200" height="150"></canvas>
+
+                        <!-- Slots -->
+                        <div class="ahorcado-word-display" id="ahorcado-word-slots"></div>
+
+                        <!-- Teclado -->
+                        <div class="ahorcado-keyboard" id="ahorcado-virtual-keyboard"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANTALLA 7: JUEGO 6 - BALANZA LÓGICA -->
+        <section id="screen-balanza" class="screen hidden">
+            <div class="game-layout">
+                <div class="game-sidebar card">
+                    <h2>⚖️ Balanza Lógica</h2>
+                    <p class="game-desc">Encuentra el valor de la figura incógnita observando el equilibrio y las pistas del panel.</p>
+                    
+                    <div class="lives-display-panel">
+                        <span class="panel-label">Vidas (Corazones):</span>
+                        <div class="hearts-container" id="balanza-hearts-box">
+                            ❤️ ❤️ ❤️
+                        </div>
+                    </div>
+
+                    <div class="equation-panel">
+                        <span class="equation-label">Reto de Mateo:</span>
+                        <div id="balanza-hint-riddle" class="equation-box" style="font-size: 0.9rem; line-height: 1.4; text-align: left; background: var(--color-bg); font-family: var(--font-primary); max-height: 150px; overflow-y: auto;">
+                            Cargando reto...
+                        </div>
+                    </div>
+
+                    <button id="btn-restart-balanza" class="btn btn-accent w-100">Reiniciar Nivel</button>
+                </div>
+
+                <div class="game-canvas-area card">
+                    <div class="canvas-container">
+                        <div id="balanza-overlay" class="game-overlay">
+                            <div class="overlay-content">
+                                <h3>Balanza de Mateo ⚖️</h3>
+                                <div id="balanza-overlay-instructions" class="rules-explanation-box">
+                                    <h4>📜 Reglas de la Balanza:</h4>
+                                    <ul>
+                                        <li>🧮 Analiza los platillos de la balanza en el Canvas.</li>
+                                        <li>💡 Combina las pistas del panel para deducir el peso de la figura.</li>
+                                        <li>🔘 Presiona la opción correcta en la parte inferior.</li>
+                                        <li>💥 Cada fallo desequilibra la balanza y te resta 1 vida.</li>
+                                    </ul>
+                                </div>
+                                <button id="btn-start-balanza-game" class="btn btn-primary btn-large">¡Resolver!</button>
+                            </div>
+                        </div>
+                        <canvas id="balanza-canvas" width="400" height="300"></canvas>
+                    </div>
+
+                    <!-- Panel de Opciones de Respuesta -->
+                    <div class="balanza-options-container" style="margin-top: 20px; width: 100%; max-width: 320px;">
+                        <h4 style="text-align: center; margin-bottom: 10px; font-family: var(--font-heading);">Elige tu respuesta:</h4>
+                        <div class="modal-options-grid" id="balanza-options-box">
+                            <!-- Botones dinámicos inyectados por balanza.js -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal General de Diálogos con Mateo / Desafíos de Potenciadores -->
+    <div id="math-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-mascot" id="modal-mascot-emoji">💡</div>
+            <h3 id="modal-title">¡Desafío Rápido!</h3>
+            <div class="modal-body">
+                <p id="modal-equation-prompt">Resuelve el acertijo algebraico:</p>
+                <div id="modal-equation" class="modal-equation-box">8 - 3 = ?</div>
+                
+                <div class="modal-options-grid" id="modal-options">
+                    <!-- Botones dinámicos de respuestas múltiples -->
+                </div>
+                <div id="modal-feedback" class="modal-feedback hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Pasarela de Pago VIP Premium (Monetización / Modelo de Negocio) -->
+    <div id="premium-buy-modal" class="modal-overlay hidden">
+        <div class="modal-card payment-modal-card">
+            <div class="modal-mascot">👑</div>
+            <h3>¡Pase VIP MathQuest Premium!</h3>
+            <p style="font-size:0.85rem; margin-bottom:15px; color:var(--color-text-muted);">
+                Desbloquea instantáneamente todos los 25 niveles de la plataforma, adquiere pistas ilimitadas y equipa aspectos exclusivos.
+            </p>
+            
+            <div class="payment-tabs">
+                <button id="payment-tab-card" class="payment-tab-btn active">💳 Tarjeta de Crédito</button>
+                <button id="payment-tab-coins" class="payment-tab-btn">🪙 10,000 MathCoins</button>
+            </div>
+
+            <!-- Formulario de Tarjeta -->
+            <div id="payment-form-card-view" class="payment-tab-content">
+                <div class="checkout-price-badge">$4.99 USD <span style="font-size:0.75rem; font-weight:normal;">/ Pago Único</span></div>
+                <form id="checkout-card-form" onsubmit="event.preventDefault();">
+                    <div class="form-group">
+                        <label>Número de Tarjeta</label>
+                        <input type="text" id="cc-number" placeholder="4111 2222 3333 4444" maxlength="19" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Expiración</label>
+                            <input type="text" id="cc-expiry" placeholder="MM/AA" maxlength="5" required>
+                        </div>
+                        <div class="form-group">
+                            <label>CVC (Seguridad)</label>
+                            <input type="text" id="cc-cvc" placeholder="123" maxlength="3" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre del Tarjetahabiente</label>
+                        <input type="text" id="cc-name" placeholder="Ej. Mateo Aventurero" required>
+                    </div>
+                    <button type="submit" id="btn-submit-payment-card" class="btn btn-primary w-100" style="margin-top:10px;">
+                        Comprar Pase VIP ($4.99)
+                    </button>
+                </form>
+            </div>
+
+            <!-- Canje por Monedas -->
+            <div id="payment-form-coins-view" class="payment-tab-content hidden">
+                <div class="checkout-price-badge">🪙 10,000 MathCoins</div>
+                <p style="font-size:0.8rem; margin:15px 0; color:var(--color-text-muted);">
+                    ¿Has estado practicando duro? Puedes canjear 10,000 de tus monedas ganadas por el pase Bypass VIP ilimitado gratis.
+                </p>
+                <div id="coins-checkout-status" style="font-weight:bold; margin-bottom:15px;"></div>
+                <button id="btn-submit-payment-coins" class="btn btn-equipped w-100">
+                    Canjear Pase VIP con Monedas
+                </button>
+            </div>
+
+            <div class="checkout-security-badges">
+                <span>🔒 Conexión segura SSL de 256-bits</span>
+                <div style="font-size: 0.65rem; color: var(--color-text-muted); margin-top:4px;">
+                    Esto es una simulación interactiva con fines educativos y de demostración comercial.
+                </div>
+            </div>
+            
+            <button id="btn-close-payment-modal" class="btn btn-secondary w-100" style="margin-top:12px;">
+                Cancelar / Volver
+            </button>
+        </div>
+    </div>
+
+    <!-- Motores del Juego y Controlador Central -->
+    <script src="app.js"></script>
+    <script src="snake.js"></script>
+    <script src="tetris.js"></script>
+    <script src="slider.js"></script>
+    <script src="sudoku.js"></script>
+    <script src="ahorcado.js"></script>
+    <script src="balanza.js"></script>
+</body>
+</html>
