@@ -19,7 +19,7 @@ const state = {
     equippedSkin: 'standard',
     equippedBadge: '',
     unlockedSkins: ['standard'],
-    unlockedLevels: ['snake-1', 'slider-1', 'tetris-1', 'sudoku-1', 'ahorcado-1', 'balanza-1'],
+    unlockedLevels: ['snake-1', 'slider-1', 'tetris-1', 'sudoku-1', 'ahorcado-1', 'tres-1'],
     
     // VIP Premium Monetización
     vipBypassPurchased: false,
@@ -50,7 +50,7 @@ function loadStateFromStorage() {
             state.equippedSkin = localStorage.getItem(STORAGE_PREFIX + 'equipped_skin') || 'standard';
             state.equippedBadge = localStorage.getItem(STORAGE_PREFIX + 'equipped_badge') || '';
             state.unlockedSkins = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'unlocked_skins')) || ['standard'];
-            state.unlockedLevels = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'unlocked_levels')) || ['snake-1', 'slider-1', 'tetris-1', 'sudoku-1', 'ahorcado-1', 'balanza-1'];
+            state.unlockedLevels = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'unlocked_levels')) || ['snake-1', 'slider-1', 'tetris-1', 'sudoku-1', 'ahorcado-1', 'tres-1'];
             state.vipBypassPurchased = localStorage.getItem(STORAGE_PREFIX + 'vip_bypass_purchased') === 'true';
 
             const savedInventory = localStorage.getItem(STORAGE_PREFIX + 'inventory');
@@ -536,7 +536,7 @@ window.equipSkin = function(key) {
 const MEDALS_CATALOG = [
     { key: 'algebra_medal', name: 'Medalla de Álgebra 🪐', desc: 'Otorgada al superar el Nivel 5 de Snake y Slither.', condition: () => state.unlockedLevels.includes('snake-5') && state.unlockedLevels.includes('slider-5') },
     { key: 'geometry_medal', name: 'Medalla Geométrica 📐', desc: 'Otorgada al superar el Nivel 5 de Math-Tetris.', condition: () => state.unlockedLevels.includes('tetris-5') },
-    { key: 'logic_medal', name: 'Medalla de la Lógica 🧠', desc: 'Otorgada al superar el Nivel 5 de Sudoku, Ahorcado y Balanza.', condition: () => state.unlockedLevels.includes('sudoku-5') && state.unlockedLevels.includes('ahorcado-5') && state.unlockedLevels.includes('balanza-5') },
+    { key: 'logic_medal', name: 'Medalla de la Lógica 🧠', desc: 'Otorgada al superar el Nivel 5 de Sudoku, Ahorcado y Tres en Raya.', condition: () => state.unlockedLevels.includes('sudoku-5') && state.unlockedLevels.includes('ahorcado-5') && state.unlockedLevels.includes('tres-5') },
     { key: 'champion_medal', name: 'Campeón MathQuest 🏅', desc: 'Completa absolutamente todos los 30 niveles de la plataforma.', condition: () => state.unlockedLevels.length >= 30 }
 ];
 
@@ -783,7 +783,7 @@ function activatePremiumVipPass() {
     state.vipBypassPurchased = true;
     
     // Desbloquear los 5 niveles de los 6 juegos
-    const games = ['snake', 'slider', 'tetris', 'sudoku', 'ahorcado', 'balanza'];
+    const games = ['snake', 'slider', 'tetris', 'sudoku', 'ahorcado', 'tres'];
     state.unlockedLevels = [];
     games.forEach(g => {
         for (let l = 1; l <= 5; l++) {
@@ -946,7 +946,7 @@ function launchGame(game, level, isCustom = false) {
     state.activeGameScreen = game;
     state.activeGameLevel = parseInt(level);
 
-    ['snake', 'tetris', 'slider', 'sudoku', 'ahorcado', 'balanza'].forEach(g => {
+    ['snake', 'tetris', 'slider', 'sudoku', 'ahorcado', 'tres'].forEach(g => {
         const el = document.getElementById(`screen-${g}`);
         if (el) el.classList.add('hidden');
     });
@@ -974,9 +974,9 @@ function launchGame(game, level, isCustom = false) {
         if (typeof window.startAhorcadoGame === 'function') {
             window.startAhorcadoGame(state.activeGameLevel);
         }
-    } else if (game === 'balanza') {
-        if (typeof window.startBalanzaGame === 'function') {
-            window.startBalanzaGame(state.activeGameLevel);
+    } else if (game === 'tres') {
+        if (typeof window.startTresGame === 'function') {
+            window.startTresGame(state.activeGameLevel);
         }
     }
 }
@@ -987,14 +987,14 @@ document.getElementById('btn-back-menu').addEventListener('click', () => {
     if (typeof window.stopAllGames === 'function') {
         window.stopAllGames();
     }
-    if (typeof window.stopBalanzaGame === 'function') {
-        window.stopBalanzaGame();
+    if (typeof window.stopTresGame === 'function') {
+        window.stopTresGame();
     }
 
     state.activeGameScreen = null;
     document.getElementById('btn-back-menu').classList.add('hidden');
     
-    ['snake', 'tetris', 'slider', 'sudoku', 'ahorcado', 'balanza'].forEach(g => {
+    ['snake', 'tetris', 'slider', 'sudoku', 'ahorcado', 'tres'].forEach(g => {
         const el = document.getElementById(`screen-${g}`);
         if (el) el.classList.add('hidden');
     });
@@ -1170,8 +1170,8 @@ hintButtons.forEach(btn => {
             hintUsed = window.useSudokuHint();
         } else if (state.activeGameScreen === 'ahorcado' && typeof window.useAhorcadoHint === 'function') {
             hintUsed = window.useAhorcadoHint();
-        } else if (state.activeGameScreen === 'balanza' && typeof window.useBalanzaHint === 'function') {
-            hintUsed = window.useBalanzaHint();
+        } else if (state.activeGameScreen === 'tres' && typeof window.useTresHint === 'function') {
+            hintUsed = window.useTresHint();
         }
 
         if (hintUsed) {

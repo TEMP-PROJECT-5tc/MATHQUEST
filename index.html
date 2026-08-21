@@ -349,31 +349,31 @@
                             <span class="path-node-tooltip">Ahorcado Lvl 5</span>
                         </div>
 
-                        <!-- Balanza Lógica Lvl 1-5 -->
-                        <div class="path-node node-reasoning node-pos-4 locked" data-game="balanza" data-level="1" title="Balanza Lógica - Nivel 1">
-                            <span class="path-node-icon">⚖️</span>
+                        <!-- Tres en Raya de Suma 15 Lvl 1-5 -->
+                        <div class="path-node node-reasoning node-pos-4 locked" data-game="tres" data-level="1" title="Tres en Raya 15 - Nivel 1">
+                            <span class="path-node-icon">❌</span>
                             <span class="path-node-badge">1</span>
-                            <span class="path-node-tooltip">Balanza Lvl 1</span>
+                            <span class="path-node-tooltip">Tres 15 Lvl 1</span>
                         </div>
-                        <div class="path-node node-reasoning node-pos-5 locked" data-game="balanza" data-level="2" title="Balanza Lógica - Nivel 2">
-                            <span class="path-node-icon">⚖️</span>
+                        <div class="path-node node-reasoning node-pos-5 locked" data-game="tres" data-level="2" title="Tres en Raya 15 - Nivel 2">
+                            <span class="path-node-icon">❌</span>
                             <span class="path-node-badge">2</span>
-                            <span class="path-node-tooltip">Balanza Lvl 2</span>
+                            <span class="path-node-tooltip">Tres 15 Lvl 2</span>
                         </div>
-                        <div class="path-node node-reasoning node-pos-0 locked" data-game="balanza" data-level="3" title="Balanza Lógica - Nivel 3">
-                            <span class="path-node-icon">⚖️</span>
+                        <div class="path-node node-reasoning node-pos-0 locked" data-game="tres" data-level="3" title="Tres en Raya 15 - Nivel 3">
+                            <span class="path-node-icon">❌</span>
                             <span class="path-node-badge">3</span>
-                            <span class="path-node-tooltip">Balanza Lvl 3</span>
+                            <span class="path-node-tooltip">Tres 15 Lvl 3</span>
                         </div>
-                        <div class="path-node node-reasoning node-pos-1 locked" data-game="balanza" data-level="4" title="Balanza Lógica - Nivel 4">
-                            <span class="path-node-icon">⚖️</span>
+                        <div class="path-node node-reasoning node-pos-1 locked" data-game="tres" data-level="4" title="Tres en Raya 15 - Nivel 4">
+                            <span class="path-node-icon">❌</span>
                             <span class="path-node-badge">4</span>
-                            <span class="path-node-tooltip">Balanza Lvl 4</span>
+                            <span class="path-node-tooltip">Tres 15 Lvl 4</span>
                         </div>
-                        <div class="path-node node-reasoning node-pos-2 locked" data-game="balanza" data-level="5" title="Balanza Lógica - Nivel 5 (Reto)">
-                            <span class="path-node-icon">⚖️</span>
+                        <div class="path-node node-reasoning node-pos-2 locked" data-game="tres" data-level="5" title="Tres en Raya 15 - Nivel 5 (Reto)">
+                            <span class="path-node-icon">❌</span>
                             <span class="path-node-badge">5</span>
-                            <span class="path-node-tooltip">Balanza Lvl 5</span>
+                            <span class="path-node-tooltip">Tres 15 Lvl 5</span>
                         </div>
                     </div>
                 </div>
@@ -751,55 +751,75 @@
             </div>
         </section>
 
-        <!-- PANTALLA 7: JUEGO 6 - BALANZA LÓGICA -->
-        <section id="screen-balanza" class="screen hidden">
+        <!-- PANTALLA 7: JUEGO 6 - TRES EN RAYA DE SUMA 15 -->
+        <section id="screen-tres" class="screen hidden">
             <div class="game-layout">
                 <div class="game-sidebar card">
-                    <h2>⚖️ Balanza Lógica</h2>
-                    <p class="game-desc">Encuentra el valor de la figura incógnita observando el equilibrio y las pistas del panel.</p>
+                    <h2>❌ Tres en Raya (Suma 15)</h2>
+                    <p class="game-desc">Coloca números del 1 al 9 por turnos contra Mateo. ¡Gana el primero que sume exactamente 15 alineando 3 celdas!</p>
                     
                     <div class="lives-display-panel">
                         <span class="panel-label">Vidas (Corazones):</span>
-                        <div class="hearts-container" id="balanza-hearts-box">
+                        <div class="hearts-container" id="tres-hearts-box">
                             ❤️ ❤️ ❤️
                         </div>
                     </div>
 
-                    <div class="equation-panel">
-                        <span class="equation-label">Reto de Mateo:</span>
-                        <div id="balanza-hint-riddle" class="equation-box" style="font-size: 0.9rem; line-height: 1.4; text-align: left; background: var(--color-bg); font-family: var(--font-primary); max-height: 150px; overflow-y: auto;">
-                            Cargando reto...
+                    <div class="turn-indicator-panel">
+                        <span class="panel-label">Estado de la partida:</span>
+                        <div id="tres-turn-indicator" class="equation-box" style="font-size: 1.1rem; background: var(--color-accent-blue); color: #ffffff;">
+                            ¡Tu turno! 🧑‍🎓
                         </div>
                     </div>
 
-                    <button id="btn-restart-balanza" class="btn btn-accent w-100">Reiniciar Nivel</button>
+                    <button id="btn-restart-tres" class="btn btn-accent w-100">Reiniciar Nivel</button>
                 </div>
 
                 <div class="game-canvas-area card">
-                    <div class="canvas-container">
-                        <div id="balanza-overlay" class="game-overlay">
+                    <div class="canvas-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;">
+                        <div id="tres-overlay" class="game-overlay">
                             <div class="overlay-content">
-                                <h3>Balanza de Mateo ⚖️</h3>
-                                <div id="balanza-overlay-instructions" class="rules-explanation-box">
-                                    <h4>📜 Reglas de la Balanza:</h4>
+                                <h3>Suma 15: Mateo 🤖 vs Tú 🧑‍🎓</h3>
+                                <div id="tres-overlay-instructions" class="rules-explanation-box">
+                                    <h4>📜 Reglas de Tres en Raya 15:</h4>
                                     <ul>
-                                        <li>🧮 Analiza los platillos de la balanza en el Canvas.</li>
-                                        <li>💡 Combina las pistas del panel para deducir el peso de la figura.</li>
-                                        <li>🔘 Presiona la opción correcta en la parte inferior.</li>
-                                        <li>💥 Cada fallo desequilibra la balanza y te resta 1 vida.</li>
+                                        <li>🔢 Elige un número del 1 al 9 de la fila inferior y colócalo en el tablero de 3x3.</li>
+                                        <li>💥 Cada número solo se puede usar **una sola vez** en la partida.</li>
+                                        <li>🎯 Gana el primero que logre alinear 3 casillas (fila, columna o diagonal) que sumen **exactamente 15**.</li>
+                                        <li>❌ Si pierdes, Mateo se alegra y te resta **1 vida** (y se aplican penalizaciones de Game Over).</li>
                                     </ul>
                                 </div>
-                                <button id="btn-start-balanza-game" class="btn btn-primary btn-large">¡Resolver!</button>
+                                <button id="btn-start-tres-game" class="btn btn-primary btn-large">¡Jugar!</button>
                             </div>
                         </div>
-                        <canvas id="balanza-canvas" width="400" height="300"></canvas>
-                    </div>
 
-                    <!-- Panel de Opciones de Respuesta -->
-                    <div class="balanza-options-container" style="margin-top: 20px; width: 100%; max-width: 320px;">
-                        <h4 style="text-align: center; margin-bottom: 10px; font-family: var(--font-heading);">Elige tu respuesta:</h4>
-                        <div class="modal-options-grid" id="balanza-options-box">
-                            <!-- Botones dinámicos inyectados por balanza.js -->
+                        <!-- Tablero 3x3 -->
+                        <div class="tic-tac-toe-board" id="tres-board">
+                            <div class="board-cell" data-index="0"></div>
+                            <div class="board-cell" data-index="1"></div>
+                            <div class="board-cell" data-index="2"></div>
+                            <div class="board-cell" data-index="3"></div>
+                            <div class="board-cell" data-index="4"></div>
+                            <div class="board-cell" data-index="5"></div>
+                            <div class="board-cell" data-index="6"></div>
+                            <div class="board-cell" data-index="7"></div>
+                            <div class="board-cell" data-index="8"></div>
+                        </div>
+
+                        <!-- Selector de Números del 1 al 9 -->
+                        <div class="numbers-selector-container" style="width: 100%; max-width: 360px;">
+                            <div class="numbers-selector-label" style="text-align: center; margin-bottom: 8px; font-weight: 800; font-size: 0.85rem; color: var(--color-text-muted);">Tus números disponibles:</div>
+                            <div class="numbers-selector-grid" id="tres-num-selector" style="display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px;">
+                                <button class="num-choice-btn" data-num="1">1</button>
+                                <button class="num-choice-btn" data-num="2">2</button>
+                                <button class="num-choice-btn" data-num="3">3</button>
+                                <button class="num-choice-btn" data-num="4">4</button>
+                                <button class="num-choice-btn" data-num="5">5</button>
+                                <button class="num-choice-btn" data-num="6">6</button>
+                                <button class="num-choice-btn" data-num="7">7</button>
+                                <button class="num-choice-btn" data-num="8">8</button>
+                                <button class="num-choice-btn" data-num="9">9</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -899,6 +919,6 @@
     <script src="slider.js"></script>
     <script src="sudoku.js"></script>
     <script src="ahorcado.js"></script>
-    <script src="balanza.js"></script>
+    <script src="tresenraya.js"></script>
 </body>
 </html>
