@@ -391,6 +391,10 @@ function awardCoins(isLevelCompletion, level) {
     state.coins += earned;
     state.stars += isLevelCompletion ? 3 : 1;
     
+    if (isLevelCompletion) {
+        activateStreakDay();
+    }
+
     if (state.stars % 5 === 0) {
         state.userLevel++;
     }
@@ -838,6 +842,11 @@ function updateHeaderStats() {
         badgeDisplay.innerText = state.equippedBadge || '';
         badgeDisplay.style.display = state.equippedBadge ? 'flex' : 'none';
     }
+
+    // Actualizar también el panel de calendario de racha si existe
+    if (typeof updateStreakCalendar === 'function') {
+        updateStreakCalendar();
+    }
 }
 
 function renderDuolingoPath() {
@@ -1178,7 +1187,9 @@ hintButtons.forEach(btn => {
 // --------------------------------------------------------------------------
 window.addEventListener('DOMContentLoaded', () => {
     loadStateFromStorage();
+    checkStreakValidity();
     updateHeaderStats();
+    updateStreakCalendar();
     renderDuolingoPath();
     setupHubTabNavigation();
     setupSettingsListeners();
@@ -1203,3 +1214,136 @@ window.MathQuestApp = {
     awardCoins,
     MathModal
 };
+
+// --------------------------------------------------------------------------
+// 16. Lógica de Rachas Diarias y Calendario Semanal
+// --------------------------------------------------------------------------
+function updateStreakCalendar() {
+    const today = new Date();
+    const currentDayOfWeek = today.getDay(); // 0 = Dom, 1 = Lun, ..., 6 = Sáb
+    const todayStr = today.toISOString().split('T')[0];
+
+    // Leer fechas de racha del almacenamiento
+    let streakDates = [];
+    try {
+        streakDates = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'streak_dates')) || [];
+    } catch(e){}
+
+    const todayCompleted = streakDates.includes(todayStr);
+
+    // Actualizar texto del mensaje del calendario
+    const msgEl = document.getElementById('streak-calendar-message');
+    if (msgEl) {
+        msgEl.innerHTML = todayCompleted 
+            ? "¡Racha asegurada por hoy! Llama encendida. Regresa mañana. 🔥" 
+            : "¡Completa un reto hoy para mantener la llama encendida! ⚡";
+    }
+
+    const countEl = document.getElementById('streak-days-count');
+    if (countEl) {
+        countEl.innerText = state.streak;
+    }
+
+    // Renderizar las celdas del calendario de lunes a domingo
+    const cells = document.querySelectorAll('.streak-day-cell');
+    cells.forEach(cell => {
+        const dayVal = parseInt(cell.getAttribute('data-day'));
+        cell.classList.remove('active', 'pending-today');
+
+        // Calcular si ese día de la semana corresponde a una fecha completada
+        const isDayCompleted = isDayInCurrentWeek(dayVal, streakDates);
+
+        if (isDayCompleted) {
+            cell.classList.add('active');
+        } else if (dayVal === currentDayOfWeek && !todayCompleted) {
+            cell.classList.add('pending-today');
+        }
+    });
+}
+
+function isDayInCurrentWeek(targetDayOfWeek, streakDates) {
+    const today = new Date();
+    const currentDayOfWeek = today.getDay();
+    
+    // Calcular el lunes de esta semana
+    const distanceToMonday = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + distanceToMonday);
+    
+    // Generar las 7 fechas de la semana actual (Lunes a Domingo)
+    const weekDates = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        weekDates.push(d.toISOString().split('T')[0]);
+    }
+
+    // El día de la semana buscado corresponde al índice en weekDates
+    // weekDates[0] = lunes, weekDates[1] = martes, ..., weekDates[5] = sábado, weekDates[6] = domingo
+    // Nota: targetDayOfWeek es: 1 = Lun, 2 = Mar, ..., 6 = Sáb, 0 = Dom
+    let index = targetDayOfWeek === 0 ? 6 : targetDayOfWeek - 1;
+    const dateToCheck = weekDates[index];
+
+    return streakDates.includes(dateToCheck);
+}
+
+function checkStreakValidity() {
+    const lastActive = localStorage.getItem(STORAGE_PREFIX + 'last_active_date');
+    if (lastActive) {
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        
+        // Crear fechas de comparación a mediodía
+        const lastDate = new Date(lastActive + 'T12:00:00');
+        const currDate = new Date(todayStr + 'T12:00:00');
+        const diffTime = currDate - lastDate;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays > 1) {
+            // Pasó más de un día sin actividad! Racha rota
+            state.streak = 1;
+            saveStateToStorage();
+        }
+    }
+}
+
+function activateStreakDay() {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
+    let streakDates = [];
+    try {
+        streakDates = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'streak_dates')) || [];
+    } catch(e){}
+
+    if (!streakDates.includes(todayStr)) {
+        const lastActive = localStorage.getItem(STORAGE_PREFIX + 'last_active_date');
+        
+        if (lastActive) {
+            const lastDate = new Date(lastActive + 'T12:00:00');
+            const currDate = new Date(todayStr + 'T12:00:00');
+            const diffTime = currDate - lastDate;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 1) {
+                state.streak++;
+            } else if (diffDays > 1) {
+                state.streak = 1;
+            }
+        } else {
+            state.streak = 1;
+        }
+
+        streakDates.push(todayStr);
+        localStorage.setItem(STORAGE_PREFIX + 'streak_dates', JSON.stringify(streakDates));
+        localStorage.setItem(STORAGE_PREFIX + 'last_active_date', todayStr);
+        
+        saveStateToStorage();
+        updateHeaderStats();
+        
+        if (state.streak >= 2) {
+            SoundEngine.playFanfare();
+            alert(`🔥 ¡Excelente! Racha asegurada: ¡${state.streak} días seguidos aprendiendo matemáticas!`);
+        }
+    }
+}

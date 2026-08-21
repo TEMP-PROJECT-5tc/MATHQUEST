@@ -1474,3 +1474,126 @@ body {
     transform: translateY(2px);
     box-shadow: 0 2px 0 var(--color-border);
 }
+
+/* --------------------------------------------------------------------------
+   Daily Streak Calendar Styles (Duolingo-style)
+   -------------------------------------------------------------------------- */
+.streak-calendar-card {
+    background: linear-gradient(135deg, var(--color-card) 0%, rgba(249, 115, 22, 0.04) 100%);
+    border-color: rgba(249, 115, 22, 0.25);
+    margin-bottom: 24px;
+}
+
+.streak-calendar-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 18px;
+}
+
+.streak-flame-icon {
+    font-size: 2.5rem;
+    filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.4));
+}
+
+.animated-pulse {
+    animation: flamePulse 1.5s infinite ease-in-out;
+}
+
+@keyframes flamePulse {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.4)); }
+    50% { transform: scale(1.1); filter: drop-shadow(0 0 15px rgba(249, 115, 22, 0.7)); }
+}
+
+.streak-info-text h3 {
+    font-family: var(--font-heading);
+    font-size: 1.3rem;
+    margin-bottom: 4px;
+}
+
+.accent-streak {
+    color: #f97316;
+    font-size: 1.6rem;
+    font-weight: 800;
+}
+
+.streak-info-text p {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.streak-days-grid {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--color-bg);
+    padding: 12px;
+    border-radius: var(--border-radius-medium);
+    border: 2px solid var(--color-border);
+}
+
+.streak-day-cell {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-card);
+    border: 2px solid var(--color-border);
+    border-radius: 12px;
+    padding: 8px 4px;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.streak-day-cell .day-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--color-text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+.streak-day-cell .day-flame {
+    font-size: 1.3rem;
+    filter: grayscale(1) opacity(0.25);
+    transition: filter 0.3s;
+}
+
+/* Días de racha activos */
+.streak-day-cell.active {
+    border-color: #f97316;
+    background: rgba(249, 115, 22, 0.08);
+    box-shadow: 0 0 10px rgba(249, 115, 22, 0.15);
+    transform: scale(1.05);
+}
+
+.streak-day-cell.active .day-flame {
+    filter: grayscale(0) opacity(1) drop-shadow(0 0 5px rgba(249, 115, 22, 0.5));
+    animation: flamePulse 2s infinite ease-in-out;
+}
+
+.streak-day-cell.active .day-label {
+    color: #f97316;
+}
+
+/* Día actual pendiente de jugar */
+.streak-day-cell.pending-today {
+    border-color: var(--color-accent-blue);
+    background: rgba(59, 130, 246, 0.05);
+    animation: borderGlowPulse 1.8s infinite ease-in-out;
+}
+
+.streak-day-cell.pending-today .day-flame {
+    filter: grayscale(1) opacity(0.6);
+    animation: bounceFlame 1.2s infinite ease-in-out;
+}
+
+@keyframes borderGlowPulse {
+    0%, 100% { border-color: var(--color-border); }
+    50% { border-color: var(--color-accent-blue); }
+}
+
+@keyframes bounceFlame {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
