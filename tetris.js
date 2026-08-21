@@ -33,12 +33,26 @@
     let level = 1;
     let targetSum = 10; // Meta matemática a sumar en línea
 
-    // Paleta neón de colores para los dígitos
-    const NUMBER_COLORS = {
-        1: '#ef4444', 2: '#f97316', 3: '#eab308', 4: '#22c55e',
-        5: '#14b8a6', 6: '#06b6d4', 7: '#3b82f6', 8: '#6366f1',
-        9: '#a855f7'
+    // Paleta neón de colores para los ángulos
+    const ANGLE_COLORS = {
+        15: '#f87171', 30: '#fb923c', 45: '#fbbf24', 60: '#a3e635',
+        75: '#4ade80', 90: '#2dd4bf', 120: '#38bdf8', 135: '#60a5fa',
+        150: '#818cf8', 180: '#a78bfa', 225: '#c084fc', 270: '#f472b6',
+        315: '#fb7185'
     };
+
+    function getRandomAngleForLevel(lvl) {
+        if (lvl === 1 || lvl === 2) {
+            const angles = [15, 30, 45, 60, 75];
+            return angles[Math.floor(Math.random() * angles.length)];
+        } else if (lvl === 3 || lvl === 4) {
+            const angles = [30, 45, 60, 90, 120, 135, 150];
+            return angles[Math.floor(Math.random() * angles.length)];
+        } else {
+            const angles = [45, 90, 135, 180, 225, 270, 315];
+            return angles[Math.floor(Math.random() * angles.length)];
+        }
+    }
 
     // --------------------------------------------------------------------------
     // A. Inicialización e Interfaz de Vidas
@@ -62,9 +76,9 @@
         isPlaying = false;
 
         // Establecer meta matemática según nivel
-        const targets = { 1: 10, 2: 12, 3: 15, 4: 18, 5: 20 };
-        targetSum = targets[level] || 10;
-        targetDesc.innerText = `Suma ${targetSum}`;
+        const targets = { 1: 90, 2: 90, 3: 180, 4: 180, 5: 360 };
+        targetSum = targets[level] || 90;
+        targetDesc.innerText = `Ángulo Meta: ${targetSum}°`;
 
         // Velocidad progresiva
         baseSpeed = Math.max(250, 1000 - (level * 130));
@@ -85,8 +99,8 @@
         currentPiece = null;
 
         overlay.classList.remove('hidden');
-        overlayTitle.innerText = `Suma-Tetris - Nivel ${level} 🧱`;
-        overlayText.innerHTML = `Suma exactamente <b>${targetSum}</b> en línea horizontal o vertical apilando bloques.<br>⌨️ Mueve con <b>A / D / S</b> o Flechas. Presiona <b>W</b> para cambiar el número.`;
+        overlayTitle.innerText = `Ángulos-Tetris - Nivel ${level} 📐`;
+        overlayText.innerHTML = `Suma exactamente <b>${targetSum}°</b> en línea horizontal o vertical apilando bloques de ángulos.<br>⌨️ Mueve con <b>A / D / S</b> o Flechas. Presiona <b>W</b> o Flecha Arriba para cambiar el ángulo.`;
         btnStart.innerText = "¡Empezar!";
 
         draw();
@@ -96,13 +110,8 @@
     // B. Creación y Movimiento de Bloques
     // --------------------------------------------------------------------------
     function spawnPiece() {
-        // Generar dígito aleatorio según dificultad
-        let minDigit = level >= 4 ? 2 : 1;
-        let maxDigit = 9;
-        if (level === 1) maxDigit = 7; // Más fácil de combinar
-
-        const value = Math.floor(Math.random() * (maxDigit - minDigit + 1)) + minDigit;
-        const color = NUMBER_COLORS[value] || '#6366f1';
+        const value = getRandomAngleForLevel(level);
+        const color = ANGLE_COLORS[value] || '#6366f1';
 
         currentPiece = {
             x: Math.floor(cols / 2),
@@ -151,19 +160,16 @@
         }
     }
 
-    // Cambiar número de la pieza activa (Reroll)
     function rerollPieceValue() {
         if (!isPlaying || !currentPiece) return;
         MathQuestApp.SoundEngine.playClick();
         
-        let minDigit = level >= 4 ? 2 : 1;
-        let maxDigit = level === 1 ? 7 : 9;
         let newVal = currentPiece.value;
         while (newVal === currentPiece.value) {
-            newVal = Math.floor(Math.random() * (maxDigit - minDigit + 1)) + minDigit;
+            newVal = getRandomAngleForLevel(level);
         }
         currentPiece.value = newVal;
-        currentPiece.color = NUMBER_COLORS[newVal] || '#6366f1';
+        currentPiece.color = ANGLE_COLORS[newVal] || '#6366f1';
         draw();
     }
 
@@ -422,12 +428,12 @@
         ctx.lineWidth = 1.5;
         ctx.strokeRect(x + 3, y + 3, cellSize - 6, cellSize - 6);
 
-        // Valor numérico
+        // Valor angular
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 15px Fredoka';
+        ctx.font = 'bold 11px Fredoka';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(val, x + cellSize/2, y + cellSize/2 + 1);
+        ctx.fillText(val + '°', x + cellSize/2, y + cellSize/2 + 1);
     }
 
     // --------------------------------------------------------------------------

@@ -104,7 +104,7 @@
     function spawnInitialElements() {
         // Comida
         foods = [];
-        for (let i = 0; i < 18; i++) {
+        for (let i = 0; i < 12; i++) {
             foods.push(spawnFoodBubble());
         }
 
@@ -163,13 +163,54 @@
             value = parseInt(parts[0]) / parseInt(parts[1]);
         }
 
+        // Buscar posición espaciada
+        let posX = 0, posY = 0;
+        let attempts = 0;
+        let tooClose = true;
+
+        while (tooClose && attempts < 25) {
+            posX = Math.random() * (canvas.width - 60) + 30;
+            posY = Math.random() * (canvas.height - 60) + 30;
+            tooClose = false;
+
+            // Evitar spawnear encima del jugador
+            const distToPlayer = Math.hypot(posX - player.x, posY - player.y);
+            if (distToPlayer < 90) {
+                tooClose = true;
+                attempts++;
+                continue;
+            }
+
+            // Evitar spawnear encima de otras burbujas (mantener separadas)
+            for (let j = 0; j < foods.length; j++) {
+                const other = foods[j];
+                const d = Math.hypot(posX - other.x, posY - other.y);
+                if (d < 70) {
+                    tooClose = true;
+                    break;
+                }
+            }
+
+            // Evitar spawnear encima de las bombas
+            for (let j = 0; j < bombs.length; j++) {
+                const b = bombs[j];
+                const d = Math.hypot(posX - b.x, posY - b.y);
+                if (d < 60) {
+                    tooClose = true;
+                    break;
+                }
+            }
+
+            attempts++;
+        }
+
         return {
-            x: Math.random() * (canvas.width - 30) + 15,
-            y: Math.random() * (canvas.height - 30) + 15,
+            x: posX,
+            y: posY,
             text,
             value,
             isCorrect,
-            radius: 11, // Reducido de 16 a 11
+            radius: 18, // Aumentado de 11 a 18 para mayor visibilidad
             color: '#6366f1', // Todos del mismo color para evitar spoiler
             hintHighlighted: false
         };
@@ -228,7 +269,7 @@
                 text: currentChallenge.equivalents[0],
                 value: currentChallenge.targetVal,
                 isCorrect: true,
-                radius: 7, // Reducido de 10 a 7
+                radius: 12, // Aumentado a 12 para visibilidad
                 color: '#6366f1', // Color uniforme
                 hintHighlighted: false
             });
@@ -512,7 +553,7 @@
 
             // Texto numérico fraccionario
             ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 9px Fredoka';
+            ctx.font = 'bold 12px Fredoka';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(f.text, f.x, f.y);
@@ -593,6 +634,20 @@
         });
         
         ctx.restore();
+
+        // Si es invulnerable, dibujar anillo protector encima
+        if (isInvulnerable) {
+            ctx.save();
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#3b82f6';
+            ctx.strokeStyle = '#60a5fa';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius + 10, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
+
         ctx.shadowBlur = 0;
     }
 
