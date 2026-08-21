@@ -51,6 +51,13 @@ function loadStateFromStorage() {
             state.equippedBadge = localStorage.getItem(STORAGE_PREFIX + 'equipped_badge') || '';
             state.unlockedSkins = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'unlocked_skins')) || ['standard'];
             state.unlockedLevels = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'unlocked_levels')) || ['snake-1', 'slider-1', 'tetris-1', 'sudoku-1', 'ahorcado-1', 'tres-1'];
+            
+            // Migrar niveles viejos de balanza a tres para no bloquear al usuario
+            state.unlockedLevels = state.unlockedLevels.map(lvl => lvl.replace('balanza-', 'tres-'));
+            if (!state.unlockedLevels.includes('tres-1')) {
+                state.unlockedLevels.push('tres-1');
+            }
+
             state.vipBypassPurchased = localStorage.getItem(STORAGE_PREFIX + 'vip_bypass_purchased') === 'true';
 
             const savedInventory = localStorage.getItem(STORAGE_PREFIX + 'inventory');
