@@ -37,6 +37,11 @@ const state = {
     activeGameLevel: 1      // Nivel activo del juego (1 al 5)
 };
 
+// Asignar al objeto global temprano para máxima compatibilidad
+window.state = state;
+window.MathQuestApp = window.MathQuestApp || {};
+window.MathQuestApp.state = state;
+
 // Prefijo para LocalStorage
 const STORAGE_PREFIX = 'mq3_';
 
@@ -1792,12 +1797,6 @@ function initMathQuestApp() {
     }
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initMathQuestApp);
-} else {
-    initMathQuestApp();
-}
-
 // Exportar funciones útiles a nivel global
 window.state = state;
 window.SoundEngine = SoundEngine;
@@ -1829,3 +1828,9 @@ window.MathQuestApp = {
     activateStreakDay,
     updateStreakCalendar
 };
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMathQuestApp);
+} else {
+    initMathQuestApp();
+}
