@@ -15,11 +15,14 @@ const state = {
     globalHints: 2,
     userLevel: 1,
     soundEnabled: true,
+    musicEnabled: true,
+    musicVolume: 0.4,
+    musicTrack: 'adventure',
     equippedAvatar: 'cubo',
     equippedSkin: 'standard',
     equippedBadge: '',
     unlockedSkins: ['standard'],
-    unlockedLevels: ['snake-1', 'slider-1', 'tetris-1', 'sudoku-1', 'ahorcado-1', 'tres-1'],
+    unlockedLevels: ['snake-1', 'slider-1', 'tetris-1', 'arkanoid-1', 'sudoku-1', 'ahorcado-1', 'tres-1'],
     
     // VIP Premium Monetización
     vipBypassPurchased: false,
@@ -46,16 +49,28 @@ function loadStateFromStorage() {
             state.globalHints = parseInt(localStorage.getItem(STORAGE_PREFIX + 'global_hints'));
             state.userLevel = parseInt(localStorage.getItem(STORAGE_PREFIX + 'user_level'));
             state.soundEnabled = localStorage.getItem(STORAGE_PREFIX + 'sound_enabled') === 'true';
+            
+            if (localStorage.getItem(STORAGE_PREFIX + 'music_enabled') !== null) {
+                state.musicEnabled = localStorage.getItem(STORAGE_PREFIX + 'music_enabled') === 'true';
+            }
+            if (localStorage.getItem(STORAGE_PREFIX + 'music_volume') !== null) {
+                state.musicVolume = parseFloat(localStorage.getItem(STORAGE_PREFIX + 'music_volume'));
+            }
+            state.musicTrack = localStorage.getItem(STORAGE_PREFIX + 'music_track') || 'adventure';
+
             state.equippedAvatar = localStorage.getItem(STORAGE_PREFIX + 'equipped_avatar') || 'cubo';
             state.equippedSkin = localStorage.getItem(STORAGE_PREFIX + 'equipped_skin') || 'standard';
             state.equippedBadge = localStorage.getItem(STORAGE_PREFIX + 'equipped_badge') || '';
             state.unlockedSkins = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'unlocked_skins')) || ['standard'];
-            state.unlockedLevels = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'unlocked_levels')) || ['snake-1', 'slider-1', 'tetris-1', 'sudoku-1', 'ahorcado-1', 'tres-1'];
+            state.unlockedLevels = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'unlocked_levels')) || ['snake-1', 'slider-1', 'tetris-1', 'arkanoid-1', 'sudoku-1', 'ahorcado-1', 'tres-1'];
             
             // Migrar niveles viejos de balanza a tres para no bloquear al usuario
             state.unlockedLevels = state.unlockedLevels.map(lvl => lvl.replace('balanza-', 'tres-'));
             if (!state.unlockedLevels.includes('tres-1')) {
                 state.unlockedLevels.push('tres-1');
+            }
+            if (!state.unlockedLevels.includes('arkanoid-1')) {
+                state.unlockedLevels.push('arkanoid-1');
             }
 
             state.vipBypassPurchased = localStorage.getItem(STORAGE_PREFIX + 'vip_bypass_purchased') === 'true';
@@ -82,6 +97,9 @@ function saveStateToStorage() {
         localStorage.setItem(STORAGE_PREFIX + 'global_hints', state.globalHints);
         localStorage.setItem(STORAGE_PREFIX + 'user_level', state.userLevel);
         localStorage.setItem(STORAGE_PREFIX + 'sound_enabled', state.soundEnabled);
+        localStorage.setItem(STORAGE_PREFIX + 'music_enabled', state.musicEnabled);
+        localStorage.setItem(STORAGE_PREFIX + 'music_volume', state.musicVolume);
+        localStorage.setItem(STORAGE_PREFIX + 'music_track', state.musicTrack);
         localStorage.setItem(STORAGE_PREFIX + 'equipped_avatar', state.equippedAvatar);
         localStorage.setItem(STORAGE_PREFIX + 'equipped_skin', state.equippedSkin);
         localStorage.setItem(STORAGE_PREFIX + 'equipped_badge', state.equippedBadge);
@@ -95,7 +113,7 @@ function saveStateToStorage() {
 }
 
 // --------------------------------------------------------------------------
-// 2. Motor de Audio Sintetizado (Web Audio API)
+// 2. Motor de Audio Sintetizado (Web Audio API) y Banda Sonora Procedural
 // --------------------------------------------------------------------------
 const SoundEngine = {
     ctx: null,
@@ -103,6 +121,9 @@ const SoundEngine = {
     init() {
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
         }
     },
 
@@ -203,6 +224,356 @@ const SoundEngine = {
                 this.playTone(freq, 'sine', 0.35, 0.2);
             }, idx * 100);
         });
+    }
+};
+
+// --------------------------------------------------------------------------
+// 2.1 Motor de Música de Fondo (Music Engine) - Sintetizador Web Audio
+// --------------------------------------------------------------------------
+const NOTE_FREQS = {
+    C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.00, A3: 220.00, B3: 246.94,
+    C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.00, A4: 440.00, B4: 493.88,
+    C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880.00, B5: 987.77,
+    C6: 1046.50, D6: 1174.66, E6: 1318.51, G6: 1567.98
+};
+
+const MusicEngine = {
+    masterGain: null,
+    isPlaying: false,
+    timerId: null,
+    currentStep: 0,
+    nextNoteTime: 0,
+    tempo: 116,
+    ducked: false,
+
+    init() {
+        SoundEngine.init();
+        if (!this.masterGain && SoundEngine.ctx) {
+            this.masterGain = SoundEngine.ctx.createGain();
+            this.masterGain.gain.setValueAtTime(state.musicEnabled ? state.musicVolume : 0, SoundEngine.ctx.currentTime);
+            this.masterGain.connect(SoundEngine.ctx.destination);
+        }
+    },
+
+    start() {
+        if (this.isPlaying) return;
+        this.init();
+        if (!SoundEngine.ctx) return;
+
+        this.isPlaying = true;
+        this.currentStep = 0;
+        this.nextNoteTime = SoundEngine.ctx.currentTime + 0.05;
+        this.applyVolume();
+
+        if (this.timerId) clearInterval(this.timerId);
+        this.timerId = setInterval(() => this.scheduleLoop(), 25);
+        this.updateUiState();
+    },
+
+    stop() {
+        this.isPlaying = false;
+        if (this.timerId) {
+            clearInterval(this.timerId);
+            this.timerId = null;
+        }
+        this.updateUiState();
+    },
+
+    toggle() {
+        state.musicEnabled = !state.musicEnabled;
+        if (state.musicEnabled) {
+            this.start();
+        } else {
+            this.applyVolume();
+        }
+        saveStateToStorage();
+        this.updateUiState();
+    },
+
+    setVolume(vol) {
+        state.musicVolume = Math.max(0, Math.min(1, vol));
+        this.applyVolume();
+        saveStateToStorage();
+    },
+
+    setTrack(trackKey) {
+        state.musicTrack = trackKey;
+        this.currentStep = 0;
+        if (trackKey === 'lofi') this.tempo = 88;
+        else if (trackKey === 'arcade') this.tempo = 132;
+        else this.tempo = 116;
+        saveStateToStorage();
+    },
+
+    duck() {
+        this.ducked = true;
+        this.applyVolume();
+    },
+
+    unduck() {
+        this.ducked = false;
+        this.applyVolume();
+    },
+
+    applyVolume() {
+        if (!this.masterGain || !SoundEngine.ctx) return;
+        const targetVol = !state.musicEnabled 
+            ? 0 
+            : (this.ducked ? state.musicVolume * 0.15 : state.musicVolume);
+        
+        try {
+            this.masterGain.gain.setTargetAtTime(targetVol, SoundEngine.ctx.currentTime, 0.15);
+        } catch (e) {}
+    },
+
+    updateUiState() {
+        const toggleBtn = document.getElementById('btn-music-toggle');
+        const toggleIcon = document.getElementById('music-toggle-icon');
+        const settingsToggleBtn = document.getElementById('btn-toggle-music');
+        const volumeDisplay = document.getElementById('music-volume-display');
+        const volumeSlider = document.getElementById('music-volume-slider');
+        const trackSelect = document.getElementById('music-track-select');
+
+        const isActuallyActive = state.musicEnabled && this.isPlaying;
+
+        if (toggleBtn) {
+            if (isActuallyActive) {
+                toggleBtn.classList.add('playing');
+                toggleBtn.title = "Música de Fondo: ACTIVADA (Clic para Silenciar)";
+            } else {
+                toggleBtn.classList.remove('playing');
+                toggleBtn.title = "Música de Fondo: SILENCIADA (Clic para Activar)";
+            }
+        }
+
+        if (toggleIcon) {
+            toggleIcon.innerText = state.musicEnabled ? "🎵" : "🔇";
+        }
+
+        if (settingsToggleBtn) {
+            settingsToggleBtn.innerText = state.musicEnabled ? "Música: ACTIVA" : "Música: SILENCIADA";
+            settingsToggleBtn.className = state.musicEnabled ? "btn btn-primary" : "btn btn-secondary";
+        }
+
+        if (volumeDisplay) {
+            volumeDisplay.innerText = Math.round(state.musicVolume * 100) + '%';
+        }
+
+        if (volumeSlider) {
+            volumeSlider.value = Math.round(state.musicVolume * 100);
+        }
+
+        if (trackSelect) {
+            trackSelect.value = state.musicTrack;
+        }
+    },
+
+    scheduleLoop() {
+        if (!this.isPlaying || !SoundEngine.ctx) return;
+
+        const secondsPerStep = (60 / this.tempo) / 4; // 16th note subdivision
+        const lookAheadTime = SoundEngine.ctx.currentTime + 0.1;
+
+        while (this.nextNoteTime < lookAheadTime) {
+            this.playStep(this.currentStep, this.nextNoteTime, secondsPerStep);
+            this.nextNoteTime += secondsPerStep;
+            this.currentStep = (this.currentStep + 1) % 64; // 4 compases de 16 pasos = 64 pasos
+        }
+    },
+
+    playStep(step, time, stepDuration) {
+        if (!this.masterGain) return;
+        const track = state.musicTrack || 'adventure';
+
+        if (track === 'adventure') {
+            this.playAdventurePattern(step, time, stepDuration);
+        } else if (track === 'lofi') {
+            this.playLofiPattern(step, time, stepDuration);
+        } else {
+            this.playArcadePattern(step, time, stepDuration);
+        }
+    },
+
+    // 1. PISTA: Aventura Matemática (Upbeat, Flute-Lead & Arpeggios)
+    playAdventurePattern(step, time, stepDuration) {
+        // Melodía Lead Principal (Voz dulce y alegre de flauta/campana)
+        const melodyMap = {
+            0: 'C5', 3: 'E5', 6: 'G5', 8: 'A5', 12: 'G5', 14: 'E5',
+            16: 'D5', 19: 'F5', 22: 'A5', 24: 'B5', 28: 'A5', 30: 'F5',
+            32: 'E5', 35: 'G5', 38: 'C6', 40: 'D6', 44: 'C6', 46: 'G5',
+            48: 'A5', 50: 'B5', 52: 'C6', 56: 'D6', 60: 'G5', 62: 'B5'
+        };
+
+        if (melodyMap[step]) {
+            this.triggerSynthVoice(NOTE_FREQS[melodyMap[step]], 'triangle', time, stepDuration * 2.2, 0.18, true);
+        }
+
+        // Arpegio Mágico de Fondo (16avos)
+        const chordProgressions = [
+            ['C4', 'E4', 'G4', 'C5'], // Compás 1: C
+            ['G3', 'B3', 'D4', 'G4'], // Compás 2: G
+            ['A3', 'C4', 'E4', 'A4'], // Compás 3: Am
+            ['F3', 'A3', 'C4', 'F4']  // Compás 4: F
+        ];
+        const bar = Math.floor(step / 16);
+        const subStep = step % 16;
+        const currentChord = chordProgressions[bar % 4];
+        const noteName = currentChord[subStep % 4];
+        
+        if (subStep % 2 === 0 && Math.random() > 0.08) {
+            this.triggerSynthVoice(NOTE_FREQS[noteName], 'sine', time, stepDuration * 0.9, 0.08, false);
+        }
+
+        // Línea de Bajo (Caminata rítmica suave)
+        const bassMap = {
+            0: 'C3', 8: 'G3', 16: 'G3', 24: 'D3', 32: 'A3', 40: 'E3', 48: 'F3', 56: 'G3'
+        };
+        if (bassMap[step]) {
+            this.triggerSynthVoice(NOTE_FREQS[bassMap[step]], 'triangle', time, stepDuration * 3.5, 0.22, false);
+        }
+
+        // Percusión suave sintetizada (Clicks / Hats)
+        if (step % 8 === 4) {
+            this.triggerNoiseClick(time, 0.03, 0.04);
+        } else if (step % 4 === 0) {
+            this.triggerNoiseClick(time, 0.015, 0.02);
+        }
+    },
+
+    // 2. PISTA: Concentración & Lo-Fi (Calmante, acordes suaves)
+    playLofiPattern(step, time, stepDuration) {
+        // Acordes sostenidos tipo Rhodes / Pad
+        const lofiChords = [
+            ['C4', 'E4', 'G4', 'B4'], // Cmaj7
+            ['A3', 'C4', 'E4', 'G4'], // Am7
+            ['D4', 'F4', 'A4', 'C5'], // Dm7
+            ['G3', 'B3', 'D4', 'F4']  // G7
+        ];
+        const bar = Math.floor(step / 16);
+        const subStep = step % 16;
+
+        if (subStep === 0 || subStep === 8) {
+            const chord = lofiChords[bar % 4];
+            chord.forEach(n => {
+                this.triggerSynthVoice(NOTE_FREQS[n], 'sine', time, stepDuration * 6.5, 0.06, false);
+            });
+        }
+
+        // Melodía suave pensativa
+        const lofiMelody = {
+            4: 'E5', 10: 'D5', 14: 'C5',
+            20: 'G5', 26: 'E5',
+            36: 'F5', 42: 'A5', 46: 'G5',
+            52: 'D5', 58: 'C5'
+        };
+        if (lofiMelody[step]) {
+            this.triggerSynthVoice(NOTE_FREQS[lofiMelody[step]], 'sine', time, stepDuration * 3.0, 0.12, true);
+        }
+
+        // Bajo profundo y cálido
+        if (subStep === 0) {
+            const bassRoots = ['C3', 'A3', 'D3', 'G3'];
+            this.triggerSynthVoice(NOTE_FREQS[bassRoots[bar % 4]], 'sine', time, stepDuration * 7.0, 0.25, false);
+        }
+    },
+
+    // 3. PISTA: Chiptune Arcade (Retro 8-bit con arpegios rápidos)
+    playArcadePattern(step, time, stepDuration) {
+        const arcadeLead = {
+            0: 'C5', 4: 'G5', 8: 'C6', 12: 'G5',
+            16: 'B4', 20: 'D5', 24: 'G5', 28: 'D5',
+            32: 'A4', 36: 'C5', 40: 'E5', 44: 'A5',
+            48: 'F4', 52: 'A4', 56: 'C5', 60: 'E5'
+        };
+
+        if (arcadeLead[step]) {
+            this.triggerSynthVoice(NOTE_FREQS[arcadeLead[step]], 'square', time, stepDuration * 1.8, 0.10, true);
+        }
+
+        // Arpegio rápido 8-bit
+        const baseFreqs = [NOTE_FREQS.C4, NOTE_FREQS.E4, NOTE_FREQS.G4, NOTE_FREQS.B4];
+        const arpeggioNote = baseFreqs[step % 4];
+        this.triggerSynthVoice(arpeggioNote, 'square', time, stepDuration * 0.5, 0.05, false);
+
+        // Bajo saltarín
+        if (step % 4 === 0) {
+            const roots = ['C3', 'G3', 'A3', 'F3'];
+            const bar = Math.floor(step / 16);
+            this.triggerSynthVoice(NOTE_FREQS[roots[bar % 4]], 'triangle', time, stepDuration * 1.5, 0.22, false);
+        }
+    },
+
+    // Generador de Voz de Sintetizador con Envolvente ADSR
+    triggerSynthVoice(freq, type, startTime, duration, peakVol, withVibrato) {
+        if (!SoundEngine.ctx || !this.masterGain || !freq) return;
+
+        try {
+            const osc = SoundEngine.ctx.createOscillator();
+            const gain = SoundEngine.ctx.createGain();
+            const filter = SoundEngine.ctx.createBiquadFilter();
+
+            osc.type = type || 'sine';
+            osc.frequency.setValueAtTime(freq, startTime);
+
+            // Vibrato sutil para melodías expresivas
+            if (withVibrato) {
+                const lfo = SoundEngine.ctx.createOscillator();
+                const lfoGain = SoundEngine.ctx.createGain();
+                lfo.frequency.value = 5.5; // 5.5 Hz vibrato
+                lfoGain.gain.value = freq * 0.015;
+                lfo.connect(osc.frequency);
+                lfo.start(startTime + 0.05);
+                lfo.stop(startTime + duration);
+            }
+
+            // Filtro cálido para evitar frecuencias chirriantes
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(type === 'square' ? 1800 : 3200, startTime);
+
+            // Envolvente de volumen (Attack suave, Decay y Release exponencial)
+            gain.gain.setValueAtTime(0.0001, startTime);
+            gain.gain.linearRampToValueAtTime(peakVol, startTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        } catch (e) {}
+    },
+
+    // Generador de Percusión de Ruido Blanco
+    triggerNoiseClick(startTime, duration, volume) {
+        if (!SoundEngine.ctx || !this.masterGain) return;
+
+        try {
+            const bufferSize = SoundEngine.ctx.sampleRate * duration;
+            const buffer = SoundEngine.ctx.createBuffer(1, bufferSize, SoundEngine.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+
+            const noise = SoundEngine.ctx.createBufferSource();
+            noise.buffer = buffer;
+
+            const filter = SoundEngine.ctx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.setValueAtTime(4000, startTime);
+
+            const gain = SoundEngine.ctx.createGain();
+            gain.gain.setValueAtTime(volume, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+
+            noise.start(startTime);
+            noise.stop(startTime + duration);
+        } catch (e) {}
     }
 };
 
@@ -543,8 +914,9 @@ window.equipSkin = function(key) {
 const MEDALS_CATALOG = [
     { key: 'algebra_medal', name: 'Medalla de Álgebra 🪐', desc: 'Otorgada al superar el Nivel 5 de Snake y Slither.', condition: () => state.unlockedLevels.includes('snake-5') && state.unlockedLevels.includes('slider-5') },
     { key: 'geometry_medal', name: 'Medalla Geométrica 📐', desc: 'Otorgada al superar el Nivel 5 de Math-Tetris.', condition: () => state.unlockedLevels.includes('tetris-5') },
+    { key: 'arkanoid_medal', name: 'Medalla Rompeladrillos 🚀', desc: 'Otorgada al superar el Nivel 5 de Math-Arkanoid.', condition: () => state.unlockedLevels.includes('arkanoid-5') },
     { key: 'logic_medal', name: 'Medalla de la Lógica 🧠', desc: 'Otorgada al superar el Nivel 5 de Sudoku, Ahorcado y Tres en Raya.', condition: () => state.unlockedLevels.includes('sudoku-5') && state.unlockedLevels.includes('ahorcado-5') && state.unlockedLevels.includes('tres-5') },
-    { key: 'champion_medal', name: 'Campeón MathQuest 🏅', desc: 'Completa absolutamente todos los 30 niveles de la plataforma.', condition: () => state.unlockedLevels.length >= 30 }
+    { key: 'champion_medal', name: 'Campeón MathQuest 🏅', desc: 'Completa absolutamente todos los 35 niveles de la plataforma.', condition: () => state.unlockedLevels.length >= 35 }
 ];
 
 function checkAndUnlockAchievements() {
@@ -582,6 +954,7 @@ function renderAchievements() {
         if (isUnlocked) {
             if (medal.key === 'algebra_medal') emoji = '🪐';
             else if (medal.key === 'geometry_medal') emoji = '📐';
+            else if (medal.key === 'arkanoid_medal') emoji = '🚀';
             else if (medal.key === 'logic_medal') emoji = '🧠';
             else emoji = '🏅';
         }
@@ -619,6 +992,10 @@ window.equipBadge = function(badgeEmoji) {
 // --------------------------------------------------------------------------
 function setupSettingsListeners() {
     const btnToggleSound = document.getElementById('btn-toggle-sound');
+    const btnToggleMusic = document.getElementById('btn-toggle-music');
+    const musicVolumeSlider = document.getElementById('music-volume-slider');
+    const musicTrackSelect = document.getElementById('music-track-select');
+    const btnMusicToggleHeader = document.getElementById('btn-music-toggle');
     const btnResetProgress = document.getElementById('btn-reset-progress');
     const btnThemeToggle = document.getElementById('btn-theme-toggle');
 
@@ -641,6 +1018,35 @@ function setupSettingsListeners() {
         });
     }
 
+    if (btnToggleMusic) {
+        btnToggleMusic.addEventListener('click', () => {
+            SoundEngine.playClick();
+            MusicEngine.toggle();
+        });
+    }
+
+    if (btnMusicToggleHeader) {
+        btnMusicToggleHeader.addEventListener('click', () => {
+            SoundEngine.playClick();
+            MusicEngine.toggle();
+        });
+    }
+
+    if (musicVolumeSlider) {
+        musicVolumeSlider.addEventListener('input', (e) => {
+            const volPercent = parseInt(e.target.value);
+            MusicEngine.setVolume(volPercent / 100);
+            MusicEngine.updateUiState();
+        });
+    }
+
+    if (musicTrackSelect) {
+        musicTrackSelect.addEventListener('change', (e) => {
+            SoundEngine.playClick();
+            MusicEngine.setTrack(e.target.value);
+        });
+    }
+
     if (btnResetProgress) {
         btnResetProgress.addEventListener('click', () => {
             SoundEngine.playWrong();
@@ -654,7 +1060,7 @@ function setupSettingsListeners() {
                 state.equippedSkin = 'standard';
                 state.equippedBadge = '';
                 state.unlockedSkins = ['standard'];
-                state.unlockedLevels = ['snake-1', 'slider-1', 'tetris-1', 'sudoku-1', 'ahorcado-1'];
+                state.unlockedLevels = ['snake-1', 'slider-1', 'tetris-1', 'arkanoid-1', 'sudoku-1', 'ahorcado-1', 'tres-1'];
                 state.vipBypassPurchased = false;
                 state.inventory = { shield: 0, freeze: 0 };
                 
@@ -789,8 +1195,8 @@ function setupVipBypassBilling() {
 function activatePremiumVipPass() {
     state.vipBypassPurchased = true;
     
-    // Desbloquear los 5 niveles de los 6 juegos
-    const games = ['snake', 'slider', 'tetris', 'sudoku', 'ahorcado', 'tres'];
+    // Desbloquear los 5 niveles de los 7 juegos
+    const games = ['snake', 'slider', 'tetris', 'arkanoid', 'sudoku', 'ahorcado', 'tres'];
     state.unlockedLevels = [];
     games.forEach(g => {
         for (let l = 1; l <= 5; l++) {
@@ -947,13 +1353,16 @@ function setupHubTabNavigation() {
 function launchGame(game, level, isCustom = false) {
     SoundEngine.playClick();
     
+    // Bajar volumen de la música de fondo durante los juegos
+    MusicEngine.duck();
+    
     document.getElementById('screen-hub').classList.add('hidden');
     document.getElementById('btn-back-menu').classList.remove('hidden');
 
     state.activeGameScreen = game;
     state.activeGameLevel = parseInt(level);
 
-    ['snake', 'tetris', 'slider', 'sudoku', 'ahorcado', 'tres'].forEach(g => {
+    ['snake', 'tetris', 'arkanoid', 'slider', 'sudoku', 'ahorcado', 'tres'].forEach(g => {
         const el = document.getElementById(`screen-${g}`);
         if (el) el.classList.add('hidden');
     });
@@ -968,6 +1377,10 @@ function launchGame(game, level, isCustom = false) {
     } else if (game === 'tetris') {
         if (typeof window.startTetrisGame === 'function') {
             window.startTetrisGame(state.activeGameLevel);
+        }
+    } else if (game === 'arkanoid') {
+        if (typeof window.startArkanoidGame === 'function') {
+            window.startArkanoidGame(state.activeGameLevel);
         }
     } else if (game === 'slider') {
         if (typeof window.startSliderGame === 'function') {
@@ -991,17 +1404,23 @@ function launchGame(game, level, isCustom = false) {
 document.getElementById('btn-back-menu').addEventListener('click', () => {
     SoundEngine.playClick();
     
+    // Restaurar volumen normal de música de fondo al volver al inicio
+    MusicEngine.unduck();
+    
     if (typeof window.stopAllGames === 'function') {
         window.stopAllGames();
     }
     if (typeof window.stopTresGame === 'function') {
         window.stopTresGame();
     }
+    if (typeof window.stopArkanoidGame === 'function') {
+        window.stopArkanoidGame();
+    }
 
     state.activeGameScreen = null;
     document.getElementById('btn-back-menu').classList.add('hidden');
     
-    ['snake', 'tetris', 'slider', 'sudoku', 'ahorcado', 'tres'].forEach(g => {
+    ['snake', 'tetris', 'arkanoid', 'slider', 'sudoku', 'ahorcado', 'tres'].forEach(g => {
         const el = document.getElementById(`screen-${g}`);
         if (el) el.classList.add('hidden');
     });
@@ -1062,6 +1481,14 @@ window.addEventListener('keydown', (e) => {
         
         if (action && typeof window.handleTetrisAction === 'function') {
             window.handleTetrisAction(action);
+        }
+    } else if (state.activeGameScreen === 'arkanoid') {
+        if (keyLower === 'a' || e.key === 'ArrowLeft') {
+            if (typeof window.handleArkanoidKeyboard === 'function') window.handleArkanoidKeyboard('left');
+        } else if (keyLower === 'd' || e.key === 'ArrowRight') {
+            if (typeof window.handleArkanoidKeyboard === 'function') window.handleArkanoidKeyboard('right');
+        } else if (e.key === ' ' || e.key === 'Spacebar' || keyLower === 'w' || e.key === 'ArrowUp') {
+            if (typeof window.handleArkanoidKeyboard === 'function') window.handleArkanoidKeyboard('launch');
         }
     } else if (state.activeGameScreen === 'slider') {
         let direction = null;
@@ -1171,6 +1598,8 @@ hintButtons.forEach(btn => {
             hintUsed = window.useSnakeHint();
         } else if (state.activeGameScreen === 'tetris' && typeof window.useTetrisHint === 'function') {
             hintUsed = window.useTetrisHint();
+        } else if (state.activeGameScreen === 'arkanoid' && typeof window.useArkanoidHint === 'function') {
+            hintUsed = window.useArkanoidHint();
         } else if (state.activeGameScreen === 'slider' && typeof window.useSliderHint === 'function') {
             hintUsed = window.useSliderHint();
         } else if (state.activeGameScreen === 'sudoku' && typeof window.useSudokuHint === 'function') {
@@ -1190,40 +1619,7 @@ hintButtons.forEach(btn => {
 });
 
 // --------------------------------------------------------------------------
-// 15. Inicialización General al Cargar Documento
-// --------------------------------------------------------------------------
-window.addEventListener('DOMContentLoaded', () => {
-    loadStateFromStorage();
-    checkStreakValidity();
-    updateHeaderStats();
-    updateStreakCalendar();
-    renderDuolingoPath();
-    setupHubTabNavigation();
-    setupSettingsListeners();
-    setupVipBypassBilling();
-    
-    if (window.renderMathInElement) {
-        renderMathInElement(document.body, {
-            delimiters: [
-                { left: "$$", right: "$$", display: true },
-                { left: "$", right: "$", display: false }
-            ]
-        });
-    }
-});
-
-// Exportar funciones útiles a nivel global
-window.MathQuestApp = {
-    state,
-    SoundEngine,
-    renderLaTeX,
-    mathGen,
-    awardCoins,
-    MathModal
-};
-
-// --------------------------------------------------------------------------
-// 16. Lógica de Rachas Diarias y Calendario Semanal
+// 15. Lógica de Rachas Diarias y Calendario Semanal
 // --------------------------------------------------------------------------
 function updateStreakCalendar() {
     const today = new Date();
@@ -1285,9 +1681,6 @@ function isDayInCurrentWeek(targetDayOfWeek, streakDates) {
         weekDates.push(d.toISOString().split('T')[0]);
     }
 
-    // El día de la semana buscado corresponde al índice en weekDates
-    // weekDates[0] = lunes, weekDates[1] = martes, ..., weekDates[5] = sábado, weekDates[6] = domingo
-    // Nota: targetDayOfWeek es: 1 = Lun, 2 = Mar, ..., 6 = Sáb, 0 = Dom
     let index = targetDayOfWeek === 0 ? 6 : targetDayOfWeek - 1;
     const dateToCheck = weekDates[index];
 
@@ -1350,7 +1743,89 @@ function activateStreakDay() {
         
         if (state.streak >= 2) {
             SoundEngine.playFanfare();
-            alert(`🔥 ¡Excelente! Racha asegurada: ¡${state.streak} días seguidos aprendiendo matemáticas!`);
         }
     }
 }
+
+// --------------------------------------------------------------------------
+// 16. Inicialización General de la Plataforma
+// --------------------------------------------------------------------------
+let hasInitializedMathQuest = false;
+function initMathQuestApp() {
+    if (hasInitializedMathQuest) return;
+    hasInitializedMathQuest = true;
+
+    loadStateFromStorage();
+    checkStreakValidity();
+    updateHeaderStats();
+    updateStreakCalendar();
+    renderDuolingoPath();
+    setupHubTabNavigation();
+    setupSettingsListeners();
+    setupVipBypassBilling();
+    
+    // Configurar estado visual inicial de música
+    MusicEngine.updateUiState();
+
+    // Auto-iniciar música de fondo al primer gesto de interacción del usuario
+    const startMusicOnFirstInteraction = () => {
+        SoundEngine.init();
+        if (state.musicEnabled && !state.activeGameScreen && !MusicEngine.isPlaying) {
+            MusicEngine.start();
+        }
+        window.removeEventListener('click', startMusicOnFirstInteraction);
+        window.removeEventListener('touchstart', startMusicOnFirstInteraction);
+        window.removeEventListener('keydown', startMusicOnFirstInteraction);
+    };
+
+    window.addEventListener('click', startMusicOnFirstInteraction);
+    window.addEventListener('touchstart', startMusicOnFirstInteraction);
+    window.addEventListener('keydown', startMusicOnFirstInteraction);
+    
+    if (window.renderMathInElement) {
+        renderMathInElement(document.body, {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false }
+            ]
+        });
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMathQuestApp);
+} else {
+    initMathQuestApp();
+}
+
+// Exportar funciones útiles a nivel global
+window.state = state;
+window.SoundEngine = SoundEngine;
+window.MusicEngine = MusicEngine;
+window.renderLaTeX = renderLaTeX;
+window.mathGen = mathGen;
+window.awardCoins = awardCoins;
+window.saveStateToStorage = saveStateToStorage;
+window.updateHeaderStats = updateHeaderStats;
+window.checkAndUnlockAchievements = checkAndUnlockAchievements;
+window.renderInventoryShopModal = renderInventoryShopModal;
+window.activatePremiumVipPass = activatePremiumVipPass;
+window.activateStreakDay = activateStreakDay;
+window.updateStreakCalendar = updateStreakCalendar;
+window.checkStreakValidity = checkStreakValidity;
+
+window.MathQuestApp = {
+    state,
+    SoundEngine,
+    MusicEngine,
+    renderLaTeX,
+    mathGen,
+    awardCoins,
+    activatePremiumVipPass,
+    saveStateToStorage,
+    updateHeaderStats,
+    checkAndUnlockAchievements,
+    renderInventoryShopModal,
+    activateStreakDay,
+    updateStreakCalendar
+};

@@ -64,6 +64,11 @@
                 🔓 Bypass VIP
             </button>
 
+            <!-- Selector de Música de Fondo -->
+            <button id="btn-music-toggle" class="music-toggle-btn" title="Música de Fondo (ON/OFF)">
+                <span id="music-toggle-icon">🎵</span>
+            </button>
+
             <!-- Selector de Tema (Claro / Oscuro) -->
             <button id="btn-theme-toggle" class="theme-toggle-btn" title="Cambiar Tema">
                 <span class="sun-icon">☀️</span>
@@ -252,11 +257,11 @@
                     </div>
                 </div>
 
-                <!-- 2. RUTA GEOMÉTRICA (Tetris de Ángulos) -->
+                <!-- 2. RUTA GEOMÉTRICA (Tetris & Math-Arkanoid) -->
                 <div id="path-topic-geometry" class="topic-path-container hidden">
                     <div class="path-section-header geometry-header">
-                        <h3>Planeta Geometrica: Suma de Ángulos y Giros</h3>
-                        <p>Completa los 5 niveles de Tetris para ganar la medalla **Pro de la Geometría** 📐</p>
+                        <h3>Planeta Geometría y Físicas: Suma de Ángulos y Rompeladrillos</h3>
+                        <p>Completa los 5 niveles de Tetris y Math-Arkanoid para ganar la medalla **Pro de la Geometría** 📐</p>
                     </div>
                     <div class="duolingo-path">
                         <!-- Tetris Lvl 1-5 -->
@@ -284,6 +289,33 @@
                             <span class="path-node-icon">🧱</span>
                             <span class="path-node-badge">5</span>
                             <span class="path-node-tooltip">Tetris Lvl 5</span>
+                        </div>
+
+                        <!-- Arkanoid Lvl 1-5 -->
+                        <div class="path-node node-geometry node-pos-5 locked" data-game="arkanoid" data-level="1" title="Math-Arkanoid - Nivel 1">
+                            <span class="path-node-icon">🚀</span>
+                            <span class="path-node-badge">1</span>
+                            <span class="path-node-tooltip">Arkanoid Lvl 1</span>
+                        </div>
+                        <div class="path-node node-geometry node-pos-0 locked" data-game="arkanoid" data-level="2" title="Math-Arkanoid - Nivel 2">
+                            <span class="path-node-icon">🚀</span>
+                            <span class="path-node-badge">2</span>
+                            <span class="path-node-tooltip">Arkanoid Lvl 2</span>
+                        </div>
+                        <div class="path-node node-geometry node-pos-1 locked" data-game="arkanoid" data-level="3" title="Math-Arkanoid - Nivel 3">
+                            <span class="path-node-icon">🚀</span>
+                            <span class="path-node-badge">3</span>
+                            <span class="path-node-tooltip">Arkanoid Lvl 3</span>
+                        </div>
+                        <div class="path-node node-geometry node-pos-2 locked" data-game="arkanoid" data-level="4" title="Math-Arkanoid - Nivel 4">
+                            <span class="path-node-icon">🚀</span>
+                            <span class="path-node-badge">4</span>
+                            <span class="path-node-tooltip">Arkanoid Lvl 4</span>
+                        </div>
+                        <div class="path-node node-geometry node-pos-3 locked" data-game="arkanoid" data-level="5" title="Math-Arkanoid - Nivel 5 (Reto)">
+                            <span class="path-node-icon">🚀</span>
+                            <span class="path-node-badge">5</span>
+                            <span class="path-node-tooltip">Arkanoid Lvl 5</span>
                         </div>
                     </div>
                 </div>
@@ -420,6 +452,25 @@
                     <div class="settings-control-row">
                         <label class="settings-label">🔊 Efectos de Sonido:</label>
                         <button id="btn-toggle-sound" class="btn btn-primary">Sonido: ACTIVO</button>
+                    </div>
+
+                    <div class="settings-control-row">
+                        <label class="settings-label">🎵 Música de Fondo:</label>
+                        <button id="btn-toggle-music" class="btn btn-primary">Música: ACTIVA</button>
+                    </div>
+
+                    <div class="settings-control-row">
+                        <label class="settings-label">🎚️ Volumen de Música: <span id="music-volume-display" style="color:var(--color-accent-yellow); font-weight:800;">40%</span></label>
+                        <input type="range" id="music-volume-slider" min="0" max="100" value="40" style="cursor:pointer; width:140px;">
+                    </div>
+
+                    <div class="settings-control-row">
+                        <label class="settings-label">🎼 Pista de Banda Sonora:</label>
+                        <select id="music-track-select" class="btn btn-secondary" style="padding:6px 12px; font-size:0.85rem; font-weight:700;">
+                            <option value="adventure">🚀 Aventura Matemática</option>
+                            <option value="lofi">🪐 Concentración & Lo-Fi</option>
+                            <option value="arcade">👾 Chiptune Arcade</option>
+                        </select>
                     </div>
 
                     <div class="settings-control-row">
@@ -566,6 +617,79 @@
                         </div>
                         <div class="touch-row">
                             <button id="ctrl-tetris-down" class="ctrl-btn">▼</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANTALLA 3.5: JUEGO NUEVO - MATH ARKANOID (ROMPELADRILLOS) -->
+        <section id="screen-arkanoid" class="screen hidden">
+            <div class="game-layout">
+                <div class="game-sidebar card">
+                    <h2>🚀 Math-Arkanoid</h2>
+                    <p class="game-desc" id="arkanoid-game-instruction">Rebota la bola de energía matemática y rompe los ladrillos correctos con la paleta. ¡Usa el Ratón, Flechas o A/D!</p>
+                    
+                    <div class="lives-display-panel">
+                        <span class="panel-label">Vidas (Corazones):</span>
+                        <div class="hearts-container" id="arkanoid-hearts-box">
+                            ❤️ ❤️ ❤️
+                        </div>
+                    </div>
+
+                    <div class="equation-panel">
+                        <span class="equation-label" id="arkanoid-equation-prompt">Objetivo Matemático:</span>
+                        <div id="arkanoid-equation" class="equation-box" style="font-size: 1.15rem; background: var(--color-bg); color: var(--color-accent-blue);">
+                            Cargando reto...
+                        </div>
+                    </div>
+
+                    <div class="game-stats-row" style="display: flex; gap: 10px;">
+                        <div class="stat-pill stars-pill" style="flex: 1;">
+                            <span>Objetivos:</span>
+                            <strong id="arkanoid-targets-count">0</strong>
+                        </div>
+                        <div class="stat-pill stars-pill" style="flex: 1;">
+                            <span>Puntos:</span>
+                            <strong id="arkanoid-score">0</strong>
+                        </div>
+                    </div>
+
+                    <button id="btn-use-hint-arkanoid" class="btn btn-secondary w-100 btn-use-hint" style="margin-top: 10px;">
+                        💡 Usar Pista (Mochila)
+                    </button>
+                    
+                    <button id="btn-restart-arkanoid" class="btn btn-accent w-100" style="margin-top: 10px;">Reiniciar Nivel</button>
+                </div>
+
+                <div class="game-canvas-area card">
+                    <div class="canvas-container">
+                        <div id="arkanoid-overlay" class="game-overlay">
+                            <div class="overlay-content">
+                                <h3 id="arkanoid-overlay-title">Math-Arkanoid 🚀</h3>
+                                <div id="arkanoid-overlay-instructions" class="rules-explanation-box">
+                                    <h4>📜 Reglas de Math-Arkanoid:</h4>
+                                    <ul>
+                                        <li>🎯 Lee la **fórmula u objetivo matemático** en el panel lateral.</li>
+                                        <li>🏓 Mueve la paleta con el **Ratón**, **Flechas (◀ ▶)** o **A / D**.</li>
+                                        <li>💥 Destruye los **ladrillos objetivo (con ★)** para ganar puntos y superar el nivel.</li>
+                                        <li>⚡ ¡Atrapa los power-ups que caen: Paleta Gigante 🏓, Multibola ⚡, Bola de Fuego 🔥 y Corazones ❤️!</li>
+                                        <li>❌ Si la bola cae al vacío pierdes **1 vida**. Tienes **3 vidas**.</li>
+                                    </ul>
+                                </div>
+                                <p id="arkanoid-overlay-text">¡Prepárate para rebotar y calcular!</p>
+                                <button id="btn-start-arkanoid-game" class="btn btn-primary btn-large">¡Lanzar Bola!</button>
+                            </div>
+                        </div>
+                        <canvas id="arkanoid-canvas" width="450" height="420"></canvas>
+                    </div>
+
+                    <!-- Mandos táctiles en pantalla para móviles/tablets -->
+                    <div class="touch-controller">
+                        <div class="touch-row">
+                            <button id="ctrl-arkanoid-left" class="ctrl-btn">◀</button>
+                            <button id="ctrl-arkanoid-launch" class="ctrl-btn" style="width: 100px; font-size: 0.85rem; font-family: var(--font-heading);">🚀 Lanzar</button>
+                            <button id="ctrl-arkanoid-right" class="ctrl-btn">▶</button>
                         </div>
                     </div>
                 </div>
@@ -912,13 +1036,7 @@
         </div>
     </div>
 
-    <!-- Motores del Juego y Controlador Central -->
-    <script src="app.js"></script>
-    <script src="snake.js"></script>
-    <script src="tetris.js"></script>
-    <script src="slider.js"></script>
-    <script src="sudoku.js"></script>
-    <script src="ahorcado.js"></script>
-    <script src="tresenraya.js"></script>
+    <!-- Entrada de Aplicación Bundled (Vite) -->
+    <script type="module" src="/main.js"></script>
 </body>
 </html>
