@@ -42,6 +42,30 @@ window.state = state;
 window.MathQuestApp = window.MathQuestApp || {};
 window.MathQuestApp.state = state;
 
+// Sistema de Notificaciones Toast Universal (Seguro contra bloqueos de sandbox en iframes)
+window.showToast = function(msg) {
+    let toast = document.getElementById('app-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'app-toast';
+        toast.className = 'app-toast';
+        document.body.appendChild(toast);
+    }
+    toast.innerText = msg;
+    toast.classList.remove('hidden');
+    toast.style.opacity = '1';
+    if (window._toastTimer) clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.classList.add('hidden'), 300);
+    }, 3000);
+};
+
+// Sustituir alert() nativo para prevenir bloqueos de 'allow-modals' en iframes de AI Studio / GitHub Pages
+window.alert = function(msg) {
+    window.showToast(msg);
+};
+
 // Prefijo para LocalStorage
 const STORAGE_PREFIX = 'mq3_';
 
@@ -125,16 +149,26 @@ const SoundEngine = {
 
     init() {
         if (!this.ctx) {
-            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) {
+                    this.ctx = new AudioCtx();
+                }
+            } catch (e) {
+                console.warn("AudioContext no disponible en este entorno:", e);
+            }
         }
-        if (this.ctx.state === 'suspended') {
-            this.ctx.resume();
+        if (this.ctx && this.ctx.state === 'suspended') {
+            try {
+                this.ctx.resume();
+            } catch (e) {}
         }
     },
 
     playTone(freq, type, duration, vol) {
         if (!state.soundEnabled) return;
         this.init();
+        if (!this.ctx) return;
         try {
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
@@ -151,7 +185,7 @@ const SoundEngine = {
             osc.start();
             osc.stop(this.ctx.currentTime + duration);
         } catch (e) {
-            console.error("Audio error:", e);
+            console.warn("Audio tone error:", e);
         }
     },
 
@@ -172,6 +206,7 @@ const SoundEngine = {
     playExplosion() {
         if (!state.soundEnabled) return;
         this.init();
+        if (!this.ctx) return;
         try {
             const bufferSize = this.ctx.sampleRate * 0.4;
             const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
@@ -208,6 +243,7 @@ const SoundEngine = {
     playTimeFreeze() {
         if (!state.soundEnabled) return;
         this.init();
+        if (!this.ctx) return;
         try {
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
@@ -1437,21 +1473,31 @@ document.getElementById('btn-back-menu').addEventListener('click', () => {
     updateHeaderStats();
 });
 
-document.querySelectorAll('.duolingo-path').forEach(path => {
-    path.addEventListener('click', (e) => {
-        const node = e.target.closest('.path-node');
-        if (!node) return;
-
+// Delegación global para asegurar la captura de clics en niveles del camino Duolingo
+document.addEventListener('click', (e) => {
+    const node = e.target.closest('.path-node');
+    if (node) {
+        e.preventDefault();
         if (node.classList.contains('locked')) {
             SoundEngine.playWrong();
-            alert("🔒 Este nivel está bloqueado. ¡Completa los niveles anteriores o adquiere el Pase VIP en la parte superior!");
+            window.showToast("🔒 Este nivel está bloqueado. ¡Completa los niveles anteriores o adquiere el Pase VIP!");
             return;
         }
 
         const game = node.getAttribute('data-game');
         const level = node.getAttribute('data-level');
-        launchGame(game, level);
-    });
+        if (game && level) {
+            launchGame(game, level);
+        }
+        return;
+    }
+
+    const hintsBag = e.target.closest('#btn-global-hints-bag');
+    if (hintsBag) {
+        SoundEngine.playClick();
+        window.showToast(`💡 Mochila de Pistas: Tienes ${state.globalHints} disponibles.`);
+        return;
+    }
 });
 
 // --------------------------------------------------------------------------
@@ -1788,12 +1834,18 @@ function initMathQuestApp() {
     window.addEventListener('keydown', startMusicOnFirstInteraction);
     
     if (window.renderMathInElement) {
-        renderMathInElement(document.body, {
-            delimiters: [
-                { left: "$$", right: "$$", display: true },
-                { left: "$", right: "$", display: false }
-            ]
-        });
+        try {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    { left: "$$", right: "$$", display: true },
+                    { left: "\\(", right: "\\)", display: false }
+                ],
+                throwOnError: false,
+                ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code", "input", "button"]
+            });
+        } catch (e) {
+            console.warn("KaTeX renderMathInElement advertencia:", e);
+        }
     }
 }
 
@@ -1807,7 +1859,8 @@ window.awardCoins = awardCoins;
 window.saveStateToStorage = saveStateToStorage;
 window.updateHeaderStats = updateHeaderStats;
 window.checkAndUnlockAchievements = checkAndUnlockAchievements;
-window.renderInventoryShopModal = renderInventoryShopModal;
+window.renderShop = renderShop;
+window.renderInventoryShopModal = renderShop;
 window.activatePremiumVipPass = activatePremiumVipPass;
 window.activateStreakDay = activateStreakDay;
 window.updateStreakCalendar = updateStreakCalendar;
@@ -1824,7 +1877,8 @@ window.MathQuestApp = {
     saveStateToStorage,
     updateHeaderStats,
     checkAndUnlockAchievements,
-    renderInventoryShopModal,
+    renderShop,
+    renderInventoryShopModal: renderShop,
     activateStreakDay,
     updateStreakCalendar
 };

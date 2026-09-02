@@ -1740,3 +1740,24 @@ body {
     background: #2563eb;
 }
 
+/* Notificaciones Toast en pantalla (Reemplazo amigable de window.alert para iframes) */
+.app-toast {
+    position: fixed;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: #ffffff;
+    padding: 12px 24px;
+    border-radius: 9999px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+    border: 2px solid var(--color-accent-blue);
+    z-index: 99999;
+    pointer-events: none;
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    max-width: 90vw;
+    text-align: center;
+}
+

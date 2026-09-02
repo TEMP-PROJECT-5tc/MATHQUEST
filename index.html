@@ -903,7 +903,7 @@
                     <div class="canvas-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;">
                         <div id="tres-overlay" class="game-overlay">
                             <div class="overlay-content">
-                                <h3>Suma 15: Mateo 🤖 vs Tú 🧑‍🎓</h3>
+                                <h3 id="tres-overlay-title">Suma 15: Mateo 🤖 vs Tú 🧑‍🎓</h3>
                                 <div id="tres-overlay-instructions" class="rules-explanation-box">
                                     <h4>📜 Reglas de Tres en Raya 15:</h4>
                                     <ul>
@@ -1035,6 +1035,9 @@
             </button>
         </div>
     </div>
+
+    <!-- Toast de Notificaciones para Avisos y Pistas -->
+    <div id="app-toast" class="app-toast hidden"></div>
 
     <!-- Motores del Juego y Controlador Central (Compatible con GitHub Pages y Vite) -->
     <script src="app.js"></script>
