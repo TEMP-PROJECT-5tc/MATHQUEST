@@ -1245,8 +1245,19 @@
                             <strong id="escape-level-display">1</strong>
                         </div>
                         <div class="stat-pill stars-pill" style="flex: 1;">
-                            <span>Cerrojos:</span>
-                            <strong id="escape-locks-display">0/3</strong>
+                            <span>Mecanismos:</span>
+                            <strong id="escape-locks-display">0 / 3 🔓</strong>
+                        </div>
+                    </div>
+
+                    <!-- Temporizador de Sala de Escape -->
+                    <div class="escape-timer-panel" style="margin-top: 10px;">
+                        <div class="escape-timer-header" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span style="font-size: 0.85rem; color: var(--color-text-muted);">Tiempo Restante:</span>
+                            <strong id="escape-timer-display" style="font-size: 1.1rem; color: var(--color-accent-gold); font-family: monospace;">02:30</strong>
+                        </div>
+                        <div class="escape-timer-track">
+                            <div id="escape-timer-fill" class="escape-timer-fill" style="width: 100%;"></div>
                         </div>
                     </div>
 
@@ -1264,9 +1275,9 @@
                                 <div class="rules-explanation-box">
                                     <h4>📜 Reglas de Escape:</h4>
                                     <ul>
-                                        <li>🔍 Inspecciona cada terminal del cuarto para encontrar pistas numéricas.</li>
-                                        <li>🔏 Introduce la clave calculada en el panel numérico para abrir la compuerta.</li>
-                                        <li>💥 3 intentos fallidos de código restan **1 vida**.</li>
+                                        <li>🔢 Resuelve los 3 mecanismos en orden: Dial, Engranaje y Compuerta.</li>
+                                        <li>⏱️ El tiempo vuela: las respuestas incorrectas restan **-15 segundos**.</li>
+                                        <li>🚪 ¡Desbloquea la compuerta final antes de que el reloj llegue a 0!</li>
                                     </ul>
                                 </div>
                                 <p id="escape-overlay-text">¿Podrás escapar a tiempo?</p>
@@ -1277,6 +1288,37 @@
                             <canvas id="escape-canvas" width="400" height="450"></canvas>
                         </div>
                     </div>
+
+                    <!-- Panel de Mecanismos y Teclado Numérico de Escape -->
+                    <div class="escape-bottom-controls">
+                        <div class="escape-mechanisms-tracker">
+                            <div class="escape-mech-badge active" id="escape-badge-1">
+                                <span class="mech-num">1</span>
+                                <span class="mech-icon">🔢</span>
+                                <span class="mech-name">Dial Numérico</span>
+                            </div>
+                            <div class="escape-mech-badge locked" id="escape-badge-2">
+                                <span class="mech-num">2</span>
+                                <span class="mech-icon">⚙️</span>
+                                <span class="mech-name">Engranaje</span>
+                            </div>
+                            <div class="escape-mech-badge locked" id="escape-badge-3">
+                                <span class="mech-num">3</span>
+                                <span class="mech-icon">🚪</span>
+                                <span class="mech-name">Panel Salida</span>
+                            </div>
+                        </div>
+
+                        <div class="escape-prompt-bar">
+                            <span id="escape-terminal-prompt">Selecciona el código para desbloquear el mecanismo:</span>
+                        </div>
+
+                        <div id="escape-options-container" class="escape-options-grid">
+                            <!-- Botones inyectados dinámicamente -->
+                        </div>
+
+                        <div id="escape-terminal-feedback" class="escape-terminal-feedback hidden"></div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1286,57 +1328,178 @@
             <div class="game-layout">
                 <div class="game-sidebar card">
                     <h2>⚔️ Duelo Matemático</h2>
-                    <p class="game-desc" id="duel-game-instruction">Enfréntate a Mateo en una batalla por turnos. Resuelve con precisión para lanzar hechizos de cálculo y defender tu base.</p>
+                    <p class="game-desc" id="duel-game-instruction">Enfréntate a Mateo en una batalla táctica por turnos. Velocidad y precisión definen la victoria.</p>
                     
-                    <div class="lives-display-panel">
-                        <span class="panel-label">Vidas (Corazones):</span>
-                        <div class="hearts-container" id="duel-hearts-box">
-                            ❤️ ❤️ ❤️
+                    <div class="game-stats-row" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <div class="stat-pill stars-pill" style="flex: 1; min-width: 90px;">
+                            <span>Nivel:</span>
+                            <strong id="duel-level-display">1</strong>
+                        </div>
+                        <div class="stat-pill stars-pill" style="flex: 1; min-width: 90px;">
+                            <span>Mateo HP:</span>
+                            <strong id="duel-enemy-hp-display">60 / 60</strong>
                         </div>
                     </div>
 
-                    <div class="equation-panel">
-                        <span class="equation-label" id="duel-equation-prompt">Pregunta de Combate:</span>
-                        <div id="duel-equation" class="equation-box" style="font-size: 1.15rem; background: var(--color-bg); color: var(--color-accent-coral);">
+                    <div class="game-stats-row" style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+                        <div class="stat-pill" style="flex: 1; min-width: 90px; background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3);">
+                            <span>Combo:</span>
+                            <strong id="duel-combo-display" style="color: var(--color-accent-gold);">×1.0</strong>
+                        </div>
+                        <div class="stat-pill" style="flex: 1; min-width: 90px; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3);">
+                            <span>Escudo:</span>
+                            <strong id="duel-shield-display" style="color: #60a5fa;">Inactivo</strong>
+                        </div>
+                    </div>
+
+                    <div class="equation-panel" style="margin-top: 12px;">
+                        <span class="equation-label" id="duel-equation-prompt">Pregunta Activa:</span>
+                        <div id="duel-equation" class="equation-box" style="font-size: 1.05rem; background: var(--color-bg); color: var(--color-text);">
                             Preparando rival...
                         </div>
                     </div>
 
-                    <div class="game-stats-row" style="display: flex; gap: 10px;">
-                        <div class="stat-pill stars-pill" style="flex: 1;">
-                            <span>Nivel:</span>
-                            <strong id="duel-level-display">1</strong>
-                        </div>
-                        <div class="stat-pill stars-pill" style="flex: 1;">
-                            <span>Rival HP:</span>
-                            <strong id="duel-enemy-hp-display">100%</strong>
+                    <div class="lives-display-panel" style="margin-top: 8px;">
+                        <span class="panel-label">Salud del Jugador:</span>
+                        <div class="hearts-container" id="duel-hearts-box" style="font-size: 0.95rem; font-weight: 700; color: #10b981;">
+                            100 / 100 HP
                         </div>
                     </div>
 
-                    <button id="btn-use-hint-duel" class="btn btn-secondary w-100 btn-use-hint" style="margin-top: 10px;">
+                    <button id="btn-use-hint-duel" class="btn btn-secondary w-100 btn-use-hint" style="margin-top: 12px;">
                         💡 Usar Pista (Mochila)
                     </button>
                     <button id="btn-restart-duel" class="btn btn-accent w-100" style="margin-top: 10px;">Reiniciar Duelo</button>
                 </div>
 
-                <div class="game-canvas-area card">
-                    <div class="canvas-container">
-                        <div id="duel-overlay" class="game-overlay">
-                            <div class="overlay-content">
-                                <h3 id="duel-overlay-title">Duelo Matemático ⚔️</h3>
-                                <div class="rules-explanation-box">
-                                    <h4>📜 Reglas del Duelo:</h4>
-                                    <ul>
-                                        <li>⚡ Resuelve antes que la barra de tiempo del rival se agote.</li>
-                                        <li>🛡️ Respuestas correctas infligen daño o activan escudos defensivos.</li>
-                                        <li>💥 Si tu energía llega a cero, pierdes **1 vida**.</li>
-                                    </ul>
+                <div class="game-canvas-area card duel-arena-card">
+                    <!-- Overlay de Bienvenida / Reglas -->
+                    <div id="duel-overlay" class="game-overlay">
+                        <div class="overlay-content">
+                            <h3 id="duel-overlay-title">⚔️ Duelo Matemático ⚔️</h3>
+                            <div class="rules-explanation-box">
+                                <h4>📜 Reglas del Combate contra Mateo:</h4>
+                                <ul>
+                                    <li>⏱️ <strong>Combate por turnos:</strong> Resuelve antes de que se agote la barra de tiempo del turno.</li>
+                                    <li>⚔️ <strong>Ataques & Combos:</strong> Aciertos consecutivos multiplican tu daño (×1.2, ×1.5, ×2.0).</li>
+                                    <li>🛡️ <strong>Escudo Defensivo:</strong> Cada acierto activa un escudo que reduce un 50% el daño del siguiente ataque enemigo.</li>
+                                    <li>💥 <strong>Contraataque:</strong> Si fallas o se acaba el tiempo, Mateo te atacará. ¡Vence a Mateo reduciendo sus HP a cero!</li>
+                                </ul>
+                            </div>
+                            <p id="duel-overlay-text">Demuestra tu supremacía de cálculo en la arena.</p>
+                            <button id="btn-start-duel-game" class="btn btn-primary btn-large">¡Iniciar Duelo!</button>
+                        </div>
+                    </div>
+
+                    <!-- Overlay de Fin de Combate (Victoria / Derrota) -->
+                    <div id="duel-end-overlay" class="game-overlay hidden">
+                        <div class="overlay-content duel-end-content">
+                            <div id="duel-end-icon" style="font-size: 3.5rem; margin-bottom: 8px;">🏆</div>
+                            <h3 id="duel-end-title">¡Victoria Épica!</h3>
+                            <p id="duel-end-message" style="color: var(--color-text-muted); font-size: 0.95rem; margin-bottom: 15px;">Has derrotado a Mateo con maestría matemática.</p>
+                            
+                            <div class="duel-end-stats-box">
+                                <div class="duel-stat-cell">
+                                    <span class="stat-name">Nivel</span>
+                                    <strong id="duel-end-stat-level">Nivel 1</strong>
                                 </div>
-                                <p id="duel-overlay-text">Demuestra tu supremacía matemática en la arena.</p>
-                                <button id="btn-start-duel-game" class="btn btn-primary btn-large">¡Iniciar Duelo!</button>
+                                <div class="duel-stat-cell">
+                                    <span class="stat-name">Daño Total</span>
+                                    <strong id="duel-end-stat-damage" style="color: var(--color-accent-coral);">60 HP</strong>
+                                </div>
+                                <div class="duel-stat-cell">
+                                    <span class="stat-name">Combo Máximo</span>
+                                    <strong id="duel-end-stat-combo" style="color: var(--color-accent-gold);">×1.5</strong>
+                                </div>
+                                <div class="duel-stat-cell">
+                                    <span class="stat-name">Recompensa</span>
+                                    <strong id="duel-end-stat-coins" style="color: var(--color-accent-yellow);">+40 🪙</strong>
+                                </div>
+                            </div>
+
+                            <div class="duel-end-actions" style="display: flex; gap: 10px; margin-top: 20px; justify-content: center; flex-wrap: wrap;">
+                                <button id="btn-duel-next-level" class="btn btn-primary btn-large">Siguiente Duelo ⚔️</button>
+                                <button id="btn-duel-retry" class="btn btn-accent btn-large">Reintentar</button>
+                                <button id="btn-duel-map" class="btn btn-secondary">Volver al Mapa</button>
                             </div>
                         </div>
-                        <canvas id="duel-canvas" width="400" height="450"></canvas>
+                    </div>
+
+                    <!-- HUD Superior de Batalla (Jugador VS Mateo) -->
+                    <div class="duel-battle-hud">
+                        <!-- Fighter: Jugador -->
+                        <div class="duel-fighter-panel duel-player-side">
+                            <div class="duel-fighter-header">
+                                <div class="duel-fighter-avatar" id="duel-hud-player-avatar">
+                                    <span class="avatar-icon">🧙</span>
+                                </div>
+                                <div class="duel-fighter-info">
+                                    <div class="duel-fighter-name-row">
+                                        <span class="duel-fighter-name">Tú (Héroe)</span>
+                                        <span id="duel-hud-player-shield" class="duel-shield-badge hidden">🛡️ Escudo</span>
+                                    </div>
+                                    <div class="duel-hp-bar-container">
+                                        <div class="duel-hp-bar-fill player" id="duel-hud-player-hp-bar" style="width: 100%;"></div>
+                                    </div>
+                                    <div class="duel-hp-text-row">
+                                        <span id="duel-hud-player-hp-text">100 / 100 HP</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Centro: VS & Combo & Temporizador de Turno -->
+                        <div class="duel-versus-center">
+                            <div class="duel-vs-tag">VS</div>
+                            <div class="duel-combo-pill" id="duel-hud-combo-badge">COMBO ×1.0</div>
+                            <div class="duel-turn-timer-wrap">
+                                <div class="duel-turn-timer-track">
+                                    <div class="duel-turn-timer-bar" id="duel-turn-timer-bar" style="width: 100%;"></div>
+                                </div>
+                                <span class="duel-turn-timer-text" id="duel-turn-timer-text">⏱️ 6.0s</span>
+                            </div>
+                        </div>
+
+                        <!-- Fighter: Mateo (Jefe) -->
+                        <div class="duel-fighter-panel duel-enemy-side">
+                            <div class="duel-fighter-header">
+                                <div class="duel-fighter-info" style="text-align: right;">
+                                    <div class="duel-fighter-name-row" style="justify-content: flex-end;">
+                                        <span class="duel-boss-badge">JEFE</span>
+                                        <span class="duel-fighter-name">Mateo</span>
+                                    </div>
+                                    <div class="duel-hp-bar-container">
+                                        <div class="duel-hp-bar-fill enemy" id="duel-hud-enemy-hp-bar" style="width: 100%;"></div>
+                                    </div>
+                                    <div class="duel-hp-text-row" style="text-align: right;">
+                                        <span id="duel-hud-enemy-hp-text">60 / 60 HP</span>
+                                    </div>
+                                </div>
+                                <div class="duel-fighter-avatar enemy" id="duel-hud-enemy-avatar">
+                                    <span class="avatar-icon">🧙‍♂️</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Canvas de Animaciones de Combate -->
+                    <div class="duel-canvas-wrapper">
+                        <canvas id="duel-canvas" width="560" height="210"></canvas>
+                    </div>
+
+                    <!-- Panel de Pregunta y Respuestas del Turno -->
+                    <div class="duel-combat-control-panel">
+                        <div class="duel-question-card">
+                            <div class="duel-question-topic-badge" id="duel-question-topic-badge">ARITMÉTICA</div>
+                            <div class="duel-question-prompt" id="duel-question-prompt">Resuelve la operación para lanzar tu ataque:</div>
+                            <div class="duel-question-equation" id="duel-question-equation">17 + 28 = ?</div>
+                        </div>
+
+                        <div class="duel-answers-grid" id="duel-answers-grid">
+                            <!-- Botones generados dinámicamente -->
+                        </div>
+
+                        <div id="duel-turn-feedback" class="duel-turn-feedback hidden"></div>
                     </div>
                 </div>
             </div>

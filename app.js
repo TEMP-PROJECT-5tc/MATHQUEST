@@ -1945,6 +1945,9 @@ function completeGameLevel(game, level) {
     if (game === 'builder' && lvlNum === 5 && !state.unlockedLevels.includes('escape-1')) {
         state.unlockedLevels.push('escape-1');
     }
+    if (game === 'escape' && lvlNum === 5 && !state.unlockedLevels.includes('duel-1')) {
+        state.unlockedLevels.push('duel-1');
+    }
 
     const earned = awardCoins(true, lvlNum);
     saveStateToStorage();
