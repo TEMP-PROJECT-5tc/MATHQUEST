@@ -1159,6 +1159,16 @@
                         </div>
                     </div>
 
+                    <div id="builder-timer-panel" class="builder-timer-panel hidden" style="margin-top: 10px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; margin-bottom: 4px;">
+                            <span>⏱️ Estabilidad:</span>
+                            <span id="builder-timer-text">30s</span>
+                        </div>
+                        <div class="builder-timer-track">
+                            <div id="builder-timer-fill" class="builder-timer-fill" style="width: 100%;"></div>
+                        </div>
+                    </div>
+
                     <button id="btn-use-hint-builder" class="btn btn-secondary w-100 btn-use-hint" style="margin-top: 10px;">
                         💡 Usar Pista (Mochila)
                     </button>
@@ -1173,9 +1183,9 @@
                                 <div class="rules-explanation-box">
                                     <h4>📜 Reglas del Constructor:</h4>
                                     <ul>
-                                        <li>📐 Elige piezas geométricas que satisfagan el balance de pesos y ángulos.</li>
-                                        <li>🧱 Apila sin sobrepasar el límite de tensión de la estructura.</li>
-                                        <li>💥 El derrumbe de una pieza resta **1 vida**.</li>
+                                        <li>📐 Elige la pieza correcta que satisfaga el cálculo geométrico.</li>
+                                        <li>🧱 Cada respuesta correcta coloca una pieza y eleva la estructura.</li>
+                                        <li>💥 Los errores debilitan la estabilidad de la obra y restan **1 vida**.</li>
                                     </ul>
                                 </div>
                                 <p id="builder-overlay-text">Diseña la torre más resistente.</p>
@@ -1183,6 +1193,26 @@
                             </div>
                         </div>
                         <canvas id="builder-canvas" width="400" height="450"></canvas>
+                    </div>
+
+                    <!-- Panel de Progreso de Construcción y Selector de Piezas -->
+                    <div class="builder-bottom-controls">
+                        <div class="builder-progress-box">
+                            <div class="builder-progress-header">
+                                <span id="builder-progress-label">Progreso de la Obra:</span>
+                                <strong id="builder-pieces-count">0 / 4 Piezas 🧱</strong>
+                            </div>
+                            <div class="builder-progress-track">
+                                <div id="builder-progress-fill" class="builder-progress-fill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="builder-pieces-header">
+                            <span>Selecciona la Pieza Adecuada:</span>
+                        </div>
+                        <div id="builder-options-container" class="builder-options-grid">
+                            <!-- Botones de piezas inyectados dinámicamente -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1337,7 +1367,7 @@
             <div class="modal-mascot">👑</div>
             <h3>¡Pase VIP MathQuest Premium!</h3>
             <p style="font-size:0.85rem; margin-bottom:15px; color:var(--color-text-muted);">
-                Desbloquea instantáneamente todos los 25 niveles de la plataforma, adquiere pistas ilimitadas y equipa aspectos exclusivos.
+                Desbloquea instantáneamente todos los 55 niveles de la plataforma, adquiere pistas ilimitadas y equipa aspectos exclusivos.
             </p>
             
             <div class="payment-tabs">

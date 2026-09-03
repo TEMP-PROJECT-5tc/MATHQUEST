@@ -1778,6 +1778,8 @@ body {
     border-radius: var(--border-radius-medium);
     margin: 0 auto;
     box-shadow: var(--shadow-inset, inset 0 2px 4px rgba(255, 255, 255, 0.05));
+    touch-action: none;
+    cursor: pointer;
 }
 
 /* 2. Cálculo Rush */
@@ -1813,6 +1815,159 @@ body {
 /* 3. Constructor Matemático */
 #screen-builder .game-canvas-area {
     padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.builder-timer-panel {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-medium);
+    padding: 8px 12px;
+}
+
+.builder-timer-track {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.builder-timer-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+    transition: width 0.25s linear;
+}
+
+.builder-bottom-controls {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.builder-progress-box {
+    background: var(--color-card-secondary, #1e293b);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-medium);
+    padding: 10px 14px;
+}
+
+.builder-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.builder-progress-track {
+    width: 100%;
+    height: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.builder-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #10b981);
+    border-radius: 6px;
+    transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.builder-pieces-header {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--color-text-secondary, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.builder-options-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    width: 100%;
+}
+
+@media (min-width: 640px) {
+    .builder-options-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.builder-option-btn {
+    background: var(--color-card-secondary, #1e293b);
+    border: 2px solid var(--color-border);
+    border-radius: var(--border-radius-medium);
+    color: var(--color-text, #f8fafc);
+    padding: 12px 10px;
+    min-height: 54px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.builder-option-btn:hover:not(:disabled) {
+    border-color: var(--color-accent-blue, #38bdf8);
+    background: rgba(56, 189, 248, 0.12);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+}
+
+.builder-option-btn:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.builder-option-btn.correct {
+    border-color: #10b981 !important;
+    background: rgba(16, 185, 129, 0.25) !important;
+    color: #a7f3d0 !important;
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.4) !important;
+}
+
+.builder-option-btn.wrong {
+    border-color: #ef4444 !important;
+    background: rgba(239, 68, 68, 0.25) !important;
+    color: #fca5a5 !important;
+    animation: shakeAnim 0.35s ease-in-out;
+}
+
+.builder-option-btn.eliminated {
+    opacity: 0.25;
+    pointer-events: none;
+    text-decoration: line-through;
+    border-color: #475569;
+}
+
+.builder-option-icon {
+    font-size: 0.95rem;
+    opacity: 0.8;
+}
+
+.builder-option-val {
+    font-size: 1.15rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+}
+
+@keyframes shakeAnim {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
 }
 
 /* 4. Math Escape */

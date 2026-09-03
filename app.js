@@ -43,6 +43,46 @@ window.MathQuestApp = window.MathQuestApp || {};
 window.MathQuestApp.state = state;
 window.MathQuestGames = window.MathQuestGames || {};
 
+// Registro acumulativo seguro para window.stopAllGames (evita sobreescritura entre Snake y Tetris sin modificar legacy)
+const _registeredStopHandlers = [];
+Object.defineProperty(window, 'stopAllGames', {
+    configurable: true,
+    enumerable: true,
+    get: function() {
+        return function() {
+            _registeredStopHandlers.forEach(fn => {
+                try { fn(); } catch (e) { console.error("Error en stopHandler:", e); }
+            });
+        };
+    },
+    set: function(fn) {
+        if (typeof fn === 'function' && !_registeredStopHandlers.includes(fn)) {
+            _registeredStopHandlers.push(fn);
+        }
+    }
+});
+
+// Función centralizada para detener de forma segura cualquier juego en ejecución
+function stopAllActiveGames() {
+    if (typeof window.stopAllGames === 'function') {
+        try { window.stopAllGames(); } catch (e) {}
+    }
+    if (typeof window.stopTresGame === 'function') {
+        try { window.stopTresGame(); } catch (e) {}
+    }
+    if (typeof window.stopArkanoidGame === 'function') {
+        try { window.stopArkanoidGame(); } catch (e) {}
+    }
+    if (window.MathQuestGames) {
+        Object.values(window.MathQuestGames).forEach(g => {
+            if (typeof g.stop === 'function') {
+                try { g.stop(); } catch (e) {}
+            }
+        });
+    }
+}
+window.stopAllActiveGames = stopAllActiveGames;
+
 // Sistema de Notificaciones Toast Universal (Seguro contra bloqueos de sandbox en iframes)
 window.showToast = function(msg) {
     let toast = document.getElementById('app-toast');
@@ -842,6 +882,7 @@ function awardCoins(isLevelCompletion, level) {
         const successors = {
             'slider-5': 'rush-1',
             'arkanoid-5': 'builder-1',
+            'builder-5': 'escape-1',
             'tres-5': 'escape-1',
             'escape-5': 'duel-1'
         };
@@ -998,7 +1039,7 @@ const MEDALS_CATALOG = [
     { key: 'geometry_medal', name: 'Medalla Geométrica 📐', desc: 'Otorgada al superar el Nivel 5 de Math-Tetris.', condition: () => state.unlockedLevels.includes('tetris-5') },
     { key: 'arkanoid_medal', name: 'Medalla Rompeladrillos 🚀', desc: 'Otorgada al superar el Nivel 5 de Math-Arkanoid.', condition: () => state.unlockedLevels.includes('arkanoid-5') },
     { key: 'logic_medal', name: 'Medalla de la Lógica 🧠', desc: 'Otorgada al superar el Nivel 5 de Sudoku, Ahorcado y Tres en Raya.', condition: () => state.unlockedLevels.includes('sudoku-5') && state.unlockedLevels.includes('ahorcado-5') && state.unlockedLevels.includes('tres-5') },
-    { key: 'champion_medal', name: 'Campeón MathQuest 🏅', desc: 'Completa absolutamente todos los 35 niveles de la plataforma.', condition: () => state.unlockedLevels.length >= 35 }
+    { key: 'champion_medal', name: 'Campeón MathQuest 🏅', desc: 'Completa absolutamente todos los 55 niveles de la plataforma.', condition: () => state.unlockedLevels.length >= 55 }
 ];
 
 function checkAndUnlockAchievements() {
@@ -1181,7 +1222,7 @@ function setupVipBypassBilling() {
     btnVipHeader.addEventListener('click', () => {
         SoundEngine.playClick();
         if (state.vipBypassPurchased) {
-            alert("✨ ¡Ya eres un usuario VIP Premium! Todos los 25 niveles ya están completamente desbloqueados.");
+            alert("✨ ¡Ya eres un usuario VIP Premium! Todos los 55 niveles ya están completamente desbloqueados.");
             return;
         }
         
@@ -1252,7 +1293,7 @@ function setupVipBypassBilling() {
             activatePremiumVipPass();
             billingModal.classList.add('hidden');
             
-            alert("💳 ¡Pago aprobado con éxito! Tu Pase VIP Premium está activo. Se han desbloqueado todos los 25 niveles.");
+            alert("💳 ¡Pago aprobado con éxito! Tu Pase VIP Premium está activo. Se han desbloqueado todos los 55 niveles.");
         }, 1500);
     });
 
@@ -1435,6 +1476,9 @@ function setupHubTabNavigation() {
 function launchGame(game, level, isCustom = false) {
     SoundEngine.playClick();
     
+    // Detener de forma limpia cualquier juego previo activo
+    stopAllActiveGames();
+
     // Bajar volumen de la música de fondo durante los juegos
     MusicEngine.duck();
     
@@ -1495,20 +1539,8 @@ document.getElementById('btn-back-menu').addEventListener('click', () => {
     // Restaurar volumen normal de música de fondo al volver al inicio
     MusicEngine.unduck();
     
-    if (typeof window.stopAllGames === 'function') {
-        window.stopAllGames();
-    }
-    if (typeof window.stopTresGame === 'function') {
-        window.stopTresGame();
-    }
-    if (typeof window.stopArkanoidGame === 'function') {
-        window.stopArkanoidGame();
-    }
-    if (window.MathQuestGames) {
-        Object.values(window.MathQuestGames).forEach(g => {
-            if (typeof g.stop === 'function') g.stop();
-        });
-    }
+    // Detener de forma limpia y unificada todos los juegos activos
+    stopAllActiveGames();
 
     state.activeGameScreen = null;
     document.getElementById('btn-back-menu').classList.add('hidden');
@@ -1909,6 +1941,9 @@ function completeGameLevel(game, level) {
     const nextLevelKey = `${game}-${lvlNum + 1}`;
     if (lvlNum < 5 && !state.unlockedLevels.includes(nextLevelKey)) {
         state.unlockedLevels.push(nextLevelKey);
+    }
+    if (game === 'builder' && lvlNum === 5 && !state.unlockedLevels.includes('escape-1')) {
+        state.unlockedLevels.push('escape-1');
     }
 
     const earned = awardCoins(true, lvlNum);
