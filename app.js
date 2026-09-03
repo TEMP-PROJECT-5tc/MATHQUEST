@@ -41,6 +41,7 @@ const state = {
 window.state = state;
 window.MathQuestApp = window.MathQuestApp || {};
 window.MathQuestApp.state = state;
+window.MathQuestGames = window.MathQuestGames || {};
 
 // Sistema de Notificaciones Toast Universal (Seguro contra bloqueos de sandbox en iframes)
 window.showToast = function(msg) {
@@ -102,7 +103,31 @@ function loadStateFromStorage() {
                 state.unlockedLevels.push('arkanoid-1');
             }
 
+            // Migración progresiva segura para nuevos juegos (desbloqueo de sucesores retroactivos)
+            if (state.unlockedLevels.includes('slider-5') && !state.unlockedLevels.includes('rush-1')) {
+                state.unlockedLevels.push('rush-1');
+            }
+            if (state.unlockedLevels.includes('arkanoid-5') && !state.unlockedLevels.includes('builder-1')) {
+                state.unlockedLevels.push('builder-1');
+            }
+            if (state.unlockedLevels.includes('tres-5') && !state.unlockedLevels.includes('escape-1')) {
+                state.unlockedLevels.push('escape-1');
+            }
+            if (state.unlockedLevels.includes('escape-5') && !state.unlockedLevels.includes('duel-1')) {
+                state.unlockedLevels.push('duel-1');
+            }
+
             state.vipBypassPurchased = localStorage.getItem(STORAGE_PREFIX + 'vip_bypass_purchased') === 'true';
+            if (state.vipBypassPurchased) {
+                // Asegurar los 55 niveles para cuentas con Pase VIP adquirido
+                const allGames = ['snake', 'slider', 'rush', 'tetris', 'arkanoid', 'builder', 'sudoku', 'ahorcado', 'tres', 'escape', 'duel'];
+                allGames.forEach(g => {
+                    for (let l = 1; l <= 5; l++) {
+                        const k = `${g}-${l}`;
+                        if (!state.unlockedLevels.includes(k)) state.unlockedLevels.push(k);
+                    }
+                });
+            }
 
             const savedInventory = localStorage.getItem(STORAGE_PREFIX + 'inventory');
             if (savedInventory) {
@@ -812,6 +837,22 @@ function awardCoins(isLevelCompletion, level) {
     
     if (isLevelCompletion) {
         activateStreakDay();
+
+        // Desbloqueo progresivo del siguiente juego al superar el Nivel 5 de un predecesor
+        const successors = {
+            'slider-5': 'rush-1',
+            'arkanoid-5': 'builder-1',
+            'tres-5': 'escape-1',
+            'escape-5': 'duel-1'
+        };
+        const currentKey = `${state.activeGameScreen}-${level}`;
+        if (successors[currentKey] && !state.unlockedLevels.includes(successors[currentKey])) {
+            state.unlockedLevels.push(successors[currentKey]);
+            setTimeout(() => {
+                window.showToast(`🎉 ¡Nuevo juego desbloqueado en el camino!`);
+                renderDuolingoPath();
+            }, 500);
+        }
     }
 
     if (state.stars % 5 === 0) {
@@ -1236,8 +1277,8 @@ function setupVipBypassBilling() {
 function activatePremiumVipPass() {
     state.vipBypassPurchased = true;
     
-    // Desbloquear los 5 niveles de los 7 juegos
-    const games = ['snake', 'slider', 'tetris', 'arkanoid', 'sudoku', 'ahorcado', 'tres'];
+    // Desbloquear los 5 niveles de los 11 juegos (55 niveles en total)
+    const games = ['snake', 'slider', 'rush', 'tetris', 'arkanoid', 'builder', 'sudoku', 'ahorcado', 'tres', 'escape', 'duel'];
     state.unlockedLevels = [];
     games.forEach(g => {
         for (let l = 1; l <= 5; l++) {
@@ -1403,13 +1444,19 @@ function launchGame(game, level, isCustom = false) {
     state.activeGameScreen = game;
     state.activeGameLevel = parseInt(level);
 
-    ['snake', 'tetris', 'arkanoid', 'slider', 'sudoku', 'ahorcado', 'tres'].forEach(g => {
+    ['snake', 'tetris', 'arkanoid', 'slider', 'sudoku', 'ahorcado', 'tres', 'rush', 'builder', 'escape', 'duel'].forEach(g => {
         const el = document.getElementById(`screen-${g}`);
         if (el) el.classList.add('hidden');
     });
 
     const activeEl = document.getElementById(`screen-${game}`);
     if (activeEl) activeEl.classList.remove('hidden');
+
+    // Adaptador no invasivo para juegos modulares registrados en MathQuestGames (Fase 4)
+    if (window.MathQuestGames && window.MathQuestGames[game] && typeof window.MathQuestGames[game].start === 'function') {
+        window.MathQuestGames[game].start(state.activeGameLevel);
+        return;
+    }
 
     if (game === 'snake') {
         if (typeof window.startSnakeGame === 'function') {
@@ -1457,11 +1504,16 @@ document.getElementById('btn-back-menu').addEventListener('click', () => {
     if (typeof window.stopArkanoidGame === 'function') {
         window.stopArkanoidGame();
     }
+    if (window.MathQuestGames) {
+        Object.values(window.MathQuestGames).forEach(g => {
+            if (typeof g.stop === 'function') g.stop();
+        });
+    }
 
     state.activeGameScreen = null;
     document.getElementById('btn-back-menu').classList.add('hidden');
     
-    ['snake', 'tetris', 'arkanoid', 'slider', 'sudoku', 'ahorcado', 'tres'].forEach(g => {
+    ['snake', 'tetris', 'arkanoid', 'slider', 'sudoku', 'ahorcado', 'tres', 'rush', 'builder', 'escape', 'duel'].forEach(g => {
         const el = document.getElementById(`screen-${g}`);
         if (el) el.classList.add('hidden');
     });
@@ -1645,7 +1697,9 @@ hintButtons.forEach(btn => {
         }
 
         let hintUsed = false;
-        if (state.activeGameScreen === 'snake' && typeof window.useSnakeHint === 'function') {
+        if (window.MathQuestGames && window.MathQuestGames[state.activeGameScreen] && typeof window.MathQuestGames[state.activeGameScreen].useHint === 'function') {
+            hintUsed = window.MathQuestGames[state.activeGameScreen].useHint();
+        } else if (state.activeGameScreen === 'snake' && typeof window.useSnakeHint === 'function') {
             hintUsed = window.useSnakeHint();
         } else if (state.activeGameScreen === 'tetris' && typeof window.useTetrisHint === 'function') {
             hintUsed = window.useTetrisHint();
@@ -1849,6 +1903,22 @@ function initMathQuestApp() {
     }
 }
 
+// Helper unificado para completar niveles de juegos de forma no invasiva
+function completeGameLevel(game, level) {
+    const lvlNum = parseInt(level);
+    const nextLevelKey = `${game}-${lvlNum + 1}`;
+    if (lvlNum < 5 && !state.unlockedLevels.includes(nextLevelKey)) {
+        state.unlockedLevels.push(nextLevelKey);
+    }
+
+    const earned = awardCoins(true, lvlNum);
+    saveStateToStorage();
+    updateHeaderStats();
+    renderDuolingoPath();
+    checkAndUnlockAchievements();
+    return earned;
+}
+
 // Exportar funciones útiles a nivel global
 window.state = state;
 window.SoundEngine = SoundEngine;
@@ -1856,6 +1926,7 @@ window.MusicEngine = MusicEngine;
 window.renderLaTeX = renderLaTeX;
 window.mathGen = mathGen;
 window.awardCoins = awardCoins;
+window.completeGameLevel = completeGameLevel;
 window.saveStateToStorage = saveStateToStorage;
 window.updateHeaderStats = updateHeaderStats;
 window.checkAndUnlockAchievements = checkAndUnlockAchievements;
@@ -1873,6 +1944,7 @@ window.MathQuestApp = {
     renderLaTeX,
     mathGen,
     awardCoins,
+    completeGameLevel,
     activatePremiumVipPass,
     saveStateToStorage,
     updateHeaderStats,

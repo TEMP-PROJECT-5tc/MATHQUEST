@@ -1761,3 +1761,76 @@ body {
     text-align: center;
 }
 
+/* ==========================================================================
+   Fase 4.1: Estilos Base para Nuevos Minijuegos
+   Cálculo Rush, Constructor Matemático, Math Escape, Duelo Matemático
+   ========================================================================== */
+
+/* 1. Canvas Universales de Nuevos Minijuegos */
+#rush-canvas,
+#builder-canvas,
+#escape-canvas,
+#duel-canvas {
+    background: var(--color-canvas-bg, #0b0f19);
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--border-radius-medium);
+    margin: 0 auto;
+    box-shadow: var(--shadow-inset, inset 0 2px 4px rgba(255, 255, 255, 0.05));
+}
+
+/* 2. Cálculo Rush */
+#screen-rush .game-canvas-area {
+    padding: 15px;
+}
+
+#ctrl-rush-left,
+#ctrl-rush-right {
+    background: var(--color-card-secondary, #334155);
+    color: var(--color-text, #f8fafc);
+    font-weight: 800;
+    flex: 1;
+    min-height: 48px;
+    border-radius: var(--border-radius-medium);
+    border: 2px solid var(--color-border);
+    cursor: pointer;
+    transition: transform 0.1s ease, background 0.15s ease;
+}
+
+#ctrl-rush-left:hover,
+#ctrl-rush-right:hover {
+    background: var(--color-accent-blue, #3b82f6);
+    color: #ffffff;
+    border-color: #2563eb;
+}
+
+#ctrl-rush-left:active,
+#ctrl-rush-right:active {
+    transform: scale(0.97);
+}
+
+/* 3. Constructor Matemático */
+#screen-builder .game-canvas-area {
+    padding: 15px;
+}
+
+/* 4. Math Escape */
+#screen-escape .game-canvas-area {
+    padding: 15px;
+}
+
+.escape-interactive-area {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 5. Duelo Matemático */
+#screen-duel .game-canvas-area {
+    padding: 15px;
+}
+
+
