@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <!-- Gradiente del anillo exterior azul -->
+    <linearGradient id="mq-outer-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4287f5"/>
+      <stop offset="40%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+
+    <!-- Gradiente de sombra 3D inferior del borde azul -->
+    <linearGradient id="mq-blue-shadow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1e3a8a"/>
+    </linearGradient>
+
+    <!-- Gradiente de la cara azul oscura -->
+    <radialGradient id="mq-face-dark" cx="45%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#15243d"/>
+      <stop offset="70%" stop-color="#0b1629"/>
+      <stop offset="100%" stop-color="#060c18"/>
+    </radialGradient>
+
+    <!-- Gradiente de moneda dorada grande -->
+    <linearGradient id="mq-coin-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="40%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+
+    <!-- Gradiente moneda pequeña -->
+    <linearGradient id="mq-coin-small" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="40%" stop-color="#fef08a"/>
+      <stop offset="100%" stop-color="#eab308"/>
+    </linearGradient>
+
+    <filter id="mq-drop-shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Grupo Principal con Sombra -->
+  <g filter="url(#mq-drop-shadow)">
+    <!-- Borde exterior 3D azul -->
+    <circle cx="94" cy="94" r="82" fill="url(#mq-blue-shadow)"/>
+    <circle cx="94" cy="92" r="80" fill="url(#mq-outer-blue)"/>
+
+    <!-- Bisel interior azul claro -->
+    <circle cx="94" cy="92" r="70" fill="#1d4ed8"/>
+
+    <!-- Cara circular oscura -->
+    <circle cx="94" cy="92" r="67" fill="url(#mq-face-dark)"/>
+
+    <!-- Brillo superior / reflejo curvo -->
+    <path d="M 40 76 A 65 65 0 0 1 146 54 A 67 67 0 0 0 40 76 Z" fill="#ffffff" opacity="0.12"/>
+
+    <!-- Estrella blanca en la frente -->
+    <!-- Centro en (94, 58), radio ~13 -->
+    <polygon points="94,46 97.8,55.2 107.5,55.8 100,62.2 102.3,71.8 94,66.6 85.7,71.8 88,62.2 80.5,55.8 90.2,55.2" fill="#ffffff"/>
+
+    <!-- Ojo Izquierdo: Signo Más (+) celeste -->
+    <g>
+      <!-- Barra vertical -->
+      <rect x="58" y="70" width="12" height="26" rx="6" fill="#38bdf8"/>
+      <!-- Barra horizontal -->
+      <rect x="51" y="77" width="26" height="12" rx="6" fill="#38bdf8"/>
+    </g>
+
+    <!-- Ojo Derecho: Signo Multiplicación (x) amarillo/ámbar rotado 45° -->
+    <g transform="rotate(45 125 83)">
+      <rect x="119" y="70" width="12" height="26" rx="6" fill="#fbbf24"/>
+      <rect x="112" y="77" width="26" height="12" rx="6" fill="#fbbf24"/>
+    </g>
+
+    <!-- Nariz: Círculo blanco -->
+    <circle cx="94" cy="94" r="9" fill="#ffffff"/>
+
+    <!-- Sonrisa: Arco verde alegre y curvo -->
+    <path d="M 66 110 Q 94 133 122 110" fill="none" stroke="#22c55e" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <!-- Monedas doradas en la esquina inferior derecha -->
+  <g>
+    <!-- Moneda grande base -->
+    <g transform="translate(150, 150) rotate(-15)">
+      <!-- Sombra propia de la moneda -->
+      <circle cx="1" cy="2" r="23" fill="#78350f" opacity="0.6"/>
+      <!-- Borde exterior moneda -->
+      <circle cx="0" cy="0" r="23" fill="#b45309"/>
+      <!-- Cara de la moneda -->
+      <circle cx="0" cy="0" r="19.5" fill="url(#mq-coin-gold)"/>
+      <!-- Anillo acanalado interior -->
+      <circle cx="0" cy="0" r="15" fill="#92400e" opacity="0.4"/>
+      <circle cx="0" cy="0" r="14" fill="#d97706"/>
+      <!-- Estrella / Brújula de aventura matemática -->
+      <polygon points="0,-10 3,-3 10,0 3,3 0,10 -3,3 -10,0 -3,-3" fill="#fef08a"/>
+      <circle cx="0" cy="0" r="2" fill="#78350f"/>
+    </g>
+
+    <!-- Moneda pequeña frontal superpuesta -->
+    <g transform="translate(168, 163)">
+      <!-- Sombra moneda pequeña -->
+      <circle cx="0.5" cy="1.5" r="14" fill="#78350f" opacity="0.5"/>
+      <!-- Borde exterior -->
+      <circle cx="0" cy="0" r="14" fill="#ca8a04"/>
+      <!-- Cara -->
+      <circle cx="0" cy="0" r="12" fill="url(#mq-coin-small)"/>
+      <!-- Relieve -->
+      <circle cx="-3" cy="-3" r="4" fill="#ffffff" opacity="0.6"/>
+    </g>
+  </g>
+</svg>
