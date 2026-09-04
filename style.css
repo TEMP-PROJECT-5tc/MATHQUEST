@@ -3174,6 +3174,480 @@ body {
     }
 }
 
+/* =========================================
+   MATHQUEST V3 — CONSTRUCTOR MATEMÁTICO
+   ========================================= */
+
+/* 1. Main Container & Blueprint Canvas */
+.builder-screen {
+    background: radial-gradient(circle at 50% 20%, #0f172a 0%, #090d16 100%);
+    color: var(--color-text);
+}
+
+.builder-screen .game-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 20px;
+    align-items: start;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 2. HUD & Blueprint Card */
+.builder-hud {
+    background: #0f1d32;
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: var(--border-radius-card);
+    padding: 18px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.blueprint-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.blueprint-header {
+    border-bottom: 1px dashed rgba(56, 189, 248, 0.3);
+    padding-bottom: 10px;
+}
+
+.blueprint-stamp {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid #38bdf8;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.blueprint-header h2 {
+    font-size: 1.25rem;
+    color: #f8fafc;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* 3. Objective & Measurements */
+.builder-objective {
+    background: rgba(14, 165, 233, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: var(--border-radius-small);
+    padding: 12px;
+}
+
+.builder-objective .equation-box {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #38bdf8;
+    background: #0b1329;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-top: 6px;
+    text-align: center;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.builder-sub-note {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    margin-top: 6px;
+    text-align: center;
+    font-style: italic;
+}
+
+.builder-measurement {
+    background: #081120;
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: var(--border-radius-small);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.builder-measurement h4 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    margin: 0 0 4px 0;
+}
+
+.measurement-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #cbd5e1;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    padding-bottom: 4px;
+}
+
+.measurement-row strong {
+    color: #f1f5f9;
+    font-family: monospace;
+    font-size: 0.92rem;
+}
+
+/* 4. Feedback Banner & Stability States */
+.builder-feedback {
+    background: #0c182d;
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    color: #cbd5e1;
+    text-align: center;
+    margin-bottom: 10px;
+    transition: all 0.25s ease;
+}
+
+.builder-stable {
+    background: rgba(16, 185, 129, 0.15) !important;
+    border-color: #10b981 !important;
+    color: #34d399 !important;
+    animation: builder-stable-pulse 1.2s ease-in-out infinite alternate;
+}
+
+.builder-unstable {
+    background: rgba(239, 68, 68, 0.15) !important;
+    border-color: #ef4444 !important;
+    color: #f87171 !important;
+    animation: builder-unstable-shake 0.4s ease-in-out;
+}
+
+/* 5. Construction Workspace & Grid */
+.builder-workspace {
+    background: #0a1322;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: var(--border-radius-card);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.builder-canvas-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #050b14;
+    border-radius: 10px;
+    padding: 14px;
+    border: 1px solid rgba(56, 189, 248, 0.18);
+    overflow: hidden;
+}
+
+.builder-grid-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+    touch-action: manipulation;
+}
+
+.builder-ruler-x {
+    display: flex;
+    height: 18px;
+    margin-left: 24px;
+    width: 384px;
+    justify-content: space-between;
+    font-family: monospace;
+    font-size: 0.65rem;
+    color: #64748b;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.builder-grid-with-ruler-y {
+    display: flex;
+}
+
+.builder-ruler-y {
+    display: flex;
+    flex-direction: column;
+    width: 24px;
+    height: 256px;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-right: 4px;
+    font-family: monospace;
+    font-size: 0.65rem;
+    color: #64748b;
+    border-right: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.builder-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 32px);
+    grid-template-rows: repeat(8, 32px);
+    width: 384px;
+    height: 256px;
+    background-color: #030812;
+    background-image: 
+        linear-gradient(rgba(56, 189, 248, 0.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.15) 1px, transparent 1px);
+    background-size: 32px 32px;
+    border: 2px solid #0284c7;
+    position: relative;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8), 0 0 15px rgba(2, 132, 199, 0.2);
+}
+
+.builder-cell {
+    width: 32px;
+    height: 32px;
+    box-sizing: border-box;
+    transition: background-color 0.15s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.builder-cell.hover-valid {
+    background-color: rgba(56, 189, 248, 0.35) !important;
+    border: 1px dashed #38bdf8;
+}
+
+.builder-cell.hover-invalid {
+    background-color: rgba(239, 68, 68, 0.4) !important;
+    border: 1px dashed #ef4444;
+}
+
+/* Placed blocks in grid */
+.builder-cell.cell-placed {
+    background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%);
+    border: 1px solid #3b82f6;
+    box-shadow: inset 0 0 6px rgba(147, 197, 253, 0.3);
+    animation: builder-place-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.builder-cell.cell-placed.cell-stone {
+    background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+    border: 1px solid #64748b;
+}
+
+.builder-cell.cell-placed.cell-counterweight {
+    background: linear-gradient(135deg, #b45309 0%, #78350f 100%);
+    border: 1px solid #f59e0b;
+}
+
+.builder-cell.cell-placed.cell-void {
+    background: rgba(2, 6, 23, 0.85);
+    border: 1px dashed rgba(148, 163, 184, 0.4);
+}
+
+.builder-cell.cell-placed.cell-top-layer {
+    background: linear-gradient(135deg, #047857 0%, #064e3b 100%);
+    border: 1px solid #10b981;
+}
+
+.builder-base-indicator {
+    width: 384px;
+    margin-left: 24px;
+    margin-top: 4px;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #f59e0b;
+    letter-spacing: 0.05em;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 4px;
+    padding: 3px 0;
+}
+
+/* 6. Piece Quarry / Inventory */
+.builder-quarry {
+    background: #081120;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: var(--border-radius-small);
+    padding: 12px;
+}
+
+.builder-quarry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.quarry-title {
+    display: flex;
+    flex-direction: column;
+}
+
+.quarry-title span {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.quarry-title small {
+    font-size: 0.72rem;
+    color: #94a3b8;
+}
+
+.builder-quarry-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-height: 75px;
+    align-items: center;
+}
+
+.builder-piece {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #0f1d32;
+    border: 1.5px solid rgba(56, 189, 248, 0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+    touch-action: none;
+    min-width: 78px;
+}
+
+.builder-piece:hover {
+    background: #172a48;
+    border-color: #38bdf8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+}
+
+.builder-piece.selected {
+    background: #1e3a8a;
+    border-color: #60a5fa;
+    box-shadow: 0 0 14px rgba(96, 165, 250, 0.6), inset 0 0 8px rgba(255, 255, 255, 0.2);
+    transform: scale(1.04);
+}
+
+.builder-piece.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+    border-style: dashed;
+}
+
+.builder-piece .piece-dims {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #f8fafc;
+    font-family: monospace;
+}
+
+.builder-piece .piece-meta {
+    font-size: 0.7rem;
+    color: #38bdf8;
+    margin-top: 2px;
+}
+
+.builder-piece .piece-weight {
+    font-size: 0.68rem;
+    color: #fbbf24;
+    font-weight: 700;
+}
+
+/* 7. Victory & Game Over Overlays */
+.builder-victory {
+    border: 2px solid #10b981 !important;
+    background: radial-gradient(circle, #064e3b 0%, #022c22 100%) !important;
+}
+
+.builder-victory h3 {
+    color: #34d399 !important;
+}
+
+.builder-game-over {
+    border: 2px solid #ef4444 !important;
+    background: radial-gradient(circle, #450a0a 0%, #1c0404 100%) !important;
+}
+
+.builder-game-over h3 {
+    color: #f87171 !important;
+}
+
+.builder-math-summary {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 10px 0;
+    font-size: 0.88rem;
+    color: #e2e8f0;
+    line-height: 1.4;
+}
+
+/* 8. Lightweight Animations */
+@keyframes builder-place-pop {
+    0% { transform: scale(0.6); opacity: 0; }
+    70% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes builder-stable-pulse {
+    0% { box-shadow: 0 0 6px rgba(16, 185, 129, 0.3); }
+    100% { box-shadow: 0 0 16px rgba(16, 185, 129, 0.7); }
+}
+
+@keyframes builder-unstable-shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
+
+/* 9. Responsive Mobile & Tablet Layout */
+@media (max-width: 900px) {
+    .builder-screen .game-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .builder-hud {
+        order: 2;
+    }
+
+    .builder-workspace {
+        order: 1;
+    }
+
+    .builder-grid-wrapper {
+        transform: scale(0.85);
+        transform-origin: top center;
+        margin-bottom: -35px;
+    }
+}
+
+@media (max-width: 480px) {
+    .builder-grid-wrapper {
+        transform: scale(0.72);
+        transform-origin: top center;
+        margin-bottom: -70px;
+    }
+
+    .builder-piece {
+        padding: 6px 8px;
+        min-width: 65px;
+    }
+
+    .builder-piece .piece-dims {
+        font-size: 0.78rem;
+    }
+}
+
 
 
 

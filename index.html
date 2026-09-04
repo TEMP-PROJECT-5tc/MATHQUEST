@@ -1128,90 +1128,134 @@
         </section>
 
         <!-- PANTALLA 9: CONSTRUCTOR MATEMÁTICO (GEOMETRÍA Y EQUILIBRIO) -->
-        <section id="screen-builder" class="screen hidden">
-            <div class="game-layout">
-                <div class="game-sidebar card">
-                    <h2>🏗️ Constructor Matemático</h2>
-                    <p class="game-desc" id="builder-game-instruction">Construye estructuras estables apilando vigas y bloques cuyas dimensiones y ángulos respeten las ecuaciones de equilibrio.</p>
-                    
-                    <div class="lives-display-panel">
-                        <span class="panel-label">Vidas (Corazones):</span>
-                        <div class="hearts-container" id="builder-hearts-box">
-                            ❤️ ❤️ ❤️
+        <section id="screen-builder" class="screen builder-screen hidden">
+            <div id="game-builder-screen" class="game-layout">
+                <!-- Sidebar / Blueprint Panel -->
+                <div class="game-sidebar card builder-hud">
+                    <div class="blueprint-card">
+                        <div class="blueprint-header">
+                            <span class="blueprint-stamp">PLANO TÉCNICO</span>
+                            <h2 id="builder-level-name">🏗️ Nivel 1: El Pedestal</h2>
+                        </div>
+
+                        <div class="lives-display-panel">
+                            <span class="panel-label">Intentos Restantes:</span>
+                            <div class="hearts-container" id="builder-hearts-box">
+                                ❤️ ❤️ ❤️
+                            </div>
+                        </div>
+
+                        <div class="builder-objective">
+                            <span class="equation-label" id="builder-equation-prompt">📐 Objetivo Arquitectónico:</span>
+                            <div id="builder-equation" class="equation-box">
+                                Construye un pedestal con Área = 24 u²
+                            </div>
+                            <div id="builder-sub-objective" class="builder-sub-note">
+                                Fórmula: Área = ancho × alto
+                            </div>
+                        </div>
+
+                        <div class="builder-measurement">
+                            <h4>📊 Mediciones en Tiempo Real:</h4>
+                            <div class="measurement-row">
+                                <span>Dimensión:</span>
+                                <strong id="builder-dim-current">0 × 0 u</strong>
+                            </div>
+                            <div class="measurement-row">
+                                <span>Área Construida:</span>
+                                <strong id="builder-area-current">0 u²</strong>
+                            </div>
+                            <div class="measurement-row" id="builder-perimeter-row" style="display:none;">
+                                <span>Perímetro:</span>
+                                <strong id="builder-perimeter-current">0 u</strong>
+                            </div>
+                            <div class="measurement-row" id="builder-cm-row" style="display:none;">
+                                <span>Centro de Masa (X_cm):</span>
+                                <strong id="builder-cm-current">--</strong>
+                            </div>
+                            <div class="measurement-row" id="builder-volume-row" style="display:none;">
+                                <span>Volumen Total:</span>
+                                <strong id="builder-volume-current">0 u³</strong>
+                            </div>
+                            <div class="measurement-row">
+                                <span>Estabilidad:</span>
+                                <strong id="builder-stability-display">En Espera</strong>
+                            </div>
+                        </div>
+
+                        <div class="builder-actions-panel" style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
+                            <button id="btn-validate-builder" class="btn btn-primary w-100" style="font-weight: 700; font-size: 1rem;">
+                                📐 Validar Construcción
+                            </button>
+                            <div style="display: flex; gap: 8px;">
+                                <button id="btn-clear-grid-builder" class="btn btn-secondary" style="flex: 1;">
+                                    🧹 Limpiar
+                                </button>
+                                <button id="btn-use-hint-builder" class="btn btn-secondary btn-use-hint" style="flex: 1;">
+                                    💡 Pista
+                                </button>
+                            </div>
+                            <button id="btn-restart-builder" class="btn btn-accent w-100">
+                                🔄 Reiniciar Nivel
+                            </button>
                         </div>
                     </div>
-
-                    <div class="equation-panel">
-                        <span class="equation-label" id="builder-equation-prompt">Regla de Construcción:</span>
-                        <div id="builder-equation" class="equation-box" style="font-size: 1.15rem; background: var(--color-bg); color: var(--color-accent-green);">
-                            Cargando plano...
-                        </div>
-                    </div>
-
-                    <div class="game-stats-row" style="display: flex; gap: 10px;">
-                        <div class="stat-pill stars-pill" style="flex: 1;">
-                            <span>Nivel:</span>
-                            <strong id="builder-level-display">1</strong>
-                        </div>
-                        <div class="stat-pill stars-pill" style="flex: 1;">
-                            <span>Estabilidad:</span>
-                            <strong id="builder-stability-display">100%</strong>
-                        </div>
-                    </div>
-
-                    <div id="builder-timer-panel" class="builder-timer-panel hidden" style="margin-top: 10px;">
-                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; margin-bottom: 4px;">
-                            <span>⏱️ Estabilidad:</span>
-                            <span id="builder-timer-text">30s</span>
-                        </div>
-                        <div class="builder-timer-track">
-                            <div id="builder-timer-fill" class="builder-timer-fill" style="width: 100%;"></div>
-                        </div>
-                    </div>
-
-                    <button id="btn-use-hint-builder" class="btn btn-secondary w-100 btn-use-hint" style="margin-top: 10px;">
-                        💡 Usar Pista (Mochila)
-                    </button>
-                    <button id="btn-restart-builder" class="btn btn-accent w-100" style="margin-top: 10px;">Reiniciar Obra</button>
                 </div>
 
-                <div class="game-canvas-area card">
-                    <div class="canvas-container">
+                <!-- Main Construction Area -->
+                <div class="game-canvas-area card builder-workspace">
+                    <div class="canvas-container builder-canvas-container">
+                        <!-- Blueprint Feedback Banner -->
+                        <div id="builder-feedback" class="builder-feedback">
+                            <span id="builder-feedback-text">📐 Selecciona una pieza de la cantera y colócala en la cuadrícula</span>
+                        </div>
+
+                        <!-- Construction Grid Area -->
+                        <div class="builder-grid-wrapper">
+                            <div class="builder-ruler-x" id="builder-ruler-x"></div>
+                            <div class="builder-grid-with-ruler-y">
+                                <div class="builder-ruler-y" id="builder-ruler-y"></div>
+                                <div id="builder-grid" class="builder-grid">
+                                    <!-- Celdas inyectadas dinámicamente -->
+                                </div>
+                            </div>
+                            <div id="builder-support-base-indicator" class="builder-base-indicator hidden">
+                                <span>▲ Base de Apoyo [X: 4 - 7] ▲</span>
+                            </div>
+                        </div>
+
+                        <!-- Game Overlay for Briefing, Victory and Game Over -->
                         <div id="builder-overlay" class="game-overlay">
-                            <div class="overlay-content">
+                            <div class="overlay-content" id="builder-overlay-card">
                                 <h3 id="builder-overlay-title">Constructor Matemático 🏗️</h3>
-                                <div class="rules-explanation-box">
-                                    <h4>📜 Reglas del Constructor:</h4>
-                                    <ul>
-                                        <li>📐 Elige la pieza correcta que satisfaga el cálculo geométrico.</li>
-                                        <li>🧱 Cada respuesta correcta coloca una pieza y eleva la estructura.</li>
-                                        <li>💥 Los errores debilitan la estabilidad de la obra y restan **1 vida**.</li>
+                                <div class="rules-explanation-box" id="builder-overlay-rules">
+                                    <h4>📜 Plano de Construcción:</h4>
+                                    <ul id="builder-rules-list">
+                                        <li>📐 Arrastra o toca las piezas de la cantera para colocarlas en la cuadrícula.</li>
+                                        <li>🧱 Cumple rigurosamente las especificaciones geométricas y de equilibrio.</li>
+                                        <li>💥 3 intentos fallidos colapsarán la estructura.</li>
                                     </ul>
                                 </div>
-                                <p id="builder-overlay-text">Diseña la torre más resistente.</p>
+                                <div id="builder-overlay-math-summary" class="builder-math-summary hidden"></div>
+                                <p id="builder-overlay-text">Prepárate para edificar con precisión matemática.</p>
                                 <button id="btn-start-builder-game" class="btn btn-primary btn-large">¡Comenzar a Construir!</button>
                             </div>
                         </div>
-                        <canvas id="builder-canvas" width="400" height="450"></canvas>
                     </div>
 
-                    <!-- Panel de Progreso de Construcción y Selector de Piezas -->
-                    <div class="builder-bottom-controls">
-                        <div class="builder-progress-box">
-                            <div class="builder-progress-header">
-                                <span id="builder-progress-label">Progreso de la Obra:</span>
-                                <strong id="builder-pieces-count">0 / 4 Piezas 🧱</strong>
+                    <!-- Piece Quarry / Inventory -->
+                    <div class="builder-quarry">
+                        <div class="builder-quarry-header">
+                            <div class="quarry-title">
+                                <span>🧱 Cantera de Piezas y Materiales:</span>
+                                <small id="builder-quarry-tip">Haz clic para seleccionar o arrastra a la cuadrícula</small>
                             </div>
-                            <div class="builder-progress-track">
-                                <div id="builder-progress-fill" class="builder-progress-fill" style="width: 0%;"></div>
-                            </div>
+                            <button id="btn-rotate-piece" class="btn btn-sm btn-secondary" style="font-size: 0.75rem; padding: 4px 8px;">
+                                🔄 Rotar Pieza
+                            </button>
                         </div>
-
-                        <div class="builder-pieces-header">
-                            <span>Selecciona la Pieza Adecuada:</span>
-                        </div>
-                        <div id="builder-options-container" class="builder-options-grid">
-                            <!-- Botones de piezas inyectados dinámicamente -->
+                        <div id="builder-quarry-container" class="builder-quarry-container">
+                            <!-- Piezas inyectadas dinámicamente -->
                         </div>
                     </div>
                 </div>
