@@ -2563,5 +2563,617 @@ body {
     }
 }
 
+/* =========================================
+   MATHQUEST V3 — CÁLCULO RUSH
+   ========================================= */
+
+/* -----------------------------------------
+   1. Main game container
+   ----------------------------------------- */
+#screen-rush {
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    animation: rushFadeIn 0.3s ease-out;
+}
+
+#screen-rush .game-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+#screen-rush .game-sidebar {
+    background: linear-gradient(180deg, var(--color-card, #1e293b) 0%, rgba(15, 23, 42, 0.95) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: var(--border-radius-large, 20px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+#screen-rush .game-sidebar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #38bdf8, #3b82f6, #0284c7);
+}
+
+#screen-rush .game-sidebar h2 {
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--color-text, #f8fafc);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+}
+
+#screen-rush #rush-game-instruction {
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--color-text-muted, #94a3b8);
+    margin-bottom: 16px;
+}
+
+#screen-rush .game-canvas-area {
+    background: linear-gradient(180deg, var(--color-card, #1e293b) 0%, rgba(15, 23, 42, 0.98) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: var(--border-radius-large, 20px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+#screen-rush .game-canvas-area::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 2px;
+    background: radial-gradient(ellipse at center, rgba(56, 189, 248, 0.8) 0%, transparent 70%);
+}
+
+/* -----------------------------------------
+   2. HUD
+   ----------------------------------------- */
+#screen-rush .lives-display-panel {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: var(--border-radius-medium, 12px);
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+#screen-rush .lives-display-panel .panel-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--color-text-muted, #94a3b8);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#screen-rush #rush-hearts-box {
+    font-size: 1.35rem;
+    letter-spacing: 4px;
+    line-height: 1.2;
+    filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.4));
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#screen-rush .game-stats-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+#screen-rush .stat-pill {
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: var(--border-radius-medium, 12px);
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+    transition: border-color 0.2s ease, transform 0.15s ease;
+}
+
+#screen-rush .stat-pill:hover {
+    border-color: rgba(56, 189, 248, 0.45);
+}
+
+#screen-rush .stat-pill span {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--color-text-muted, #94a3b8);
+}
+
+#screen-rush #rush-level-display {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #38bdf8;
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    font-variant-numeric: tabular-nums;
+}
+
+#screen-rush #rush-score-display {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #fbbf24;
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+    font-variant-numeric: tabular-nums;
+}
+
+#screen-rush #btn-use-hint-rush {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(37, 99, 235, 0.28) 100%);
+    border: 1.5px solid rgba(56, 189, 248, 0.4);
+    color: #38bdf8;
+    font-weight: 700;
+    border-radius: var(--border-radius-medium, 12px);
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+#screen-rush #btn-use-hint-rush:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(37, 99, 235, 0.45) 100%);
+    border-color: #38bdf8;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+    transform: translateY(-1px);
+}
+
+#screen-rush #btn-use-hint-rush:active {
+    transform: translateY(1px);
+}
+
+#screen-rush #btn-restart-rush {
+    border-radius: var(--border-radius-medium, 12px);
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    padding: 10px 14px;
+    transition: all 0.2s ease;
+}
+
+/* -----------------------------------------
+   3. Mathematical operation
+   ----------------------------------------- */
+#screen-rush .equation-panel {
+    background: rgba(11, 15, 25, 0.85);
+    border: 1.5px solid rgba(56, 189, 248, 0.35);
+    border-radius: var(--border-radius-medium, 12px);
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), inset 0 0 12px rgba(56, 189, 248, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+#screen-rush .equation-panel::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.2), transparent 70%);
+    pointer-events: none;
+}
+
+#screen-rush #rush-equation-prompt {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+    color: #38bdf8;
+    margin-bottom: 6px;
+}
+
+#screen-rush #rush-equation {
+    font-family: var(--font-heading, 'Fredoka', system-ui, sans-serif);
+    font-size: clamp(1.2rem, 2.2vw, 1.55rem) !important;
+    font-weight: 800;
+    line-height: 1.3;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.9) !important;
+    color: #fde047 !important;
+    text-align: center;
+    border: 1px solid rgba(253, 224, 71, 0.25);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 10px rgba(253, 224, 71, 0.15);
+    word-break: break-word;
+    transition: transform 0.15s ease, border-color 0.2s ease;
+}
+
+#screen-rush #rush-equation span {
+    color: #38bdf8 !important;
+    text-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+}
+
+/* -----------------------------------------
+   4. Racing track
+   ----------------------------------------- */
+#screen-rush .canvas-container {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 16px;
+    perspective: 800px;
+}
+
+#screen-rush #rush-canvas {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    aspect-ratio: 400 / 450;
+    display: block;
+    border-radius: 14px;
+    background-color: #090d16;
+    border: 2px solid rgba(56, 189, 248, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(14, 165, 233, 0.18), inset 0 0 25px rgba(0, 0, 0, 0.8);
+    touch-action: none;
+    cursor: pointer;
+    transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+#screen-rush #rush-canvas:hover {
+    border-color: rgba(56, 189, 248, 0.55);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7), 0 0 28px rgba(14, 165, 233, 0.3);
+}
+
+/* -----------------------------------------
+   5. Three lanes
+   ----------------------------------------- */
+#screen-rush .touch-controller {
+    width: 100%;
+    max-width: 400px;
+    margin-top: 14px;
+}
+
+#screen-rush .touch-row {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+}
+
+#screen-rush #ctrl-rush-left,
+#screen-rush #ctrl-rush-right {
+    flex: 1;
+    min-height: 52px;
+    background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+    border: 2px solid rgba(56, 189, 248, 0.3);
+    border-radius: var(--border-radius-medium, 12px);
+    color: #f8fafc;
+    font-family: var(--font-primary, sans-serif);
+    font-size: 0.92rem;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#screen-rush #ctrl-rush-left:hover,
+#screen-rush #ctrl-rush-right:hover {
+    background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+    border-color: #38bdf8;
+    color: #ffffff;
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.45);
+    transform: translateY(-2px);
+}
+
+#screen-rush #ctrl-rush-left:active,
+#screen-rush #ctrl-rush-right:active {
+    transform: translateY(1px) scale(0.97);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    background: linear-gradient(180deg, #0369a1 0%, #0c4a6e 100%);
+}
+
+/* -----------------------------------------
+   6. Gates
+   ----------------------------------------- */
+/* Acentos visuales del checkpoint y arcos superiores */
+#screen-rush .canvas-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 38px;
+    background: linear-gradient(180deg, rgba(14, 165, 233, 0.12) 0%, transparent 100%);
+    pointer-events: none;
+    border-radius: 14px 14px 0 0;
+}
+
+/* -----------------------------------------
+   7. Player vehicle
+   ----------------------------------------- */
+#screen-rush #rush-canvas:active {
+    filter: brightness(1.04);
+}
+
+/* -----------------------------------------
+   8. Fuel
+   ----------------------------------------- */
+#screen-rush .lives-display-panel.low-fuel #rush-hearts-box {
+    animation: rushLowFuelPulse 1s infinite alternate ease-in-out;
+}
+
+/* -----------------------------------------
+   9. Speedometer
+   ----------------------------------------- */
+#screen-rush .stat-pill.stars-pill:last-child {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.7) 100%);
+    position: relative;
+}
+
+#screen-rush .stat-pill.stars-pill:last-child::after {
+    content: '⚡ VEL';
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    font-size: 0.55rem;
+    font-weight: 900;
+    color: rgba(56, 189, 248, 0.6);
+    letter-spacing: 0.5px;
+}
+
+/* -----------------------------------------
+   10. Feedback states
+   ----------------------------------------- */
+@keyframes rushFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes rushLowFuelPulse {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.4));
+    }
+    100% {
+        transform: scale(1.08);
+        filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.9));
+    }
+}
+
+@keyframes rushScreenShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px) rotate(-0.5deg); }
+    40% { transform: translateX(6px) rotate(0.5deg); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+}
+
+@keyframes rushNitroBoost {
+    0% {
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(16, 185, 129, 0.8), 0 0 50px rgba(56, 189, 248, 0.5);
+    }
+    100% {
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+    }
+}
+
+/* -----------------------------------------
+   11. Victory/Game Over
+   ----------------------------------------- */
+#screen-rush #rush-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(11, 15, 25, 0.88);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    z-index: 20;
+    padding: 16px;
+    animation: rushFadeIn 0.25s ease-out;
+}
+
+#screen-rush #rush-overlay.hidden {
+    display: none !important;
+}
+
+#screen-rush #rush-overlay .overlay-content {
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    border: 1.5px solid rgba(56, 189, 248, 0.35);
+    border-radius: var(--border-radius-large, 20px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(56, 189, 248, 0.25);
+    padding: 24px 20px;
+    width: 100%;
+    max-width: 350px;
+    text-align: center;
+    color: #f8fafc;
+}
+
+#screen-rush #rush-overlay-title {
+    font-family: var(--font-heading, 'Fredoka', system-ui, sans-serif);
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #f8fafc;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+}
+
+#screen-rush #rush-overlay .rules-explanation-box {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-medium, 12px);
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    text-align: left;
+}
+
+#screen-rush #rush-overlay .rules-explanation-box h4 {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #38bdf8;
+    margin-bottom: 8px;
+}
+
+#screen-rush #rush-overlay .rules-explanation-box ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#screen-rush #rush-overlay .rules-explanation-box li {
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: #cbd5e1;
+}
+
+#screen-rush #rush-overlay-text {
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: #e2e8f0;
+    margin-bottom: 16px;
+}
+
+#screen-rush #btn-start-rush-game {
+    width: 100%;
+    min-height: 48px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: 2px solid #34d399;
+    border-radius: var(--border-radius-medium, 12px);
+    color: #ffffff;
+    font-family: var(--font-heading, system-ui, sans-serif);
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    transition: all 0.2s ease;
+}
+
+#screen-rush #btn-start-rush-game:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    border-color: #6ee7b7;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+    transform: translateY(-2px);
+}
+
+#screen-rush #btn-start-rush-game:active {
+    transform: translateY(1px);
+}
+
+/* -----------------------------------------
+   12. Responsive/mobile
+   ----------------------------------------- */
+@media (max-width: 900px) {
+    #screen-rush .game-layout {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    #screen-rush .game-sidebar {
+        order: 2;
+        max-width: 480px;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    #screen-rush .game-canvas-area {
+        order: 1;
+        max-width: 480px;
+        margin: 0 auto;
+        width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    #screen-rush {
+        padding: 0 4px;
+    }
+
+    #screen-rush .game-sidebar,
+    #screen-rush .game-canvas-area {
+        padding: 12px;
+        border-radius: 14px;
+    }
+
+    #screen-rush .game-sidebar h2 {
+        font-size: 1.3rem;
+    }
+
+    #screen-rush #rush-equation {
+        font-size: 1.25rem !important;
+        padding: 6px 8px;
+    }
+
+    #screen-rush .canvas-container,
+    #screen-rush #rush-canvas {
+        max-width: 100%;
+        border-radius: 10px;
+    }
+
+    #screen-rush .touch-controller {
+        margin-top: 10px;
+    }
+
+    #screen-rush #ctrl-rush-left,
+    #screen-rush #ctrl-rush-right {
+        min-height: 48px;
+        font-size: 0.88rem;
+        padding: 8px;
+    }
+
+    #screen-rush #rush-overlay .overlay-content {
+        padding: 18px 14px;
+        max-width: 95%;
+    }
+}
+
+
 
 
