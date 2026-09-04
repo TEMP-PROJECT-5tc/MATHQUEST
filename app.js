@@ -1488,7 +1488,7 @@ function launchGame(game, level, isCustom = false) {
     state.activeGameScreen = game;
     state.activeGameLevel = parseInt(level);
 
-    ['snake', 'tetris', 'arkanoid', 'slider', 'sudoku', 'ahorcado', 'tres', 'rush', 'builder', 'escape', 'duel'].forEach(g => {
+    ['snake', 'tetris', 'arkanoid', 'slider', 'sudoku', 'ahorcado', 'tres', 'rush', 'builder', 'escape', 'duel', 'calculator'].forEach(g => {
         const el = document.getElementById(`screen-${g}`);
         if (el) el.classList.add('hidden');
     });
@@ -1545,7 +1545,7 @@ document.getElementById('btn-back-menu').addEventListener('click', () => {
     state.activeGameScreen = null;
     document.getElementById('btn-back-menu').classList.add('hidden');
     
-    ['snake', 'tetris', 'arkanoid', 'slider', 'sudoku', 'ahorcado', 'tres', 'rush', 'builder', 'escape', 'duel'].forEach(g => {
+    ['snake', 'tetris', 'arkanoid', 'slider', 'sudoku', 'ahorcado', 'tres', 'rush', 'builder', 'escape', 'duel', 'calculator'].forEach(g => {
         const el = document.getElementById(`screen-${g}`);
         if (el) el.classList.add('hidden');
     });
@@ -1559,6 +1559,13 @@ document.getElementById('btn-back-menu').addEventListener('click', () => {
 
 // Delegación global para asegurar la captura de clics en niveles del camino Duolingo
 document.addEventListener('click', (e) => {
+    const calcBtn = e.target.closest('#btn-hub-open-calculator, #tab-btn-calculator, .btn-open-calculator');
+    if (calcBtn) {
+        e.preventDefault();
+        launchGame('calculator', 1);
+        return;
+    }
+
     const node = e.target.closest('.path-node');
     if (node) {
         e.preventDefault();

@@ -1,6 +1,6 @@
 {
   "name": "MathQuest V3 - Camino del Saber Matemático",
-  "description": "Plataforma interactiva de micro-retos y minijuegos de Álgebra, Geometría y Razonamiento Lógico con estilo Duolingo.",
+  "description": "Plataforma interactiva de micro-retos, minijuegos y calculadora matemática infantil para Álgebra, Aritmética y Razonamiento Lógico con estilo Duolingo.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

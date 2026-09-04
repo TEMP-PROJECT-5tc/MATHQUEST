@@ -177,9 +177,23 @@
                 </div>
             </div>
 
+            <!-- Zona de Herramientas del Explorador: Calculadora Infantil -->
+            <div class="hub-tool-card card" id="hub-calculator-banner">
+                <div class="hub-tool-icon">🧮</div>
+                <div class="hub-tool-info">
+                    <div class="hub-tool-badge">NUEVA HERRAMIENTA</div>
+                    <h3>Calculadora Mágica para Niños</h3>
+                    <p>Suma, resta, multiplica, divide ¡o practica con retos divertidos en el <strong>Modo Aprender</strong>! 🎯</p>
+                </div>
+                <button class="btn btn-primary btn-large btn-open-calculator" id="btn-hub-open-calculator" aria-label="Abrir Calculadora">
+                    ¡Abrir Calculadora! 🧮
+                </button>
+            </div>
+
             <!-- Control de Pestañas del Hub (Camino vs Tienda vs Logros vs Ajustes) -->
             <div class="hub-tabs-container">
                 <button class="tab-btn active" id="tab-btn-path" style="flex: 1.5;">🗺️ Camino</button>
+                <button class="tab-btn" id="tab-btn-calculator">🧮 Calculadora</button>
                 <button class="tab-btn" id="tab-btn-shop">🪙 Tienda</button>
                 <button class="tab-btn" id="tab-btn-achievements">🏅 Logros</button>
                 <button class="tab-btn" id="tab-btn-settings">⚙️ Ajustes</button>
@@ -1552,6 +1566,140 @@
             </div>
         </section>
 
+        <!-- PANTALLA 13: CALCULADORA MATEMÁTICA INFANTIL -->
+        <section id="screen-calculator" class="screen hidden">
+            <div class="calc-screen-container">
+                <!-- Barra superior de la Calculadora con navegación y selector de modo -->
+                <div class="calc-header-card card">
+                    <div class="calc-title-area">
+                        <button id="btn-calc-back-to-menu" class="btn btn-secondary calc-back-btn" aria-label="Volver al Menú Principal">
+                            ← Volver
+                        </button>
+                        <div class="calc-title-text">
+                            <h2>🧮 Calculadora Mágica</h2>
+                            <p class="calc-subtitle">Aprende, suma, resta, multiplica y divide jugando</p>
+                        </div>
+                    </div>
+                    <!-- Selector de Modos -->
+                    <div class="calc-mode-selector" role="tablist" aria-label="Modo de la Calculadora">
+                        <button id="tab-calc-mode-normal" class="calc-mode-pill active" role="tab" aria-selected="true" aria-label="Modo Libre">
+                            🔢 Modo Libre
+                        </button>
+                        <button id="tab-calc-mode-learn" class="calc-mode-pill" role="tab" aria-selected="false" aria-label="Modo Aprender">
+                            🎯 Modo Aprender
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Panel interactivo de Modo Aprender (Visible solo en Modo Aprender) -->
+                <div id="calc-learn-panel" class="calc-learn-panel card hidden">
+                    <div class="calc-learn-top-row">
+                        <div class="calc-learn-badge">
+                            <span>🎓 Reto del Mago Mateo</span>
+                        </div>
+                        <div class="calc-diff-selector" role="group" aria-label="Dificultad de retos">
+                            <button class="calc-diff-btn active" data-diff="easy" aria-label="Dificultad Fácil">🌱 Fácil</button>
+                            <button class="calc-diff-btn" data-diff="medium" aria-label="Dificultad Media">🌿 Medio</button>
+                            <button class="calc-diff-btn" data-diff="hard" aria-label="Dificultad Difícil">⭐ Difícil</button>
+                        </div>
+                    </div>
+
+                    <div class="calc-learn-challenge-row">
+                        <div class="calc-learn-mascot">🧙‍♂️</div>
+                        <div class="calc-learn-prompt-box">
+                            <span class="calc-learn-prompt-label">Tu reto matemático:</span>
+                            <div class="calc-learn-question" id="calc-learn-question">¿Cuánto es 7 + 8?</div>
+                        </div>
+                    </div>
+
+                    <!-- Mensaje de Feedback Educativo -->
+                    <div id="calc-learn-feedback" class="calc-learn-feedback-box neutral">
+                        Calcula o escribe tu respuesta y pulsa =
+                    </div>
+
+                    <!-- Métricas de aprendizaje de la sesión y botón de siguiente reto -->
+                    <div class="calc-learn-stats-row">
+                        <div class="calc-learn-stat">
+                            <span>Aciertos:</span>
+                            <strong id="calc-learn-score-val">0</strong>
+                        </div>
+                        <div class="calc-learn-stat">
+                            <span>Racha:</span>
+                            <strong id="calc-learn-streak-val">0 🔥</strong>
+                        </div>
+                        <div class="calc-learn-stat">
+                            <span>Monedas:</span>
+                            <strong id="calc-learn-coins-val" style="color: var(--color-accent-yellow);">+0 🪙</strong>
+                        </div>
+                        <button id="btn-calc-learn-next" class="btn btn-primary btn-sm hidden" aria-label="Siguiente Reto">
+                            ¡Siguiente Reto! ➡️
+                        </button>
+                        <button id="btn-calc-learn-skip" class="btn btn-secondary btn-sm" aria-label="Cambiar Reto">
+                            Otro Reto 🎲
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Consola Principal de la Calculadora Infantil -->
+                <div class="calc-device-card card">
+                    <div class="calc-device-brand">
+                        <span class="calc-brand-dots">
+                            <span class="dot dot-red"></span>
+                            <span class="dot dot-yellow"></span>
+                            <span class="dot dot-green"></span>
+                        </span>
+                        <span class="calc-brand-label">MathQuest Magic Calc ⚡</span>
+                        <span class="calc-solar-cell" title="Célula Solar Mágica"></span>
+                    </div>
+
+                    <!-- Pantalla LCD de la Calculadora -->
+                    <div class="calc-display-frame">
+                        <div class="calc-history-row" id="calc-history-display" aria-label="Historial de operación"></div>
+                        <div class="calc-main-row" id="calc-main-display" aria-live="polite" aria-label="Resultado o valor actual">0</div>
+                        <div class="calc-friendly-message hidden" id="calc-friendly-message" aria-live="assertive"></div>
+                    </div>
+
+                    <!-- Teclado de Botones Grandes para Niños (4 columnas x 5 filas) -->
+                    <div class="calc-keypad" role="grid" aria-label="Teclado numérico y operaciones">
+                        <!-- Fila 1: Acciones y División -->
+                        <button id="btn-calc-clear" class="calc-key key-clear" type="button" aria-label="Borrar Todo">C</button>
+                        <button id="btn-calc-backspace" class="calc-key key-action" type="button" aria-label="Borrar último dígito">⌫</button>
+                        <button id="btn-calc-sign" class="calc-key key-action" type="button" aria-label="Cambiar Signo Positivo o Negativo">±</button>
+                        <button id="btn-calc-div" class="calc-key key-operator" type="button" aria-label="Dividir">÷</button>
+
+                        <!-- Fila 2: 7, 8, 9, Multiplicación -->
+                        <button id="btn-calc-7" class="calc-key key-num" type="button" aria-label="Siete">7</button>
+                        <button id="btn-calc-8" class="calc-key key-num" type="button" aria-label="Ocho">8</button>
+                        <button id="btn-calc-9" class="calc-key key-num" type="button" aria-label="Nueve">9</button>
+                        <button id="btn-calc-mul" class="calc-key key-operator" type="button" aria-label="Multiplicar">×</button>
+
+                        <!-- Fila 3: 4, 5, 6, Resta -->
+                        <button id="btn-calc-4" class="calc-key key-num" type="button" aria-label="Cuatro">4</button>
+                        <button id="btn-calc-5" class="calc-key key-num" type="button" aria-label="Cinco">5</button>
+                        <button id="btn-calc-6" class="calc-key key-num" type="button" aria-label="Seis">6</button>
+                        <button id="btn-calc-sub" class="calc-key key-operator" type="button" aria-label="Restar">−</button>
+
+                        <!-- Fila 4: 1, 2, 3, Suma -->
+                        <button id="btn-calc-1" class="calc-key key-num" type="button" aria-label="Uno">1</button>
+                        <button id="btn-calc-2" class="calc-key key-num" type="button" aria-label="Dos">2</button>
+                        <button id="btn-calc-3" class="calc-key key-num" type="button" aria-label="Tres">3</button>
+                        <button id="btn-calc-add" class="calc-key key-operator" type="button" aria-label="Sumar">+</button>
+
+                        <!-- Fila 5: 0, Punto Decimal, Igual -->
+                        <button id="btn-calc-0" class="calc-key key-num key-zero" type="button" aria-label="Cero">0</button>
+                        <button id="btn-calc-dot" class="calc-key key-num" type="button" aria-label="Punto Decimal">.</button>
+                        <button id="btn-calc-equals" class="calc-key key-equals" type="button" aria-label="Calcular Resultado">=</button>
+                    </div>
+
+                    <!-- Atajos de Teclado Informativos -->
+                    <div class="calc-keyboard-guide">
+                        <span>⌨️ Compatible con teclado:</span>
+                        <code>0-9</code> <code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>Enter (=)</code> <code>Backspace (⌫)</code> <code>Esc (C)</code>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <!-- Modal General de Diálogos con Mateo / Desafíos de Potenciadores -->
@@ -1654,5 +1802,6 @@
     <script src="builder.js"></script>
     <script src="escape.js"></script>
     <script src="duel.js"></script>
+    <script src="calculator.js"></script>
 </body>
 </html>
