@@ -1,605 +1,756 @@
 /* ==========================================================================
-   MathQuest V3 - Capa de Autenticación y Sincronización en la Nube
-   Firebase Authentication (Google Sign-In) & Cloud Firestore Persistence
-   Mantiene el progreso del jugador sincronizado entre dispositivos mediante UID.
-   Compatible con GitHub Pages y Vite mediante módulos ES nativos.
+   MathQuest V3 - Módulo de Autenticación Unificada (Firebase Auth v12)
+   Soporte completo para:
+   - 🔵 Google Sign-In (Popup)
+   - ✉️ Correo y Contraseña (Registro, Inicio de Sesión, Recuperación)
+   - 📱 Teléfono vía SMS (RecaptchaVerifier + ConfirmationResult)
+   - 🍏 Continuar con Apple (OAuthProvider)
+   - 👥 Modo Invitado, Reconciliación de Cuentas y Manejo Amigable de Errores
    ========================================================================== */
 
 import { 
-    app, 
     auth, 
-    db, 
     googleProvider, 
+    appleProvider, 
     signInWithPopup, 
     signOut, 
-    onAuthStateChanged, 
-    doc, 
-    getDoc, 
-    setDoc 
+    onAuthStateChanged,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    sendPasswordResetEmail,
+    updateProfile,
+    RecaptchaVerifier,
+    signInWithPhoneNumber,
+    linkWithPopup
 } from './firebase.js';
 
-// --------------------------------------------------------------------------
-// 1. Estado de Conexión de Firebase
-// --------------------------------------------------------------------------
-const isFirebaseReady = !!auth;
-
-// --------------------------------------------------------------------------
-// 2. Estado Interno del Módulo de Autenticación
-// --------------------------------------------------------------------------
+// Estado interno de autenticación
 let currentUser = null;
-let lastSyncTimestamp = null;
-let isSyncing = false;
-let authListeners = [];
+let phoneConfirmationResult = null;
+let recaptchaVerifier = null;
+let currentAuthTab = 'login'; // 'login' | 'register' | 'forgot' | 'phone-step1' | 'phone-step2'
+
+/**
+ * Diccionario de traducción de códigos de error de Firebase Auth a español amigable
+ */
+const AUTH_ERROR_MESSAGES = {
+    'auth/user-not-found': 'No existe ninguna cuenta asociada a este correo electrónico.',
+    'auth/wrong-password': 'La contraseña ingresada es incorrecta. Intenta nuevamente.',
+    'auth/invalid-credential': 'Credenciales incorrectas. Verifica tu correo y contraseña.',
+    'auth/email-already-in-use': 'Ya existe una cuenta con este correo. Por favor inicia sesión.',
+    'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.',
+    'auth/invalid-email': 'El formato del correo electrónico no es válido.',
+    'auth/popup-closed-by-user': 'El inicio de sesión fue cancelado (la ventana se cerró).',
+    'auth/popup-blocked': 'Tu navegador bloqueó la ventana emergente. Por favor permítela para continuar.',
+    'auth/operation-not-allowed': 'Este método de autenticación aún no está habilitado en Firebase Console.',
+    'auth/invalid-phone-number': 'Número de teléfono no válido. Debe incluir el prefijo internacional (ejemplo: +34 612345678 o +51 987654321).',
+    'auth/missing-phone-number': 'Por favor introduce un número de teléfono válido.',
+    'auth/invalid-verification-code': 'El código SMS de 6 dígitos es incorrecto. Verifícalo e inténtalo de nuevo.',
+    'auth/code-expired': 'El código SMS ha expirado. Por favor solicita uno nuevo.',
+    'auth/too-many-requests': 'Demasiados intentos fallidos. Por seguridad, espera unos minutos.',
+    'auth/network-request-failed': 'Error de conexión a internet. Comprueba tu red.',
+    'auth/account-exists-with-different-credential': 'Ya existe una cuenta con este correo pero con otro método de acceso.',
+    'auth/captcha-check-failed': 'La verificación del reCAPTCHA falló o expiró. Inténtalo de nuevo.'
+};
+
+function getFriendlyErrorMessage(err) {
+    if (!err) return 'Ocurrió un error inesperado. Inténtalo de nuevo.';
+    return AUTH_ERROR_MESSAGES[err.code] || err.message || 'Error de autenticación. Intenta nuevamente.';
+}
+
+/**
+ * Mostrar mensaje de error en la UI de autenticación
+ * @param {string} message 
+ */
+function showAuthError(message) {
+    const errorBox = document.getElementById('auth-error-message');
+    if (errorBox) {
+        errorBox.textContent = message;
+        errorBox.classList.remove('hidden');
+    }
+}
+
+/**
+ * Limpiar mensaje de error
+ */
+function clearAuthError() {
+    const errorBox = document.getElementById('auth-error-message');
+    if (errorBox) {
+        errorBox.textContent = '';
+        errorBox.classList.add('hidden');
+    }
+}
+
+/**
+ * Mostrar toast o notificación en pantalla
+ * @param {string} message 
+ */
+function showToast(message) {
+    const toast = document.getElementById('app-toast');
+    if (toast) {
+        toast.textContent = message;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 3500);
+    }
+}
 
 // --------------------------------------------------------------------------
-// 3. Métodos Centrales de Autenticación
+// 1. Métodos de Inicio de Sesión / Registro
 // --------------------------------------------------------------------------
 
 /**
- * Iniciar sesión con Google usando Firebase Popup
+ * Iniciar sesión con Google
  */
-export async function signInWithGoogle() {
-    if (!auth) {
-        throw new Error("El servicio de autenticación de Firebase no está disponible.");
-    }
-    setModalLoading(true, "Conectando con Google...");
-    clearAuthModalError();
+export async function loginWithGoogle() {
+    clearAuthError();
+    const btn = document.getElementById('btn-auth-google-login');
+    if (btn) btn.disabled = true;
 
     try {
         const result = await signInWithPopup(auth, googleProvider);
-        const user = result.user;
-        currentUser = user;
-        
-        showAppNotification(`¡Bienvenido, ${user.displayName || 'Aventurero'}! 🚀`);
-        
-        // Sincronizar o migrar progreso
-        await loadOrMigrateUserProgress(user);
-        
-        updateUI();
-        return { success: true, user };
-    } catch (error) {
-        console.error("Error en Google Sign-In:", error);
-        handleAuthError(error);
-        return { success: false, error };
+        console.log("✓ Autenticado con Google:", result.user.displayName);
+        closeAccountModal();
+        showToast(`¡Bienvenido de vuelta, ${result.user.displayName || 'Aventurero'}! 🚀`);
+    } catch (err) {
+        console.error("Error al autenticar con Google:", err);
+        showAuthError(getFriendlyErrorMessage(err));
     } finally {
-        setModalLoading(false);
+        if (btn) btn.disabled = false;
     }
 }
 
 /**
- * Cerrar sesión actual
+ * Iniciar sesión con Apple
  */
-export async function signOutUser() {
-    if (!auth) return;
+export async function loginWithApple() {
+    clearAuthError();
+    const btn = document.getElementById('btn-auth-apple-login');
+    if (btn) btn.disabled = true;
+
+    try {
+        const result = await signInWithPopup(auth, appleProvider);
+        console.log("✓ Autenticado con Apple:", result.user.displayName || result.user.email);
+        closeAccountModal();
+        showToast(`¡Bienvenido, ${result.user.displayName || 'Aventurero'}! 🍏`);
+    } catch (err) {
+        console.error("Error al autenticar con Apple:", err);
+        showAuthError(getFriendlyErrorMessage(err));
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+/**
+ * Iniciar sesión con Correo y Contraseña
+ * @param {string} email 
+ * @param {string} password 
+ */
+export async function loginWithEmail(email, password) {
+    clearAuthError();
+    if (!email || !password) {
+        showAuthError('Por favor ingresa tu correo y contraseña.');
+        return;
+    }
+
+    const submitBtn = document.getElementById('btn-submit-email-login');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Iniciando sesión...';
+    }
+
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+        console.log("✓ Autenticado con correo:", userCredential.user.email);
+        closeAccountModal();
+        showToast(`¡Sesión iniciada correctamente! 🎒`);
+    } catch (err) {
+        console.error("Error al iniciar sesión con correo:", err);
+        showAuthError(getFriendlyErrorMessage(err));
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Iniciar Sesión';
+        }
+    }
+}
+
+/**
+ * Registrar nueva cuenta con Correo y Contraseña
+ * @param {string} displayName 
+ * @param {string} email 
+ * @param {string} password 
+ */
+export async function registerWithEmail(displayName, email, password) {
+    clearAuthError();
+    if (!email || !password) {
+        showAuthError('Por favor completa todos los campos.');
+        return;
+    }
+
+    if (password.length < 6) {
+        showAuthError('La contraseña debe contener al menos 6 caracteres.');
+        return;
+    }
+
+    const submitBtn = document.getElementById('btn-submit-email-register');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Creando cuenta...';
+    }
+
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        
+        // Asignar nombre de usuario personalizado
+        if (displayName && displayName.trim()) {
+            await updateProfile(userCredential.user, {
+                displayName: displayName.trim()
+            });
+        }
+
+        console.log("✓ Cuenta creada con éxito:", userCredential.user.email);
+        closeAccountModal();
+        showToast(`¡Cuenta creada con éxito! Bienvenido a MathQuest 🌟`);
+    } catch (err) {
+        console.error("Error al crear cuenta:", err);
+        showAuthError(getFriendlyErrorMessage(err));
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Crear Cuenta';
+        }
+    }
+}
+
+/**
+ * Enviar correo de restablecimiento de contraseña
+ * @param {string} email 
+ */
+export async function sendPasswordReset(email) {
+    clearAuthError();
+    if (!email || !email.includes('@')) {
+        showAuthError('Por favor introduce un correo electrónico válido.');
+        return;
+    }
+
+    const submitBtn = document.getElementById('btn-submit-forgot-password');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando...';
+    }
+
+    try {
+        await sendPasswordResetEmail(auth, email.trim());
+        showToast('✉️ Correo de recuperación enviado. Revisa tu bandeja de entrada.');
+        switchAuthTab('login');
+    } catch (err) {
+        console.error("Error al solicitar recuperación de contraseña:", err);
+        showAuthError(getFriendlyErrorMessage(err));
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Enviar Enlace de Recuperación';
+        }
+    }
+}
+
+// --------------------------------------------------------------------------
+// 2. Autenticación con Teléfono y SMS (Phone Auth)
+// --------------------------------------------------------------------------
+
+/**
+ * Inicializar reCAPTCHA invisible para Phone Auth
+ */
+function initRecaptchaVerifier() {
+    if (recaptchaVerifier) return recaptchaVerifier;
+
+    const container = document.getElementById('recaptcha-container');
+    if (!container) return null;
+
+    try {
+        recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            size: 'normal',
+            callback: () => {
+                clearAuthError();
+            },
+            'expired-callback': () => {
+                showAuthError('La verificación de seguridad ha expirado. Vuelve a intentarlo.');
+            }
+        });
+        recaptchaVerifier.render();
+    } catch (err) {
+        console.warn("Aviso al inicializar RecaptchaVerifier:", err);
+    }
+    return recaptchaVerifier;
+}
+
+/**
+ * Paso 1 Teléfono: Enviar código SMS al número indicado
+ * @param {string} phoneNumber 
+ */
+export async function sendPhoneVerificationCode(phoneNumber) {
+    clearAuthError();
+    if (!phoneNumber || phoneNumber.trim().length < 7) {
+        showAuthError('Introduce un número de teléfono con código de país (ejemplo: +34600112233).');
+        return;
+    }
+
+    const submitBtn = document.getElementById('btn-send-phone-code');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando SMS...';
+    }
+
+    try {
+        const verifier = initRecaptchaVerifier();
+        phoneConfirmationResult = await signInWithPhoneNumber(auth, phoneNumber.trim(), verifier);
+        console.log("✓ SMS de verificación enviado.");
+        
+        // Mostrar número en la pantalla de verificación
+        const displayPhone = document.getElementById('phone-number-target-display');
+        if (displayPhone) displayPhone.textContent = phoneNumber.trim();
+
+        switchAuthTab('phone-step2');
+        showToast('📱 Código SMS enviado a tu teléfono');
+    } catch (err) {
+        console.error("Error al enviar SMS de verificación:", err);
+        showAuthError(getFriendlyErrorMessage(err));
+        // Resetear recaptcha si falló
+        if (recaptchaVerifier) {
+            try { recaptchaVerifier.clear(); } catch(e) {}
+            recaptchaVerifier = null;
+        }
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Enviar Código por SMS';
+        }
+    }
+}
+
+/**
+ * Paso 2 Teléfono: Confirmar código SMS de 6 dígitos
+ * @param {string} smsCode 
+ */
+export async function verifyPhoneCode(smsCode) {
+    clearAuthError();
+    if (!phoneConfirmationResult) {
+        showAuthError('Sesión de verificación expirada. Solicita un nuevo código.');
+        switchAuthTab('phone-step1');
+        return;
+    }
+
+    if (!smsCode || smsCode.trim().length < 6) {
+        showAuthError('Introduce el código de 6 dígitos recibido por SMS.');
+        return;
+    }
+
+    const submitBtn = document.getElementById('btn-verify-sms-code');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Verificando...';
+    }
+
+    try {
+        const userCredential = await phoneConfirmationResult.confirm(smsCode.trim());
+        console.log("✓ Teléfono verificado con éxito:", userCredential.user.phoneNumber);
+        closeAccountModal();
+        showToast('¡Teléfono verificado! Sesión iniciada 📱');
+    } catch (err) {
+        console.error("Error al verificar código SMS:", err);
+        showAuthError(getFriendlyErrorMessage(err));
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Confirmar e Iniciar Sesión';
+        }
+    }
+}
+
+/**
+ * Cerrar sesión
+ */
+export async function logoutUser() {
     try {
         await signOut(auth);
-        currentUser = null;
-        lastSyncTimestamp = null;
-        showAppNotification("Has cerrado sesión. Tu progreso local sigue disponible. 👍");
-        updateUI();
-    } catch (error) {
-        console.error("Error al cerrar sesión:", error);
-        showAppNotification("Error al cerrar sesión: " + error.message);
-    }
-}
-
-/**
- * Obtener el usuario actual
- */
-export function getCurrentUser() {
-    return currentUser;
-}
-
-/**
- * Suscribirse a cambios de estado de autenticación
- */
-export function onAuthStateChange(callback) {
-    if (typeof callback === 'function') {
-        authListeners.push(callback);
-        if (currentUser) callback(currentUser);
-    }
-}
-
-// --------------------------------------------------------------------------
-// 4. Sincronización y Migración de Progreso en la Nube
-// --------------------------------------------------------------------------
-
-/**
- * Carga el progreso del jugador desde Firestore.
- * Si es un usuario nuevo (sin doc en Firestore), migra de forma transparente
- * su progreso local actual sin borrar el localStorage.
- * Si ya existe, concilia inteligentemente manteniendo siempre el valor más avanzado.
- */
-async function loadOrMigrateUserProgress(user) {
-    if (!db || !user) return;
-    isSyncing = true;
-    updateSyncIndicator();
-
-    try {
-        const userDocRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(userDocRef);
-
-        if (docSnap.exists()) {
-            // Usuario con progreso previo en la nube: Conciliación Inteligente
-            const cloudData = docSnap.data();
-            const cloudProgress = cloudData.progress || {};
-            reconcileAndApplyProgress(cloudProgress);
-            lastSyncTimestamp = cloudData.updatedAt || Date.now();
-            showAppNotification("☁️ Progreso sincronizado desde tu cuenta Google.");
-        } else {
-            // Usuario nuevo en la nube: Migración del progreso local actual a su cuenta
-            await saveProgressToCloud(user, true);
-            lastSyncTimestamp = Date.now();
-            showAppNotification("✨ Progreso local vinculado exitosamente a tu cuenta.");
+        console.log("Sesión de usuario cerrada con éxito.");
+        if (window.MathQuestCloudSave) {
+            window.MathQuestCloudSave.handleUserLogout();
         }
+        closeAccountModal();
+        showToast('Has cerrado sesión correctamente. Modo Invitado activo 👤');
     } catch (err) {
-        console.error("Error al cargar o migrar progreso en la nube:", err);
-        // Si hay error de permisos (por ejemplo, reglas no desplegadas o conexión)
-        // se mantiene el progreso local intacto.
-    } finally {
-        isSyncing = false;
-        updateSyncIndicator();
-        renderAccountModalContent();
+        console.error("Error al cerrar sesión:", err);
+        showToast('Error al cerrar sesión. Inténtalo de nuevo.');
+    }
+}
+
+// --------------------------------------------------------------------------
+// 3. Control y Navegación de la Interfaz del Modal de Cuenta
+// --------------------------------------------------------------------------
+
+/**
+ * Cambiar entre pestañas y vistas del modal
+ * @param {'login' | 'register' | 'forgot' | 'phone-step1' | 'phone-step2'} tabName 
+ */
+export function switchAuthTab(tabName) {
+    currentAuthTab = tabName;
+    clearAuthError();
+
+    const tabsNav = document.getElementById('auth-tabs-nav');
+    const tabBtnLogin = document.getElementById('tab-btn-login');
+    const tabBtnRegister = document.getElementById('tab-btn-register');
+
+    const viewLogin = document.getElementById('auth-form-login-view');
+    const viewRegister = document.getElementById('auth-form-register-view');
+    const viewForgot = document.getElementById('auth-form-forgot-view');
+    const viewPhone1 = document.getElementById('auth-form-phone1-view');
+    const viewPhone2 = document.getElementById('auth-form-phone2-view');
+
+    // Ocultar todas las vistas de formularios
+    [viewLogin, viewRegister, viewForgot, viewPhone1, viewPhone2].forEach(v => {
+        if (v) v.classList.add('hidden');
+    });
+
+    if (tabBtnLogin && tabBtnRegister) {
+        tabBtnLogin.classList.toggle('active', tabName === 'login');
+        tabBtnRegister.classList.toggle('active', tabName === 'register');
+    }
+
+    if (tabsNav) {
+        // Ocultar barra de pestañas si está en forgot o phone para no confundir
+        tabsNav.classList.toggle('hidden', tabName === 'forgot' || tabName.startsWith('phone'));
+    }
+
+    switch (tabName) {
+        case 'login':
+            if (viewLogin) viewLogin.classList.remove('hidden');
+            break;
+        case 'register':
+            if (viewRegister) viewRegister.classList.remove('hidden');
+            break;
+        case 'forgot':
+            if (viewForgot) viewForgot.classList.remove('hidden');
+            break;
+        case 'phone-step1':
+            if (viewPhone1) {
+                viewPhone1.classList.remove('hidden');
+                setTimeout(initRecaptchaVerifier, 100);
+            }
+            break;
+        case 'phone-step2':
+            if (viewPhone2) viewPhone2.classList.remove('hidden');
+            break;
     }
 }
 
 /**
- * Guarda el progreso actual en Firestore bajo `users/{uid}`
+ * Abrir el modal de cuenta
  */
-export async function syncProgressToCloud(isManual = false) {
-    if (!currentUser || !db) return;
-    if (isSyncing) return;
-    
-    isSyncing = true;
-    updateSyncIndicator();
-
-    try {
-        await saveProgressToCloud(currentUser, false);
-        lastSyncTimestamp = Date.now();
-        if (isManual) {
-            showAppNotification("☁️ ¡Tu progreso está 100% guardado y actualizado en la nube!");
-        }
-    } catch (err) {
-        console.error("Error al sincronizar con Firestore:", err);
-        if (isManual) {
-            showAppNotification("No se pudo sincronizar en la nube en este momento.");
-        }
-    } finally {
-        isSyncing = false;
-        updateSyncIndicator();
-        renderAccountModalContent();
-    }
-}
-
-/**
- * Estructura y guarda el documento en Firestore
- */
-async function saveProgressToCloud(user, isInitialMigration = false) {
-    const currentState = window.state || (window.MathQuestApp && window.MathQuestApp.state) || {};
-    const STORAGE_PREFIX = 'mq3_';
-    
-    // Obtener fechas de racha y última fecha activa de localStorage si existen
-    let streakDates = [];
-    let lastActiveDate = '';
-    try {
-        streakDates = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'streak_dates')) || [];
-        lastActiveDate = localStorage.getItem(STORAGE_PREFIX + 'last_active_date') || '';
-    } catch (e) {}
-
-    const progressPayload = {
-        streak: currentState.streak ?? 1,
-        stars: currentState.stars ?? 0,
-        coins: currentState.coins ?? 150,
-        globalHints: currentState.globalHints ?? 2,
-        userLevel: currentState.userLevel ?? 1,
-        soundEnabled: currentState.soundEnabled ?? true,
-        musicEnabled: currentState.musicEnabled ?? true,
-        musicVolume: currentState.musicVolume ?? 0.4,
-        musicTrack: currentState.musicTrack || 'adventure',
-        equippedAvatar: currentState.equippedAvatar || 'cubo',
-        equippedSkin: currentState.equippedSkin || 'standard',
-        equippedBadge: currentState.equippedBadge || '',
-        unlockedSkins: currentState.unlockedSkins || ['standard'],
-        unlockedLevels: currentState.unlockedLevels || ['snake-1', 'slider-1', 'tetris-1', 'arkanoid-1', 'sudoku-1', 'ahorcado-1', 'tres-1'],
-        vipBypassPurchased: !!currentState.vipBypassPurchased,
-        inventory: currentState.inventory || { shield: 0, freeze: 0 },
-        streakDates: streakDates,
-        lastActiveDate: lastActiveDate
-    };
-
-    const docPayload = {
-        uid: user.uid,
-        displayName: user.displayName || 'Aventurero Matemático',
-        email: user.email || '',
-        photoURL: user.photoURL || '',
-        updatedAt: Date.now(),
-        progress: progressPayload
-    };
-
-    if (isInitialMigration) {
-        docPayload.registeredAt = Date.now();
-    }
-
-    const userDocRef = doc(db, 'users', user.uid);
-    await setDoc(userDocRef, docPayload, { merge: true });
-}
-
-/**
- * Concilia los datos locales y los de la nube tomando el mayor progreso
- */
-function reconcileAndApplyProgress(cloudProgress) {
-    if (!cloudProgress) return;
-    const currentState = window.state || (window.MathQuestApp && window.MathQuestApp.state);
-    if (!currentState) return;
-
-    // Números acumulativos (conservar el mayor logro)
-    currentState.streak = Math.max(currentState.streak || 1, cloudProgress.streak || 1);
-    currentState.stars = Math.max(currentState.stars || 0, cloudProgress.stars || 0);
-    currentState.coins = Math.max(currentState.coins || 0, cloudProgress.coins || 0);
-    currentState.globalHints = Math.max(currentState.globalHints || 0, cloudProgress.globalHints || 0);
-    currentState.userLevel = Math.max(currentState.userLevel || 1, cloudProgress.userLevel || 1);
-
-    // Conjuntos y listas (unión sin duplicados)
-    const baseSkins = ['standard'];
-    const currentSkins = Array.isArray(currentState.unlockedSkins) ? currentState.unlockedSkins : baseSkins;
-    const cloudSkins = Array.isArray(cloudProgress.unlockedSkins) ? cloudProgress.unlockedSkins : baseSkins;
-    currentState.unlockedSkins = Array.from(new Set([...currentSkins, ...cloudSkins]));
-
-    const baseLevels = ['snake-1', 'slider-1', 'tetris-1', 'arkanoid-1', 'sudoku-1', 'ahorcado-1', 'tres-1'];
-    const currentLevels = Array.isArray(currentState.unlockedLevels) ? currentState.unlockedLevels : baseLevels;
-    const cloudLevels = Array.isArray(cloudProgress.unlockedLevels) ? cloudProgress.unlockedLevels : baseLevels;
-    currentState.unlockedLevels = Array.from(new Set([...currentLevels, ...cloudLevels]));
-
-    // Pase VIP: Si está en la nube o local, conservarlo activo
-    if (cloudProgress.vipBypassPurchased || currentState.vipBypassPurchased) {
-        currentState.vipBypassPurchased = true;
-    }
-
-    // Inventario de potenciadores
-    currentState.inventory = {
-        shield: Math.max(currentState.inventory?.shield || 0, cloudProgress.inventory?.shield || 0),
-        freeze: Math.max(currentState.inventory?.freeze || 0, cloudProgress.inventory?.freeze || 0)
-    };
-
-    // Personalización y preferencias equipadas
-    if (cloudProgress.equippedAvatar) currentState.equippedAvatar = cloudProgress.equippedAvatar;
-    if (cloudProgress.equippedSkin) currentState.equippedSkin = cloudProgress.equippedSkin;
-    if (cloudProgress.equippedBadge) currentState.equippedBadge = cloudProgress.equippedBadge;
-
-    // Persistir localmente de inmediato (sin borrar localStorage)
-    if (typeof window.saveStateToStorage === 'function') {
-        window.saveStateToStorage();
-    }
-
-    // Refrescar UI del juego
-    if (typeof window.updateHeaderStats === 'function') {
-        window.updateHeaderStats();
-    }
-    if (typeof window.renderDuolingoPath === 'function') {
-        window.renderDuolingoPath();
-    }
-    if (typeof window.updateStreakCalendar === 'function') {
-        window.updateStreakCalendar();
-    }
-    if (typeof window.renderAvatarSelectionUI === 'function') {
-        window.renderAvatarSelectionUI();
-    }
-}
-
-// --------------------------------------------------------------------------
-// 5. Temporizador de Sincronización Automática (Debounced)
-// --------------------------------------------------------------------------
-let _syncDebounceTimer = null;
-export function triggerDebouncedSync() {
-    if (!currentUser || !db) return;
-    if (_syncDebounceTimer) clearTimeout(_syncDebounceTimer);
-    _syncDebounceTimer = setTimeout(() => {
-        syncProgressToCloud();
-    }, 2500);
-}
-
-// --------------------------------------------------------------------------
-// 6. Manejador de Errores Amigables de Firebase
-// --------------------------------------------------------------------------
-function handleAuthError(error) {
-    let msg = "No se pudo completar el inicio de sesión.";
-    
-    switch (error.code) {
-        case 'auth/popup-closed-by-user':
-            msg = "La ventana de Google se cerró antes de completar el inicio de sesión.";
-            break;
-        case 'auth/popup-blocked':
-            msg = "El navegador bloqueó la ventana emergente. Por favor, permite las ventanas emergentes en la barra de direcciones.";
-            break;
-        case 'auth/cancelled-popup-request':
-            msg = "Se canceló la solicitud de autenticación.";
-            break;
-        case 'auth/operation-not-allowed':
-            msg = "El proveedor de Google no está habilitado todavía en Firebase Console. (Ve a Firebase Console > Authentication > Sign-in method > Habilita Google).";
-            break;
-        case 'auth/unauthorized-domain':
-            msg = `Este dominio (${window.location.hostname}) debe agregarse a los dominios autorizados en Firebase Console > Authentication > Settings.`;
-            break;
-        default:
-            msg = error.message || msg;
-            break;
-    }
-
-    showAuthModalError(msg);
-}
-
-function showAuthModalError(msg) {
-    const errBox = document.getElementById('auth-error-message');
-    if (errBox) {
-        errBox.textContent = msg;
-        errBox.classList.remove('hidden');
-    }
-}
-
-function clearAuthModalError() {
-    const errBox = document.getElementById('auth-error-message');
-    if (errBox) {
-        errBox.textContent = '';
-        errBox.classList.add('hidden');
-    }
-}
-
-function setModalLoading(isLoading, msg = "Cargando...") {
-    const btn = document.getElementById('btn-auth-google-login');
-    if (btn) {
-        btn.disabled = isLoading;
-        if (isLoading) {
-            btn.dataset.originalText = btn.innerHTML;
-            btn.innerHTML = `<span class="auth-spinner">⏳</span> ${msg}`;
-        } else if (btn.dataset.originalText) {
-            btn.innerHTML = btn.dataset.originalText;
-        }
-    }
-}
-
-function showAppNotification(msg) {
-    if (typeof window.showToast === 'function') {
-        window.showToast(msg);
-    } else {
-        console.log("[MathQuest Auth]", msg);
-    }
-}
-
-// --------------------------------------------------------------------------
-// 7. Renderizado e Interfaz de Usuario de la Cuenta
-// --------------------------------------------------------------------------
-
 export function openAccountModal() {
     const modal = document.getElementById('account-modal');
     if (!modal) return;
-    clearAuthModalError();
-    renderAccountModalContent();
-    modal.classList.remove('hidden');
-}
 
-export function closeAccountModal() {
-    const modal = document.getElementById('account-modal');
-    if (modal) modal.classList.add('hidden');
+    modal.classList.remove('hidden');
+    clearAuthError();
+
+    if (currentUser) {
+        // Usuario autenticado -> Mostrar datos de perfil y estadísticas
+        renderAuthenticatedProfile(currentUser);
+    } else {
+        // Invitado -> Mostrar formulario de acceso
+        document.getElementById('auth-unauthenticated-view')?.classList.remove('hidden');
+        document.getElementById('auth-authenticated-view')?.classList.add('hidden');
+        switchAuthTab('login');
+    }
 }
 
 /**
- * Actualiza tanto el botón de la cabecera como el contenido del modal
+ * Cerrar el modal de cuenta
  */
-export function updateUI() {
-    updateHeaderAccountBtn();
-    renderAccountModalContent();
-    updateSyncIndicator();
-
-    // Notificar a observadores registrados
-    authListeners.forEach(fn => {
-        try { fn(currentUser); } catch (e) { console.error("Error en listener de auth:", e); }
-    });
+export function closeAccountModal() {
+    const modal = document.getElementById('account-modal');
+    if (modal) modal.classList.add('hidden');
+    clearAuthError();
 }
 
-function updateHeaderAccountBtn() {
-    const avatarImg = document.getElementById('account-avatar-img');
-    const avatarIcon = document.getElementById('account-avatar-icon');
-    const statusLabel = document.getElementById('account-header-status-label');
-    const indicator = document.getElementById('account-sync-indicator');
-
-    if (currentUser) {
-        if (currentUser.photoURL && avatarImg) {
-            avatarImg.src = currentUser.photoURL;
-            avatarImg.classList.remove('hidden');
-            if (avatarIcon) avatarIcon.classList.add('hidden');
-        } else {
-            if (avatarImg) avatarImg.classList.add('hidden');
-            if (avatarIcon) {
-                avatarIcon.classList.remove('hidden');
-                avatarIcon.textContent = (currentUser.displayName ? currentUser.displayName[0].toUpperCase() : '👤');
-            }
-        }
-        if (statusLabel) {
-            const firstName = (currentUser.displayName || 'Mi Cuenta').split(' ')[0];
-            statusLabel.textContent = firstName;
-        }
-        if (indicator) {
-            indicator.className = 'account-sync-indicator online';
-            indicator.title = 'Sesión iniciada con Google (Sincronizado)';
-        }
-    } else {
-        if (avatarImg) avatarImg.classList.add('hidden');
-        if (avatarIcon) {
-            avatarIcon.classList.remove('hidden');
-            avatarIcon.textContent = '👤';
-        }
-        if (statusLabel) statusLabel.textContent = 'Cuenta';
-        if (indicator) {
-            indicator.className = 'account-sync-indicator offline';
-            indicator.title = 'Sin cuenta vinculada (Progreso solo local)';
-        }
-    }
-}
-
-function updateSyncIndicator() {
-    const syncPill = document.getElementById('auth-sync-status-pill');
-    const indicator = document.getElementById('account-sync-indicator');
-
-    if (currentUser) {
-        if (isSyncing) {
-            if (syncPill) {
-                syncPill.innerHTML = '🔄 Guardando en la nube...';
-                syncPill.className = 'auth-status-pill syncing';
-            }
-            if (indicator) indicator.className = 'account-sync-indicator syncing';
-        } else {
-            if (syncPill) {
-                const timeStr = lastSyncTimestamp ? new Date(lastSyncTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'reciente';
-                syncPill.innerHTML = `🟢 Sincronizado (${timeStr})`;
-                syncPill.className = 'auth-status-pill online';
-            }
-            if (indicator) indicator.className = 'account-sync-indicator online';
-        }
-    } else {
-        if (syncPill) {
-            syncPill.innerHTML = '⚪ Solo almacenamiento local';
-            syncPill.className = 'auth-status-pill offline';
-        }
-        if (indicator) indicator.className = 'account-sync-indicator offline';
-    }
-}
-
-function renderAccountModalContent() {
+/**
+ * Renderizar la vista de usuario autenticado
+ * @param {Object} user 
+ */
+function renderAuthenticatedProfile(user) {
     const unauthView = document.getElementById('auth-unauthenticated-view');
     const authView = document.getElementById('auth-authenticated-view');
 
-    if (!unauthView || !authView) return;
+    if (unauthView) unauthView.classList.add('hidden');
+    if (authView) authView.classList.remove('hidden');
 
-    if (currentUser) {
-        unauthView.classList.add('hidden');
-        authView.classList.remove('hidden');
+    const nameEl = document.getElementById('auth-user-name');
+    const emailEl = document.getElementById('auth-user-email');
+    const uidEl = document.getElementById('auth-user-uid');
+    const photoEl = document.getElementById('auth-user-photo');
+    const photoFallbackEl = document.getElementById('auth-user-photo-fallback');
 
-        // Datos del usuario
-        const photoEl = document.getElementById('auth-user-photo');
-        const photoFallback = document.getElementById('auth-user-photo-fallback');
-        const nameEl = document.getElementById('auth-user-name');
-        const emailEl = document.getElementById('auth-user-email');
-        const uidEl = document.getElementById('auth-user-uid');
+    const displayName = user.displayName || user.email?.split('@')[0] || user.phoneNumber || 'Aventurero Matemático';
+    if (nameEl) nameEl.textContent = displayName;
+    if (emailEl) emailEl.textContent = user.email || user.phoneNumber || 'Cuenta vinculada';
+    if (uidEl) uidEl.textContent = `UID: ${user.uid.substring(0, 10)}...`;
 
-        if (currentUser.photoURL && photoEl) {
-            photoEl.src = currentUser.photoURL;
-            photoEl.classList.remove('hidden');
-            if (photoFallback) photoFallback.classList.add('hidden');
-        } else {
-            if (photoEl) photoEl.classList.add('hidden');
-            if (photoFallback) {
-                photoFallback.classList.remove('hidden');
-                photoFallback.textContent = currentUser.displayName ? currentUser.displayName[0].toUpperCase() : 'M';
-            }
+    if (user.photoURL && photoEl && photoFallbackEl) {
+        photoEl.src = user.photoURL;
+        photoEl.classList.remove('hidden');
+        photoFallbackEl.classList.add('hidden');
+    } else if (photoEl && photoFallbackEl) {
+        photoEl.classList.add('hidden');
+        photoFallbackEl.textContent = displayName.charAt(0).toUpperCase();
+        photoFallbackEl.classList.remove('hidden');
+    }
+
+    // Refrescar estadísticas del resumen
+    const s = window.state || {};
+    const lvl = document.getElementById('auth-stat-level');
+    const stars = document.getElementById('auth-stat-stars');
+    const streak = document.getElementById('auth-stat-streak');
+    const coins = document.getElementById('auth-stat-coins');
+    const vip = document.getElementById('auth-stat-vip');
+
+    if (lvl) lvl.textContent = s.userLevel || 1;
+    if (stars) stars.textContent = s.stars || 0;
+    if (streak) streak.textContent = `${s.streak || 1} días`;
+    if (coins) coins.textContent = s.coins || 150;
+    if (vip) {
+        vip.textContent = s.vipBypassPurchased ? '⭐ Pase VIP Activo' : 'Estándar';
+        vip.style.color = s.vipBypassPurchased ? '#f59e0b' : 'inherit';
+    }
+}
+
+/**
+ * Actualizar el botón y estado en la barra de cabecera principal
+ * @param {Object|null} user 
+ */
+function updateHeaderAccountButton(user) {
+    const avatarIcon = document.getElementById('account-avatar-icon');
+    const avatarImg = document.getElementById('account-avatar-img');
+    const label = document.getElementById('account-header-status-label');
+    const indicator = document.getElementById('account-sync-indicator');
+
+    if (user) {
+        const displayName = user.displayName || user.email?.split('@')[0] || 'Jugador';
+        if (label) label.textContent = displayName.split(' ')[0];
+
+        if (user.photoURL && avatarImg && avatarIcon) {
+            avatarImg.src = user.photoURL;
+            avatarImg.classList.remove('hidden');
+            avatarIcon.classList.add('hidden');
+        } else if (avatarIcon && avatarImg) {
+            avatarImg.classList.add('hidden');
+            avatarIcon.textContent = displayName.charAt(0).toUpperCase();
+            avatarIcon.classList.remove('hidden');
         }
 
-        if (nameEl) nameEl.textContent = currentUser.displayName || 'Aventurero Matemático';
-        if (emailEl) emailEl.textContent = currentUser.email || 'Sin correo asociado';
-        if (uidEl) uidEl.textContent = `ID: ${currentUser.uid.substring(0, 10)}...`;
-
-        // Estadísticas de progreso actual
-        const currentState = window.state || (window.MathQuestApp && window.MathQuestApp.state) || {};
-        const statLevel = document.getElementById('auth-stat-level');
-        const statStars = document.getElementById('auth-stat-stars');
-        const statStreak = document.getElementById('auth-stat-streak');
-        const statCoins = document.getElementById('auth-stat-coins');
-        const statVip = document.getElementById('auth-stat-vip');
-
-        if (statLevel) statLevel.textContent = currentState.userLevel ?? 1;
-        if (statStars) statStars.textContent = currentState.stars ?? 0;
-        if (statStreak) statStreak.textContent = `${currentState.streak ?? 1} días`;
-        if (statCoins) statCoins.textContent = `${currentState.coins ?? 0} 🪙`;
-        if (statVip) {
-            statVip.textContent = currentState.vipBypassPurchased ? '👑 VIP Activo' : 'Estándar';
-            statVip.style.color = currentState.vipBypassPurchased ? 'var(--color-accent-yellow)' : 'var(--color-text-muted)';
+        if (indicator) {
+            indicator.className = 'account-sync-indicator online';
+            indicator.title = 'Sesión iniciada - Progreso conectado a la nube';
         }
     } else {
-        unauthView.classList.remove('hidden');
-        authView.classList.add('hidden');
+        if (label) label.textContent = 'Cuenta';
+        if (avatarIcon && avatarImg) {
+            avatarImg.classList.add('hidden');
+            avatarIcon.textContent = '👤';
+            avatarIcon.classList.remove('hidden');
+        }
+        if (indicator) {
+            indicator.className = 'account-sync-indicator offline';
+            indicator.title = 'Modo Invitado (Almacenamiento Local)';
+        }
     }
 }
 
 // --------------------------------------------------------------------------
-// 8. Inicialización Automática de Eventos y Auth Listener
+// 4. Inicialización de Listeners y Eventos de UI
 // --------------------------------------------------------------------------
-function initAuth() {
-    // Delegación y enlace de botones de la interfaz
-    document.addEventListener('click', (e) => {
-        // Abrir modal de cuenta
-        if (e.target.closest('#btn-header-account, .btn-open-account-modal')) {
-            e.preventDefault();
+
+function setupAuthEventListeners() {
+    // Abrir modal desde el botón de la cabecera
+    const btnHeader = document.getElementById('btn-header-account');
+    if (btnHeader) {
+        btnHeader.addEventListener('click', () => {
+            window.SoundEngine?.playClick?.();
             openAccountModal();
-            return;
-        }
-
-        // Cerrar modal
-        if (e.target.closest('#btn-close-account-modal, #account-modal .modal-close-x')) {
-            e.preventDefault();
-            closeAccountModal();
-            return;
-        }
-
-        // Clic en backdrop del modal
-        if (e.target.id === 'account-modal') {
-            closeAccountModal();
-            return;
-        }
-
-        // Botón Iniciar Sesión con Google
-        if (e.target.closest('#btn-auth-google-login')) {
-            e.preventDefault();
-            signInWithGoogle();
-            return;
-        }
-
-        // Botón Cerrar Sesión
-        if (e.target.closest('#btn-auth-logout')) {
-            e.preventDefault();
-            signOutUser();
-            return;
-        }
-
-        // Botón Sincronizar Ahora
-        if (e.target.closest('#btn-auth-sync-now')) {
-            e.preventDefault();
-            syncProgressToCloud(true);
-            return;
-        }
-    });
-
-    // Escuchador de cambios de sesión en Firebase
-    if (auth) {
-        onAuthStateChanged(auth, async (user) => {
-            currentUser = user;
-            if (user) {
-                console.log("[MathQuest Auth] Sesión activa detectada para:", user.displayName || user.email);
-                await loadOrMigrateUserProgress(user);
-            } else {
-                console.log("[MathQuest Auth] No hay sesión activa. Operando en modo local.");
-            }
-            updateUI();
         });
     }
 
-    updateUI();
+    // Cerrar modal con la X o clic fuera
+    const btnClose = document.getElementById('btn-close-account-modal');
+    if (btnClose) {
+        btnClose.addEventListener('click', () => {
+            window.SoundEngine?.playClick?.();
+            closeAccountModal();
+        });
+    }
+
+    const modalOverlay = document.getElementById('account-modal');
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                closeAccountModal();
+            }
+        });
+    }
+
+    // Pestañas Iniciar Sesión / Registrarse
+    document.getElementById('tab-btn-login')?.addEventListener('click', () => switchAuthTab('login'));
+    document.getElementById('tab-btn-register')?.addEventListener('click', () => switchAuthTab('register'));
+
+    // Botones de Proveedores Sociales
+    document.getElementById('btn-auth-google-login')?.addEventListener('click', () => {
+        window.SoundEngine?.playClick?.();
+        loginWithGoogle();
+    });
+
+    document.getElementById('btn-auth-apple-login')?.addEventListener('click', () => {
+        window.SoundEngine?.playClick?.();
+        loginWithApple();
+    });
+
+    // Formulario de Inicio de Sesión con Correo
+    const formLogin = document.getElementById('form-email-login');
+    if (formLogin) {
+        formLogin.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('input-login-email')?.value;
+            const password = document.getElementById('input-login-password')?.value;
+            loginWithEmail(email, password);
+        });
+    }
+
+    // Formulario de Registro con Correo
+    const formRegister = document.getElementById('form-email-register');
+    if (formRegister) {
+        formRegister.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('input-register-name')?.value;
+            const email = document.getElementById('input-register-email')?.value;
+            const password = document.getElementById('input-register-password')?.value;
+            registerWithEmail(name, email, password);
+        });
+    }
+
+    // Enlace "¿Olvidaste tu contraseña?" y formulario de recuperación
+    document.getElementById('link-goto-forgot-password')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchAuthTab('forgot');
+    });
+
+    document.getElementById('link-back-to-login-from-forgot')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchAuthTab('login');
+    });
+
+    const formForgot = document.getElementById('form-forgot-password');
+    if (formForgot) {
+        formForgot.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('input-forgot-email')?.value;
+            sendPasswordReset(email);
+        });
+    }
+
+    // Navegación hacia Teléfono
+    document.getElementById('btn-goto-phone-auth')?.addEventListener('click', () => switchAuthTab('phone-step1'));
+    document.getElementById('link-back-to-login-from-phone')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchAuthTab('login');
+    });
+
+    // Paso 1 Teléfono
+    const formPhone1 = document.getElementById('form-phone-step1');
+    if (formPhone1) {
+        formPhone1.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const phone = document.getElementById('input-phone-number')?.value;
+            sendPhoneVerificationCode(phone);
+        });
+    }
+
+    // Paso 2 Teléfono
+    const formPhone2 = document.getElementById('form-phone-step2');
+    if (formPhone2) {
+        formPhone2.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const code = document.getElementById('input-sms-code')?.value;
+            verifyPhoneCode(code);
+        });
+    }
+
+    document.getElementById('btn-phone-resend-code')?.addEventListener('click', () => {
+        switchAuthTab('phone-step1');
+    });
+
+    // Forzar sincronización manual
+    document.getElementById('btn-auth-sync-now')?.addEventListener('click', async () => {
+        if (!currentUser) return;
+        window.SoundEngine?.playClick?.();
+        const btn = document.getElementById('btn-auth-sync-now');
+        if (btn) btn.disabled = true;
+        await window.MathQuestCloudSave?.saveUserProgress?.(currentUser, { force: true });
+        showToast('✓ ¡Progreso sincronizado en la nube!');
+        if (btn) btn.disabled = false;
+    });
+
+    // Cerrar sesión
+    document.getElementById('btn-auth-logout')?.addEventListener('click', () => {
+        window.SoundEngine?.playClick?.();
+        logoutUser();
+    });
 }
+
+// --------------------------------------------------------------------------
+// 5. Listener de Autenticación de Firebase (Fuente Única de Verdad)
+// --------------------------------------------------------------------------
+
+onAuthStateChanged(auth, async (user) => {
+    currentUser = user;
+    updateHeaderAccountButton(user);
+
+    if (user) {
+        console.log("👤 Usuario autenticado en MathQuest (UID):", user.uid);
+        // Cargar progreso del usuario y reconciliar inteligentemente
+        if (window.MathQuestCloudSave) {
+            await window.MathQuestCloudSave.loadUserProgress(user);
+        }
+    } else {
+        console.log("⚪ Modo Invitado activo en MathQuest.");
+        if (window.MathQuestCloudSave) {
+            window.MathQuestCloudSave.handleUserLogout();
+        }
+    }
+});
 
 // Inicializar cuando el DOM esté listo
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAuth);
+    document.addEventListener('DOMContentLoaded', setupAuthEventListeners);
 } else {
-    initAuth();
+    setupAuthEventListeners();
 }
 
-// Exponer en window para integración con app.js y compatibilidad universal
+// Exponer en window para integración con app.js
 window.MathQuestAuth = {
-    signInWithGoogle,
-    signOutUser,
-    getCurrentUser,
-    syncProgressToCloud,
-    triggerDebouncedSync,
+    getCurrentUser: () => currentUser,
     openAccountModal,
     closeAccountModal,
-    onAuthStateChange,
-    isReady: () => isFirebaseReady
+    loginWithGoogle,
+    loginWithApple,
+    loginWithEmail,
+    registerWithEmail,
+    sendPasswordReset,
+    sendPhoneVerificationCode,
+    verifyPhoneCode,
+    logoutUser,
+    switchAuthTab,
+    triggerDebouncedSync: () => {
+        if (window.MathQuestCloudSave) {
+            window.MathQuestCloudSave.triggerDebouncedSave();
+        }
+    }
 };

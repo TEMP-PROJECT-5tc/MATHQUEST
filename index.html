@@ -1802,69 +1802,172 @@
             <button class="modal-close-x" id="btn-close-account-modal" aria-label="Cerrar ventana de cuenta">×</button>
             <div class="modal-mascot">☁️</div>
             
-            <!-- Vista 1: Usuario No Autenticado -->
+            <!-- Vista 1: Usuario No Autenticado (Multi-Proveedor) -->
             <div id="auth-unauthenticated-view" class="auth-view">
-                <h3 id="auth-modal-title">¡Guarda tu Progreso en la Nube! 🚀</h3>
+                <h3 id="auth-modal-title">¡Guarda tu Progreso en MathQuest! 🚀</h3>
                 <p class="auth-modal-subtitle">
-                    Inicia sesión con Google para sincronizar tus estrellas, monedas y niveles en todos tus dispositivos y nunca perder tu avance.
+                    Inicia sesión o crea tu cuenta para guardar tus niveles, estrellas y MathCoins en la nube y jugar desde cualquier dispositivo.
                 </p>
 
-                <!-- Beneficios clave de tener cuenta -->
-                <div class="auth-benefits-grid">
-                    <div class="auth-benefit-item">
-                        <span class="auth-benefit-icon">💾</span>
-                        <div class="auth-benefit-text">
-                            <strong>Progreso Permanente</strong>
-                            <span>Tus 11 juegos y MathCoins respaldados de forma segura.</span>
-                        </div>
-                    </div>
-                    <div class="auth-benefit-item">
-                        <span class="auth-benefit-icon">📱</span>
-                        <div class="auth-benefit-text">
-                            <strong>Multi-Dispositivo</strong>
-                            <span>Juega en tu laptop, tablet o celular y sigue donde lo dejaste.</span>
-                        </div>
-                    </div>
-                    <div class="auth-benefit-item">
-                        <span class="auth-benefit-icon">🛡️</span>
-                        <div class="auth-benefit-text">
-                            <strong>Sin Contraseñas</strong>
-                            <span>Acceso rápido, seguro y oficial con tu cuenta de Google.</span>
-                        </div>
-                    </div>
+                <!-- Barra de Navegación de Pestañas: Iniciar Sesión / Registrarse -->
+                <div id="auth-tabs-nav" class="auth-tabs-nav" role="tablist">
+                    <button type="button" id="tab-btn-login" class="auth-tab-btn active" role="tab" aria-selected="true">
+                        Iniciar Sesión
+                    </button>
+                    <button type="button" id="tab-btn-register" class="auth-tab-btn" role="tab" aria-selected="false">
+                        Crear Cuenta
+                    </button>
                 </div>
 
-                <!-- Mensaje de Error / Alerta si ocurre fallo de autenticación -->
-                <div id="auth-error-message" class="auth-error-box hidden" role="alert"></div>
-
-                <!-- Botón Principal: Continuar con Google -->
-                <div class="auth-actions-group">
-                    <button id="btn-auth-google-login" class="btn-auth-google" type="button">
-                        <svg class="google-svg-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <!-- Botones Sociales Rápidos (Google y Apple) -->
+                <div class="auth-social-buttons">
+                    <button id="btn-auth-google-login" class="btn-auth-provider btn-google" type="button" title="Continuar con Google">
+                        <svg class="provider-svg-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
                             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
                         </svg>
-                        <span>Continuar con Google</span>
+                        <span>Google</span>
                     </button>
-                    
-                    <p class="auth-security-note">
-                        🔒 Tu progreso local actual se asociará automáticamente sin perder nada.
-                    </p>
+
+                    <button id="btn-auth-apple-login" class="btn-auth-provider btn-apple" type="button" title="Continuar con Apple">
+                        <svg class="provider-svg-icon" viewBox="0 0 170 170" width="18" height="18" fill="currentColor" aria-hidden="true">
+                            <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.08-7.7-7.94-12.04-14.59-6.3-9.67-11.22-20.94-14.76-33.82-3.53-12.87-5.3-25.13-5.3-36.77 0-14.45 3.65-26.68 10.96-36.7 7.3-10.02 16.48-15.15 27.53-15.39 4.36 0 9.27 1.13 14.73 3.39 5.46 2.26 9.28 3.43 11.45 3.52 1.95 0 5.92-1.25 11.91-3.76 5.99-2.51 10.83-3.69 14.53-3.52 13.06.72 23.36 5.62 30.9 14.69-11.53 7-17.18 16.59-16.96 28.78.22 9.57 3.96 17.58 11.22 24.03 7.27 6.45 15.86 10.12 25.77 11.02-2.39 7.39-5.16 14.52-8.31 21.38zM119.22 33.56c0-7.28 2.66-14.12 7.99-20.52 5.33-6.4 11.85-10.45 19.56-12.16.54 2.82.81 5.48.81 7.99 0 7.38-2.77 14.35-8.31 20.91-5.54 6.55-12.22 10.49-20.05 11.82-.43-2.6-.66-5.28-.66-8.04z"/>
+                        </svg>
+                        <span>Apple</span>
+                    </button>
                 </div>
+
+                <div class="auth-divider">
+                    <span>o con tu correo</span>
+                </div>
+
+                <!-- Mensaje de Error / Alerta si ocurre fallo -->
+                <div id="auth-error-message" class="auth-error-box hidden" role="alert"></div>
+
+                <!-- Formulario 1: Iniciar Sesión con Correo -->
+                <div id="auth-form-login-view" class="auth-subview">
+                    <form id="form-email-login" class="auth-form" autocomplete="on">
+                        <div class="auth-field-group">
+                            <label for="input-login-email">Correo Electrónico</label>
+                            <input type="email" id="input-login-email" class="auth-input" placeholder="ejemplo@correo.com" required autocomplete="email">
+                        </div>
+
+                        <div class="auth-field-group">
+                            <div class="auth-label-row">
+                                <label for="input-login-password">Contraseña</label>
+                                <a href="#" id="link-goto-forgot-password" class="auth-link-sm">¿Olvidaste tu contraseña?</a>
+                            </div>
+                            <input type="password" id="input-login-password" class="auth-input" placeholder="Tu contraseña" required autocomplete="current-password">
+                        </div>
+
+                        <button type="submit" id="btn-submit-email-login" class="btn btn-primary w-100 btn-auth-submit">
+                            Iniciar Sesión
+                        </button>
+                    </form>
+
+                    <!-- Acceso Alternativo: SMS Teléfono -->
+                    <div class="auth-phone-switch-box">
+                        <button type="button" id="btn-goto-phone-auth" class="btn-link-phone">
+                            📱 Iniciar sesión con número de teléfono (código SMS)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Formulario 2: Registrarse con Correo -->
+                <div id="auth-form-register-view" class="auth-subview hidden">
+                    <form id="form-email-register" class="auth-form" autocomplete="on">
+                        <div class="auth-field-group">
+                            <label for="input-register-name">Nombre o Apodo</label>
+                            <input type="text" id="input-register-name" class="auth-input" placeholder="Tu nombre en MathQuest" required autocomplete="name">
+                        </div>
+
+                        <div class="auth-field-group">
+                            <label for="input-register-email">Correo Electrónico</label>
+                            <input type="email" id="input-register-email" class="auth-input" placeholder="ejemplo@correo.com" required autocomplete="email">
+                        </div>
+
+                        <div class="auth-field-group">
+                            <label for="input-register-password">Contraseña (Mínimo 6 caracteres)</label>
+                            <input type="password" id="input-register-password" class="auth-input" placeholder="Crea una contraseña segura" minlength="6" required autocomplete="new-password">
+                        </div>
+
+                        <button type="submit" id="btn-submit-email-register" class="btn btn-success w-100 btn-auth-submit">
+                            Crear Cuenta
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Formulario 3: Recuperar Contraseña -->
+                <div id="auth-form-forgot-view" class="auth-subview hidden">
+                    <h4 class="auth-subheading">Recuperar Contraseña 🔑</h4>
+                    <p class="auth-subtext">Introduce tu correo y te enviaremos un enlace oficial de Firebase para restablecerla.</p>
+                    <form id="form-forgot-password" class="auth-form">
+                        <div class="auth-field-group">
+                            <label for="input-forgot-email">Correo Registrado</label>
+                            <input type="email" id="input-forgot-email" class="auth-input" placeholder="tu@correo.com" required>
+                        </div>
+
+                        <button type="submit" id="btn-submit-forgot-password" class="btn btn-primary w-100 btn-auth-submit">
+                            Enviar Enlace de Recuperación
+                        </button>
+                        <a href="#" id="link-back-to-login-from-forgot" class="auth-link-back">← Volver a Iniciar Sesión</a>
+                    </form>
+                </div>
+
+                <!-- Formulario 4: Teléfono Paso 1 (Número y reCAPTCHA) -->
+                <div id="auth-form-phone1-view" class="auth-subview hidden">
+                    <h4 class="auth-subheading">Acceso con Teléfono 📱</h4>
+                    <p class="auth-subtext">Ingresa tu número con prefijo internacional para recibir tu código SMS de verificación.</p>
+                    <form id="form-phone-step1" class="auth-form">
+                        <div class="auth-field-group">
+                            <label for="input-phone-number">Número Telefónico Internacional</label>
+                            <input type="tel" id="input-phone-number" class="auth-input" placeholder="+34 600 11 22 33 o +51 987 654 321" required>
+                        </div>
+
+                        <!-- Contenedor para reCAPTCHA de Firebase Phone Auth -->
+                        <div id="recaptcha-container" class="recaptcha-box"></div>
+
+                        <button type="submit" id="btn-send-phone-code" class="btn btn-primary w-100 btn-auth-submit">
+                            Enviar Código por SMS
+                        </button>
+                        <a href="#" id="link-back-to-login-from-phone" class="auth-link-back">← Volver a opciones de inicio de sesión</a>
+                    </form>
+                </div>
+
+                <!-- Formulario 5: Teléfono Paso 2 (Ingreso de Código SMS) -->
+                <div id="auth-form-phone2-view" class="auth-subview hidden">
+                    <h4 class="auth-subheading">Introduce el Código SMS 💬</h4>
+                    <p class="auth-subtext">Ingresa el código de 6 dígitos enviado a <strong id="phone-number-target-display"></strong></p>
+                    <form id="form-phone-step2" class="auth-form">
+                        <div class="auth-field-group">
+                            <label for="input-sms-code">Código de 6 dígitos</label>
+                            <input type="text" id="input-sms-code" class="auth-input text-center auth-input-code" placeholder="123456" maxlength="6" pattern="[0-9]{6}" required autocomplete="one-time-code">
+                        </div>
+
+                        <button type="submit" id="btn-verify-sms-code" class="btn btn-success w-100 btn-auth-submit">
+                            Confirmar e Iniciar Sesión
+                        </button>
+                        <button type="button" id="btn-phone-resend-code" class="btn-link-phone mt-2">¿No recibiste el código? Cambiar número</button>
+                    </form>
+                </div>
+
+                <p class="auth-security-note">
+                    🔒 Modo Invitado disponible. Tu progreso actual se migrará a tu cuenta sin perder nada.
+                </p>
             </div>
 
             <!-- Vista 2: Usuario Autenticado -->
             <div id="auth-authenticated-view" class="auth-view hidden">
                 <div class="auth-profile-header">
                     <div class="auth-profile-avatar-box">
-                        <img id="auth-user-photo" class="auth-user-photo" alt="Avatar Google" referrerpolicy="no-referrer">
+                        <img id="auth-user-photo" class="auth-user-photo" alt="Avatar Usuario" referrerpolicy="no-referrer">
                         <span id="auth-user-photo-fallback" class="auth-user-photo-fallback hidden">M</span>
                     </div>
                     <div class="auth-profile-details">
                         <h3 id="auth-user-name" class="auth-user-name">Aventurero Matemático</h3>
-                        <span id="auth-user-email" class="auth-user-email">usuario@gmail.com</span>
+                        <span id="auth-user-email" class="auth-user-email">usuario@correo.com</span>
                         <span id="auth-user-uid" class="auth-user-uid">ID: ...</span>
                     </div>
                 </div>
@@ -1872,9 +1975,9 @@
                 <!-- Estado de Sincronización en la Nube -->
                 <div class="auth-sync-status-card">
                     <div class="auth-sync-status-info">
-                        <span class="auth-sync-title">Sincronización en la Nube:</span>
+                        <span class="auth-sync-title">Progreso en la Nube:</span>
                         <div id="auth-sync-status-pill" class="auth-status-pill online">
-                            🟢 Sincronizado
+                            ✓ Guardado
                         </div>
                     </div>
                     <button id="btn-auth-sync-now" class="btn btn-secondary btn-sm" title="Forzar guardado en Firebase">
@@ -1924,7 +2027,8 @@
     <!-- Toast de Notificaciones para Avisos y Pistas -->
     <div id="app-toast" class="app-toast hidden"></div>
 
-    <!-- Capa de Autenticación y Sincronización en la Nube Firebase (ES Module) -->
+    <!-- Capa de Persistencia y Autenticación en la Nube Firebase (ES Modules) -->
+    <script type="module" src="cloud-save.js"></script>
     <script type="module" src="auth.js"></script>
 
     <!-- Motores del Juego y Controlador Central (Compatible con GitHub Pages y Vite) -->

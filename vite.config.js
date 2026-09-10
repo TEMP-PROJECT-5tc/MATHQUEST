@@ -30,6 +30,7 @@ export default defineConfig({
           'duel.js',
           'calculator.js',
           'firebase.js',
+          'cloud-save.js',
           'auth.js',
           'style.css',
           'avatar_cube.png',
