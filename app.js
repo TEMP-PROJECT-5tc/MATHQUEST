@@ -201,6 +201,11 @@ function saveStateToStorage() {
         localStorage.setItem(STORAGE_PREFIX + 'unlocked_levels', JSON.stringify(state.unlockedLevels));
         localStorage.setItem(STORAGE_PREFIX + 'vip_bypass_purchased', state.vipBypassPurchased);
         localStorage.setItem(STORAGE_PREFIX + 'inventory', JSON.stringify(state.inventory));
+
+        // Sincronización automática con la cuenta de Google y Firebase (si está autenticado)
+        if (window.MathQuestAuth && typeof window.MathQuestAuth.triggerDebouncedSync === 'function') {
+            window.MathQuestAuth.triggerDebouncedSync();
+        }
     } catch (e) {
         console.error("Error al guardar estado:", e);
     }

@@ -28,6 +28,7 @@ export default defineConfig({
           'builder.js',
           'escape.js',
           'duel.js',
+          'calculator.js',
           'style.css',
           'avatar_cube.png',
           'avatar_cylinder.png',

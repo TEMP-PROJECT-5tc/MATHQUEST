@@ -83,6 +83,16 @@
                 <div id="active-avatar-display" class="header-avatar"></div>
                 <div id="equipped-badge-display" class="badge-overlay" title="Medalla Activa"></div>
             </div>
+
+            <!-- Botón de Cuenta / Perfil con Google y Sincronización en la Nube -->
+            <button id="btn-header-account" class="btn-account-header" title="Mi Cuenta y Progreso en la Nube" aria-label="Abrir Mi Cuenta">
+                <div id="account-avatar-preview" class="account-avatar-preview">
+                    <span id="account-avatar-icon">👤</span>
+                    <img id="account-avatar-img" class="hidden" alt="Foto de perfil de Google" referrerpolicy="no-referrer">
+                </div>
+                <span id="account-header-status-label" class="account-header-status-label">Cuenta</span>
+                <span id="account-sync-indicator" class="account-sync-indicator offline" title="Estado de la cuenta"></span>
+            </button>
         </div>
     </header>
 
@@ -1786,8 +1796,136 @@
         </div>
     </div>
 
+    <!-- Modal de Mi Cuenta / Autenticación con Google y Sincronización en la Nube -->
+    <div id="account-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+        <div class="modal-card account-modal-card">
+            <button class="modal-close-x" id="btn-close-account-modal" aria-label="Cerrar ventana de cuenta">×</button>
+            <div class="modal-mascot">☁️</div>
+            
+            <!-- Vista 1: Usuario No Autenticado -->
+            <div id="auth-unauthenticated-view" class="auth-view">
+                <h3 id="auth-modal-title">¡Guarda tu Progreso en la Nube! 🚀</h3>
+                <p class="auth-modal-subtitle">
+                    Inicia sesión con Google para sincronizar tus estrellas, monedas y niveles en todos tus dispositivos y nunca perder tu avance.
+                </p>
+
+                <!-- Beneficios clave de tener cuenta -->
+                <div class="auth-benefits-grid">
+                    <div class="auth-benefit-item">
+                        <span class="auth-benefit-icon">💾</span>
+                        <div class="auth-benefit-text">
+                            <strong>Progreso Permanente</strong>
+                            <span>Tus 11 juegos y MathCoins respaldados de forma segura.</span>
+                        </div>
+                    </div>
+                    <div class="auth-benefit-item">
+                        <span class="auth-benefit-icon">📱</span>
+                        <div class="auth-benefit-text">
+                            <strong>Multi-Dispositivo</strong>
+                            <span>Juega en tu laptop, tablet o celular y sigue donde lo dejaste.</span>
+                        </div>
+                    </div>
+                    <div class="auth-benefit-item">
+                        <span class="auth-benefit-icon">🛡️</span>
+                        <div class="auth-benefit-text">
+                            <strong>Sin Contraseñas</strong>
+                            <span>Acceso rápido, seguro y oficial con tu cuenta de Google.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mensaje de Error / Alerta si ocurre fallo de autenticación -->
+                <div id="auth-error-message" class="auth-error-box hidden" role="alert"></div>
+
+                <!-- Botón Principal: Continuar con Google -->
+                <div class="auth-actions-group">
+                    <button id="btn-auth-google-login" class="btn-auth-google" type="button">
+                        <svg class="google-svg-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                        </svg>
+                        <span>Continuar con Google</span>
+                    </button>
+                    
+                    <p class="auth-security-note">
+                        🔒 Tu progreso local actual se asociará automáticamente sin perder nada.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Vista 2: Usuario Autenticado -->
+            <div id="auth-authenticated-view" class="auth-view hidden">
+                <div class="auth-profile-header">
+                    <div class="auth-profile-avatar-box">
+                        <img id="auth-user-photo" class="auth-user-photo" alt="Avatar Google" referrerpolicy="no-referrer">
+                        <span id="auth-user-photo-fallback" class="auth-user-photo-fallback hidden">M</span>
+                    </div>
+                    <div class="auth-profile-details">
+                        <h3 id="auth-user-name" class="auth-user-name">Aventurero Matemático</h3>
+                        <span id="auth-user-email" class="auth-user-email">usuario@gmail.com</span>
+                        <span id="auth-user-uid" class="auth-user-uid">ID: ...</span>
+                    </div>
+                </div>
+
+                <!-- Estado de Sincronización en la Nube -->
+                <div class="auth-sync-status-card">
+                    <div class="auth-sync-status-info">
+                        <span class="auth-sync-title">Sincronización en la Nube:</span>
+                        <div id="auth-sync-status-pill" class="auth-status-pill online">
+                            🟢 Sincronizado
+                        </div>
+                    </div>
+                    <button id="btn-auth-sync-now" class="btn btn-secondary btn-sm" title="Forzar guardado en Firebase">
+                        🔄 Sincronizar Ahora
+                    </button>
+                </div>
+
+                <!-- Resumen de Progreso en la Cuenta -->
+                <div class="auth-stats-summary">
+                    <div class="auth-stat-box">
+                        <span class="auth-stat-icon">⚡</span>
+                        <span class="auth-stat-val" id="auth-stat-level">1</span>
+                        <span class="auth-stat-lbl">Nivel</span>
+                    </div>
+                    <div class="auth-stat-box">
+                        <span class="auth-stat-icon">⭐</span>
+                        <span class="auth-stat-val" id="auth-stat-stars">0</span>
+                        <span class="auth-stat-lbl">Estrellas</span>
+                    </div>
+                    <div class="auth-stat-box">
+                        <span class="auth-stat-icon">🔥</span>
+                        <span class="auth-stat-val" id="auth-stat-streak">1 día</span>
+                        <span class="auth-stat-lbl">Racha</span>
+                    </div>
+                    <div class="auth-stat-box">
+                        <span class="auth-stat-icon">🪙</span>
+                        <span class="auth-stat-val" id="auth-stat-coins">150</span>
+                        <span class="auth-stat-lbl">MathCoins</span>
+                    </div>
+                </div>
+
+                <div class="auth-vip-status-row">
+                    <span>Estado de Membresía:</span>
+                    <strong id="auth-stat-vip">Estándar</strong>
+                </div>
+
+                <!-- Botones de Acción de Usuario Autenticado -->
+                <div class="auth-profile-actions">
+                    <button id="btn-auth-logout" class="btn btn-danger w-100" type="button">
+                        🚪 Cerrar sesión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast de Notificaciones para Avisos y Pistas -->
     <div id="app-toast" class="app-toast hidden"></div>
+
+    <!-- Capa de Autenticación y Sincronización en la Nube Firebase (ES Module) -->
+    <script type="module" src="auth.js"></script>
 
     <!-- Motores del Juego y Controlador Central (Compatible con GitHub Pages y Vite) -->
     <script src="app.js"></script>

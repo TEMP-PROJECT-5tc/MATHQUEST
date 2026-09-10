@@ -33,7 +33,7 @@
     let score = 0;
     let doorsSolved = 0;
     let doorsTarget = 5;
-    let baseSpeed = 2.4;
+    let baseSpeed = 4.5;
     let roadScroll = 0;
     let screenShake = 0;
 
@@ -57,13 +57,13 @@
     let floatTexts = [];
     let isHintActiveForCurrentGate = false;
 
-    // Metas y velocidades por nivel
+    // Metas y velocidades por nivel (Velocidad de carrera emocionante y dinámica)
     const LEVEL_CONFIG = {
-        1: { target: 5, speed: 2.2, label: 'Nivel 1: Sumas y Restas Relámpago' },
-        2: { target: 6, speed: 2.8, label: 'Nivel 2: Multiplicaciones y Divisiones de Pista' },
-        3: { target: 7, speed: 3.4, label: 'Nivel 3: Álgebra - Ecuaciones Lineales' },
-        4: { target: 8, speed: 4.0, label: 'Nivel 4: Potencias, Raíces y Binomios' },
-        5: { target: 10, speed: 4.8, label: 'Nivel 5: Reto Boss Rush - Velocidad Máxima' }
+        1: { target: 5, speed: 4.5, label: 'Nivel 1: Sumas y Restas Relámpago' },
+        2: { target: 6, speed: 5.5, label: 'Nivel 2: Multiplicaciones y Divisiones de Pista' },
+        3: { target: 7, speed: 6.8, label: 'Nivel 3: Álgebra - Ecuaciones Lineales' },
+        4: { target: 8, speed: 8.0, label: 'Nivel 4: Potencias, Raíces y Binomios' },
+        5: { target: 10, speed: 9.5, label: 'Nivel 5: Reto Boss Rush - Velocidad Máxima' }
     };
 
     /* --------------------------------------------------------------------------
@@ -343,11 +343,11 @@
     function update() {
         if (!isRunning || isPaused) return;
 
-        // Movimiento suave del jugador (lerp)
+        // Movimiento ágil del jugador (cambio de carril dinámico y veloz)
         player.targetX = LANE_CENTERS[player.lane];
         const dx = player.targetX - player.x;
-        player.x += dx * 0.22;
-        player.tilt = Math.max(-0.18, Math.min(0.18, dx * 0.008));
+        player.x += dx * 0.35;
+        player.tilt = Math.max(-0.24, Math.min(0.24, dx * 0.012));
 
         // Partículas de escape del motor
         if (Math.random() > 0.2) {
@@ -384,8 +384,8 @@
             }
         }
 
-        // Scroll de carretera
-        roadScroll = (roadScroll + baseSpeed * 1.5) % 40;
+        // Scroll de carretera de alta velocidad
+        roadScroll = (roadScroll + baseSpeed * 1.8) % 40;
 
         // Temporizador de invulnerabilidad
         if (player.invulnerableTimer > 0) {
@@ -781,7 +781,7 @@
         ctx.fillText(`🏁 Checkpoints: ${doorsSolved}/${doorsTarget}`, ROAD_LEFT + 12, 23);
 
         // Velocímetro digital
-        const speedKmh = Math.round(140 + level * 25 + baseSpeed * 12);
+        const speedKmh = Math.round(180 + level * 25 + baseSpeed * 15);
         ctx.fillStyle = '#38bdf8';
         ctx.textAlign = 'right';
         ctx.fillText(`⚡ ${speedKmh} KM/H`, ROAD_RIGHT - 12, 23);

@@ -4317,6 +4317,384 @@ body {
     }
 }
 
+/* ==========================================================================
+   SISTEMA DE CUENTAS Y AUTENTICACIÓN GOOGLE (FIREBASE)
+   Header button, modal de perfil y sincronización en la nube
+   ========================================================================== */
+
+/* 1. Botón de Cuenta en la Cabecera */
+.btn-account-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--color-card);
+    border: 1.5px solid var(--color-border);
+    border-radius: 24px;
+    padding: 4px 12px 4px 6px;
+    color: var(--color-text);
+    font-family: var(--font-heading);
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    user-select: none;
+}
+
+.btn-account-header:hover {
+    border-color: var(--color-accent-blue);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.account-avatar-preview {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-accent-blue) 0%, var(--color-accent-purple) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: white;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.account-avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.account-header-status-label {
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.account-sync-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    transition: background-color 0.3s ease;
+}
+
+.account-sync-indicator.online {
+    background: #10b981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
+}
+
+.account-sync-indicator.offline {
+    background: #94a3b8;
+}
+
+.account-sync-indicator.syncing {
+    background: #f59e0b;
+    animation: syncPulse 1s infinite alternate;
+}
+
+@keyframes syncPulse {
+    from { transform: scale(0.8); opacity: 0.5; }
+    to { transform: scale(1.3); opacity: 1; }
+}
+
+/* 2. Modal de Cuenta */
+.account-modal-card {
+    max-width: 480px;
+    width: 92%;
+    position: relative;
+    padding: 24px;
+}
+
+.auth-view {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.auth-modal-subtitle {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    line-height: 1.45;
+    margin-bottom: 6px;
+    text-align: center;
+}
+
+/* Beneficios */
+.auth-benefits-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-medium);
+    padding: 12px 14px;
+}
+
+.auth-benefit-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+}
+
+.auth-benefit-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.auth-benefit-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.auth-benefit-text strong {
+    font-size: 0.88rem;
+    color: var(--color-text);
+}
+
+.auth-benefit-text span {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+}
+
+/* Botón Google Oficial */
+.auth-actions-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.btn-auth-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 20px;
+    background: #ffffff;
+    color: #1f2937;
+    border: 1.5px solid #d1d5db;
+    border-radius: 12px;
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.btn-auth-google:hover:not(:disabled) {
+    background: #f9fafb;
+    border-color: #9ca3af;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+    transform: translateY(-2px);
+}
+
+.btn-auth-google:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.auth-security-note {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    text-align: center;
+    margin: 0;
+}
+
+.auth-error-box {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid #ef4444;
+    color: #f87171;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    text-align: center;
+    line-height: 1.4;
+}
+
+/* Vista de Usuario Autenticado */
+.auth-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 14px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-medium);
+}
+
+.auth-profile-avatar-box {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: 2.5px solid var(--color-accent-blue);
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--color-accent-blue) 0%, var(--color-accent-purple) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.auth-user-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.auth-user-photo-fallback {
+    color: white;
+    font-size: 1.6rem;
+    font-weight: 800;
+}
+
+.auth-profile-details {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    text-align: left;
+}
+
+.auth-user-name {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin: 0 0 2px;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.auth-user-email {
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.auth-user-uid {
+    font-size: 0.72rem;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+/* Estado de Sincronización */
+.auth-sync-status-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1.5px solid rgba(16, 185, 129, 0.35);
+    border-radius: 12px;
+    gap: 10px;
+}
+
+.auth-sync-status-info {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.auth-sync-title {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.auth-status-pill {
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+.auth-status-pill.online {
+    color: #10b981;
+}
+
+.auth-status-pill.syncing {
+    color: #f59e0b;
+}
+
+.auth-status-pill.offline {
+    color: #94a3b8;
+}
+
+/* Grilla de Estadísticas */
+.auth-stats-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.auth-stat-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 6px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+}
+
+.auth-stat-icon {
+    font-size: 1.2rem;
+    margin-bottom: 2px;
+}
+
+.auth-stat-val {
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--color-text);
+}
+
+.auth-stat-lbl {
+    font-size: 0.68rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+}
+
+.auth-vip-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--color-bg);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.auth-profile-actions {
+    margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+    .btn-account-header {
+        padding: 4px 8px 4px 4px;
+    }
+
+    .account-header-status-label {
+        display: none;
+    }
+
+    .auth-stats-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+
 
 
 
