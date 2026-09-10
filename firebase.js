@@ -1,8 +1,19 @@
-// firebase.js
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+// firebase.js - Inicialización de Firebase con CDN oficial de Google (Compatible con GitHub Pages y Vite)
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
-// Si luego usas Firestore o Auth, los importarás aquí:
-// import { getFirestore } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signOut, 
+  onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+import { 
+  getFirestore, 
+  doc, 
+  getDoc, 
+  setDoc 
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDM5t9pE01V2NLffizh8mD-nw5WR47yNYI",
@@ -15,7 +26,34 @@ const firebaseConfig = {
 };
 
 // Inicializar Firebase
-export const app = initializeApp(firebaseConfig);
-export const analytics = getAnalytics(app);
+export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-console.log("Firebase de MATHQUEST iniciado con éxito");
+let analytics = null;
+try {
+  analytics = getAnalytics(app);
+} catch (e) {
+  // Entorno seguro si Analytics no está soportado en iframe/offline
+}
+export { analytics };
+
+// Auth & Proveedor de Google
+export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+
+// Base de Datos Firestore
+export const db = getFirestore(app);
+
+// Re-exportar utilidades
+export {
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  doc,
+  getDoc,
+  setDoc
+};
+
+console.log("Firebase de MATHQUEST iniciado con éxito:", firebaseConfig.projectId);

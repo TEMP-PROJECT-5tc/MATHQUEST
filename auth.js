@@ -2,57 +2,26 @@
    MathQuest V3 - Capa de Autenticación y Sincronización en la Nube
    Firebase Authentication (Google Sign-In) & Cloud Firestore Persistence
    Mantiene el progreso del jugador sincronizado entre dispositivos mediante UID.
+   Compatible con GitHub Pages y Vite mediante módulos ES nativos.
    ========================================================================== */
 
-import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
-    getAuth, 
-    GoogleAuthProvider, 
+    app, 
+    auth, 
+    db, 
+    googleProvider, 
     signInWithPopup, 
     signOut, 
-    onAuthStateChanged 
-} from 'firebase/auth';
-import { 
-    getFirestore, 
+    onAuthStateChanged, 
     doc, 
     getDoc, 
     setDoc 
-} from 'firebase/firestore';
-import firebaseConfig from './firebase-applet-config.json';
+} from './firebase.js';
 
 // --------------------------------------------------------------------------
-// 1. Inicialización Segura de Firebase
+// 1. Estado de Conexión de Firebase
 // --------------------------------------------------------------------------
-let app = null;
-let auth = null;
-let db = null;
-let isFirebaseReady = false;
-
-try {
-    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-    auth = getAuth(app);
-
-    const dbId = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
-        ? firebaseConfig.firestoreDatabaseId 
-        : undefined;
-
-    try {
-        db = dbId ? getFirestore(app, dbId) : getFirestore(app);
-    } catch (dbErr) {
-        console.warn("Aviso al inicializar Firestore con ID personalizado, usando instancia default:", dbErr);
-        db = getFirestore(app);
-    }
-    
-    isFirebaseReady = true;
-} catch (err) {
-    console.error("Error al inicializar Firebase en MathQuest:", err);
-}
-
-// Proveedor de Autenticación con Google
-const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({
-    prompt: 'select_account'
-});
+const isFirebaseReady = !!auth;
 
 // --------------------------------------------------------------------------
 // 2. Estado Interno del Módulo de Autenticación

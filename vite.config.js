@@ -29,6 +29,8 @@ export default defineConfig({
           'escape.js',
           'duel.js',
           'calculator.js',
+          'firebase.js',
+          'auth.js',
           'style.css',
           'avatar_cube.png',
           'avatar_cylinder.png',
