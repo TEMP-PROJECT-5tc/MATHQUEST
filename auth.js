@@ -202,15 +202,27 @@ export async function registerWithEmail(displayName, email, password) {
         const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
         
         // Asignar nombre de usuario personalizado
-        if (displayName && displayName.trim()) {
+        const trimmedName = (displayName && displayName.trim()) ? displayName.trim() : email.split('@')[0];
+        try {
             await updateProfile(userCredential.user, {
-                displayName: displayName.trim()
+                displayName: trimmedName
             });
+        } catch (pErr) {
+            console.warn("Aviso al actualizar perfil:", pErr);
         }
+
+        userCredential.user.displayName = trimmedName;
+        currentUser = userCredential.user;
+        updateHeaderAccountButton(currentUser);
 
         console.log("✓ Cuenta creada con éxito:", userCredential.user.email);
         closeAccountModal();
-        showToast(`¡Cuenta creada con éxito! Bienvenido a MathQuest 🌟`);
+        showToast(`¡Bienvenido a MathQuest, ${trimmedName}! 🌟`);
+
+        // Sincronizar de inmediato el progreso inicial
+        if (window.MathQuestCloudSave) {
+            window.MathQuestCloudSave.saveUserProgress(userCredential.user, { force: true });
+        }
     } catch (err) {
         console.error("Error al crear cuenta:", err);
         showAuthError(getFriendlyErrorMessage(err));
@@ -519,8 +531,16 @@ function renderAuthenticatedProfile(user) {
     if (streak) streak.textContent = `${s.streak || 1} días`;
     if (coins) coins.textContent = s.coins || 150;
     if (vip) {
-        vip.textContent = s.vipBypassPurchased ? '⭐ Pase VIP Activo' : 'Estándar';
-        vip.style.color = s.vipBypassPurchased ? '#f59e0b' : 'inherit';
+        if (window.MathQuestVIP?.checkVipStatus?.() || s.isRealVip) {
+            vip.textContent = '⭐ VIP Confirmado (Nube)';
+            vip.style.color = '#10b981';
+        } else if (s.vipBypassPurchased) {
+            vip.textContent = '👑 VIP Local (Sin vincular)';
+            vip.style.color = '#f59e0b';
+        } else {
+            vip.textContent = 'Estándar';
+            vip.style.color = 'inherit';
+        }
     }
 }
 
@@ -715,12 +735,19 @@ onAuthStateChanged(auth, async (user) => {
 
     if (user) {
         console.log("👤 Usuario autenticado en MathQuest (UID):", user.uid);
+        // Activar listener de VIP en tiempo real para este UID
+        if (window.MathQuestVIP?.setupFirestoreVipListener) {
+            window.MathQuestVIP.setupFirestoreVipListener(user.uid);
+        }
         // Cargar progreso del usuario y reconciliar inteligentemente
         if (window.MathQuestCloudSave) {
             await window.MathQuestCloudSave.loadUserProgress(user);
         }
     } else {
         console.log("⚪ Modo Invitado activo en MathQuest.");
+        if (window.MathQuestVIP?.teardownFirestoreVipListener) {
+            window.MathQuestVIP.teardownFirestoreVipListener();
+        }
         if (window.MathQuestCloudSave) {
             window.MathQuestCloudSave.handleUserLogout();
         }

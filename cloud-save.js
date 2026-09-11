@@ -14,10 +14,28 @@ let currentSyncStatus = 'offline'; // 'offline' | 'saving' | 'saved' | 'error'
 let syncDebounceTimer = null;
 let activeUid = null;
 let lastSaveTimestamp = null;
+let cachedUserVip = null;
+
+/**
+ * Sanitizar recursivamente cualquier campo undefined antes de enviar a Firestore
+ * @param {*} obj 
+ * @returns {*}
+ */
+function sanitizeForFirestore(obj) {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(sanitizeForFirestore);
+    const cleaned = {};
+    for (const key of Object.keys(obj)) {
+        if (obj[key] !== undefined) {
+            cleaned[key] = sanitizeForFirestore(obj[key]);
+        }
+    }
+    return cleaned;
+}
 
 /**
  * Notificar cambios de estado de sincronización al resto de la aplicación
- * @param {'offline' | 'saving' | 'saved' | 'error'} status 
+ * @param {'offline' | 'saving' | 'saved' | 'error' | 'local-only'} status 
  * @param {string} [detail]
  */
 function updateSyncStatus(status, detail = '') {
@@ -42,38 +60,53 @@ function updateSyncStatus(status, detail = '') {
         switch (status) {
             case 'saving':
                 statusPill.textContent = '☁️ Guardando...';
+                statusPill.title = 'Sincronizando con la nube';
                 break;
             case 'saved':
-                statusPill.textContent = '✓ Guardado';
+                statusPill.textContent = '✓ Guardado en la nube';
+                statusPill.title = 'Progreso sincronizado en Firestore';
+                break;
+            case 'local-only':
+                statusPill.textContent = '🟡 Guardado local';
+                statusPill.title = detail || 'Progreso seguro en este dispositivo';
                 break;
             case 'error':
-                statusPill.textContent = '⚠ No se pudo sincronizar';
+                statusPill.textContent = '🟡 Guardado local';
+                statusPill.title = detail || 'Progreso guardado localmente';
                 break;
             case 'offline':
             default:
                 statusPill.textContent = '⚪ Modo Invitado / Local';
+                statusPill.title = 'Almacenamiento local del navegador';
                 break;
         }
     }
 
     if (headerIndicator) {
-        headerIndicator.className = `account-sync-indicator ${status === 'saved' ? 'online' : status}`;
-        headerIndicator.title = `Estado: ${status}`;
+        if (status === 'saved') {
+            headerIndicator.className = 'account-sync-indicator online';
+            headerIndicator.title = 'En línea: Progreso respaldado en la nube';
+        } else if (status === 'saving') {
+            headerIndicator.className = 'account-sync-indicator syncing';
+            headerIndicator.title = 'Guardando en la nube...';
+        } else if (status === 'local-only' || status === 'error') {
+            headerIndicator.className = 'account-sync-indicator local';
+            headerIndicator.title = detail || 'Progreso seguro en tu dispositivo';
+        } else {
+            headerIndicator.className = 'account-sync-indicator offline';
+            headerIndicator.title = 'Modo Invitado (Almacenamiento Local)';
+        }
     }
 
-    if (headerStatusLabel && activeUid) {
-        if (status === 'saving') {
-            headerStatusLabel.textContent = 'Guardando...';
-        } else if (status === 'error') {
-            headerStatusLabel.textContent = 'Sin sync';
+    // El botón de cabecera SIEMPRE debe mostrar el nombre del usuario o 'Cuenta'
+    // NUNCA debe ser reemplazado por texto técnico como 'Guardando...' o 'Sin sync'
+    if (headerStatusLabel) {
+        const user = window.MathQuestAuth?.getCurrentUser();
+        if (user) {
+            const displayName = user.displayName || user.email?.split('@')[0] || 'Jugador';
+            headerStatusLabel.textContent = displayName.split(' ')[0];
         } else {
-            // Mostrar nombre del usuario o 'Cuenta'
-            const user = window.MathQuestAuth?.getCurrentUser();
-            if (user && user.displayName) {
-                headerStatusLabel.textContent = user.displayName.split(' ')[0];
-            } else {
-                headerStatusLabel.textContent = 'Mi Cuenta';
-            }
+            headerStatusLabel.textContent = 'Cuenta';
         }
     }
 }
@@ -129,12 +162,19 @@ export function formatProgressData(user = null) {
             musicTrack: s.musicTrack || 'arcade'
         },
         security: {
-            // Nota arquitectónica: Flag sincronizado; preparado para validación por backend/webhook
+            // Nota arquitectónica: Flag de compatibilidad con versiones previas
             vipBypassPurchased: Boolean(s.vipBypassPurchased)
         },
         updatedAt: Date.now(),
         clientVersion: 'MathQuest-V3.2'
     };
+
+    // Si existe información VIP confirmada en la nube, preservarla exactamente para no violar las reglas de Firestore
+    if (cachedUserVip) {
+        payload.vip = cachedUserVip;
+    }
+
+    return payload;
 }
 
 /**
@@ -150,6 +190,17 @@ export function reconcileAndMerge(cloudData, localState) {
     const cloudInv = cloudData.inventory || {};
     const cloudSec = cloudData.security || {};
     const cloudSet = cloudData.settings || {};
+
+    // Fuente de Verdad VIP: Firestore (escrito exclusivamente por backend autorizado)
+    const cloudVip = cloudData.vip || {};
+    const isCloudVipActive = Boolean(cloudVip.active === true);
+    const localLegacyBypass = Boolean(localState.vipBypassPurchased);
+
+    if (isCloudVipActive) {
+        cachedUserVip = cloudVip;
+    } else if (cloudData.vip) {
+        cachedUserVip = cloudData.vip;
+    }
 
     const localUnlockedLevels = Array.isArray(localState.unlockedLevels) ? localState.unlockedLevels : [];
     const cloudUnlockedLevels = Array.isArray(cloudProg.unlockedLevels) ? cloudProg.unlockedLevels : [];
@@ -176,8 +227,8 @@ export function reconcileAndMerge(cloudData, localState) {
     const mergedShield = Math.max(Number(localState.inventory?.shield) || 0, Number(cloudInv.shield) || 0);
     const mergedFreeze = Math.max(Number(localState.inventory?.freeze) || 0, Number(cloudInv.freeze) || 0);
 
-    // Membresía VIP: Si cualquiera es verdadera, se conserva intacta
-    const mergedVip = Boolean(localState.vipBypassPurchased || cloudSec.vipBypassPurchased || cloudData.vipBypassPurchased);
+    // Membresía VIP: Si la nube lo confirma, es VIP Real. Si solo estaba localmente, se mantiene como bypass compatible
+    const hasVipAccess = isCloudVipActive || localLegacyBypass;
 
     return {
         streak: mergedStreak,
@@ -192,7 +243,9 @@ export function reconcileAndMerge(cloudData, localState) {
         unlockedSkins: mergedSkins.length ? mergedSkins : ['standard'],
         unlockedLevels: mergedLevels.length ? mergedLevels : ['snake-1', 'slider-1', 'tetris-1', 'arkanoid-1', 'sudoku-1', 'ahorcado-1', 'tres-1'],
         unlockedAchievements: mergedAchievements,
-        vipBypassPurchased: mergedVip,
+        vipBypassPurchased: hasVipAccess,
+        isRealVip: isCloudVipActive,
+        vip: cachedUserVip || { active: false, productId: 'mathquest-vip' },
         inventory: {
             shield: mergedShield,
             freeze: mergedFreeze
@@ -260,7 +313,7 @@ export async function loadUserProgress(user) {
     }
 
     activeUid = user.uid;
-    updateSyncStatus('saving', 'Cargando progreso desde la nube...');
+    updateSyncStatus('saving', 'Conectando con la nube...');
 
     try {
         const userDocRef = doc(db, 'users', user.uid);
@@ -282,11 +335,17 @@ export async function loadUserProgress(user) {
             console.log("📦 Primera vez del usuario en la nube. Migrando progreso local a Firestore...");
             await saveUserProgress(user, { force: true });
             localStorage.setItem(STORAGE_PREFIX + `migrated_${user.uid}`, 'true');
-            updateSyncStatus('saved', 'Progreso local migrado a tu cuenta con éxito');
+            updateSyncStatus('saved', 'Progreso local respaldado en la nube');
         }
     } catch (err) {
-        console.error("Error al cargar progreso desde Firestore:", err);
-        updateSyncStatus('error', 'Error al sincronizar con la nube');
+        console.warn("Aviso de sincronización en Firestore:", err?.code, err?.message);
+        let detail = 'Progreso seguro guardado localmente en este navegador';
+        if (err?.code === 'not-found' || err?.message?.includes('does not exist')) {
+            detail = 'Base de datos Firestore pendiente de crear en Firebase Console';
+        } else if (err?.code === 'permission-denied') {
+            detail = 'Reglas de seguridad de Firestore pendientes en Firebase Console';
+        }
+        updateSyncStatus('local-only', detail);
     }
 }
 
@@ -305,21 +364,28 @@ export async function saveUserProgress(user = null, options = {}) {
     }
 
     if (!options.silent) {
-        updateSyncStatus('saving');
+        updateSyncStatus('saving', 'Guardando...');
     }
 
     try {
-        const payload = formatProgressData(targetUser);
+        const rawPayload = formatProgressData(targetUser);
+        const payload = sanitizeForFirestore(rawPayload);
         const userDocRef = doc(db, 'users', uid);
 
         await setDoc(userDocRef, payload, { merge: true });
 
         lastSaveTimestamp = Date.now();
-        updateSyncStatus('saved');
+        updateSyncStatus('saved', 'Progreso respaldado en la nube');
         console.log("✓ Progreso de MathQuest guardado en Firestore:", uid);
     } catch (err) {
-        console.error("Error al guardar progreso en Firestore:", err);
-        updateSyncStatus('error', err.message);
+        console.warn("Aviso al guardar progreso en Firestore:", err?.code, err?.message);
+        let detail = 'Progreso seguro guardado localmente en este navegador';
+        if (err?.code === 'not-found' || err?.message?.includes('does not exist')) {
+            detail = 'Base de datos Firestore pendiente de crear en Firebase Console';
+        } else if (err?.code === 'permission-denied') {
+            detail = 'Reglas de seguridad de Firestore pendientes en Firebase Console';
+        }
+        updateSyncStatus('local-only', detail);
     }
 }
 

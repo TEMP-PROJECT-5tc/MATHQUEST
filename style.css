@@ -4391,6 +4391,11 @@ body {
     background: #94a3b8;
 }
 
+.account-sync-indicator.local {
+    background: #f59e0b;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.7);
+}
+
 .account-sync-indicator.syncing {
     background: #f59e0b;
     animation: syncPulse 1s infinite alternate;
@@ -4790,6 +4795,10 @@ body {
     color: #f59e0b;
 }
 
+.auth-status-pill.local-only {
+    color: #f59e0b;
+}
+
 .auth-status-pill.offline {
     color: #94a3b8;
 }
@@ -4857,6 +4866,486 @@ body {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* ==========================================================================
+   MathQuest VIP & Yape Payment System Styles
+   ========================================================================== */
+
+.vip-featured-card {
+    background: linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+    border: 2px solid rgba(245, 158, 11, 0.6) !important;
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.vip-featured-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.vip-card-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.vip-crown-icon {
+    font-size: 2.8rem;
+    filter: drop-shadow(0 2px 8px rgba(245, 158, 11, 0.5));
+}
+
+.vip-tag-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+}
+
+.vip-badge-pill {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+}
+
+.vip-method-pill {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+
+.vip-banner-info h3 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-family: var(--font-heading);
+    color: #fef08a;
+}
+
+.vip-tagline {
+    margin: 4px 0 0 0;
+    font-size: 0.85rem;
+    color: #cbd5e1;
+}
+
+.vip-benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 18px;
+}
+
+.vip-benefit-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: #f1f5f9;
+}
+
+.benefit-check {
+    color: #10b981;
+    font-weight: 900;
+    font-size: 0.95rem;
+}
+
+.vip-action-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.vip-authenticated-checkout-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1.5px dashed rgba(245, 158, 11, 0.4);
+    padding: 14px 18px;
+    border-radius: 12px;
+}
+
+.vip-price-tag {
+    display: flex;
+    flex-direction: column;
+}
+
+.vip-price-label {
+    font-size: 0.75rem;
+    color: #cbd5e1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.vip-price-amount {
+    font-size: 1.6rem;
+    font-weight: 900;
+    font-family: var(--font-heading);
+    color: #fef08a;
+}
+
+.vip-price-period {
+    font-size: 0.72rem;
+    color: #94a3b8;
+}
+
+.btn-vip-cta {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    border: none !important;
+    color: #0f172a !important;
+    font-weight: 800 !important;
+    font-size: 0.95rem !important;
+    padding: 12px 24px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4) !important;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-vip-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(245, 158, 11, 0.5) !important;
+}
+
+.vip-security-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    padding: 0 4px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.vip-guest-callout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid var(--color-border);
+    padding: 16px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.vip-security-note {
+    font-size: 0.72rem;
+    color: #94a3b8;
+}
+
+.vip-status-active-badge {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1.5px solid #10b981;
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.vip-active-chip {
+    background: #10b981;
+    color: #ffffff;
+    font-weight: 900;
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.vip-active-details p {
+    margin: 0 0 4px 0;
+    font-weight: 700;
+    color: #ecfdf5;
+    font-size: 0.9rem;
+}
+
+.vip-active-meta {
+    font-size: 0.72rem;
+    color: #6ee7b7;
+}
+
+.vip-legacy-notice {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #fef08a;
+    font-size: 0.78rem;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+/* Modal de Checkout VIP */
+.vip-checkout-card {
+    max-width: 480px;
+    width: 92%;
+    background: var(--color-card, #1e293b);
+    border: 1.5px solid var(--color-border);
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.vip-modal-title {
+    margin: 8px 0 4px 0;
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    text-align: center;
+    color: #fef08a;
+}
+
+.vip-modal-desc {
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+    margin: 0 0 16px 0;
+}
+
+.vip-user-pill {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.vip-user-pill strong {
+    color: var(--color-text);
+}
+
+.vip-modal-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 10px;
+}
+
+.vip-tab-btn {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.vip-tab-btn.active {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: var(--color-accent-blue);
+    color: #ffffff;
+}
+
+.vip-price-display-banner {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.25) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    margin-bottom: 14px;
+}
+
+.vip-price-tag-amount {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 900;
+    font-family: var(--font-heading);
+    color: #fef08a;
+}
+
+.vip-price-tag-sub {
+    font-size: 0.75rem;
+    color: #cbd5e1;
+}
+
+.vip-instructions-box {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+}
+
+.vip-instructions-list {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 0.78rem;
+    color: #cbd5e1;
+    line-height: 1.5;
+}
+
+.btn-yape-submit {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-size: 1rem !important;
+    font-weight: 800 !important;
+    padding: 12px !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4) !important;
+    margin-top: 14px;
+    cursor: pointer;
+}
+
+/* Caja de Estados */
+.vip-status-box {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.82rem;
+    transition: all 0.2s ease;
+}
+
+.vip-status-icon {
+    font-size: 1.5rem;
+}
+
+.vip-status-content strong {
+    display: block;
+    font-size: 0.9rem;
+    margin-bottom: 2px;
+}
+
+.vip-status-content p {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.3;
+}
+
+.status-loading {
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid #3b82f6;
+    color: #bfdbfe;
+}
+
+.status-success {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid #10b981;
+    color: #a7f3d0;
+}
+
+.status-error {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid #ef4444;
+    color: #fecaca;
+}
+
+.status-warning {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid #f59e0b;
+    color: #fef08a;
+}
+
+/* Sandbox Panel */
+.sandbox-banner {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    text-align: center;
+}
+
+.sandbox-badge {
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: inline-block;
+    margin-bottom: 4px;
+}
+
+.sandbox-banner p {
+    margin: 0;
+    font-size: 0.78rem;
+    color: #cbd5e1;
+}
+
+.sandbox-buttons-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sandbox-btn {
+    text-align: left !important;
+    padding: 10px 14px !important;
+    font-size: 0.82rem !important;
+    border-radius: 8px !important;
+    cursor: pointer;
+}
+
+.vip-security-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: center;
+    font-size: 0.68rem;
+    color: var(--color-text-muted);
+    margin-top: 18px;
+    border-top: 1px solid var(--color-border);
+    padding-top: 12px;
+}
+
+@media (max-width: 640px) {
+    .vip-benefits-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .vip-authenticated-checkout-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn-vip-cta {
+        width: 100%;
+        text-align: center;
+    }
+}
+
 
 
 

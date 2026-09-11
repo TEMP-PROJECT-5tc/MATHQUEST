@@ -549,6 +549,42 @@
             <!-- SUB-PANTALLA B: LA TIENDA DE ARTÍCULOS -->
             <div id="hub-shop-view" class="tab-view hidden">
                 <div class="shop-grid">
+                    <!-- Sección Destacada: MathQuest VIP -->
+                    <div class="shop-category card vip-featured-card" id="shop-vip-featured-card">
+                        <div class="vip-card-banner">
+                            <span class="vip-crown-icon">👑</span>
+                            <div class="vip-banner-info">
+                                <div class="vip-tag-row">
+                                    <span class="vip-badge-pill">MEMBRESÍA DEFINITIVA</span>
+                                    <span class="vip-method-pill">Paga con Yape 📱</span>
+                                </div>
+                                <h3>⭐ MATHQUEST VIP</h3>
+                                <p class="vip-tagline">Acceso total, permanente y vinculado a tu cuenta en la nube</p>
+                            </div>
+                        </div>
+                        <div class="vip-benefits-grid">
+                            <div class="vip-benefit-item">
+                                <span class="benefit-check">✓</span>
+                                <span>Desbloquea todos los 55 niveles de los 11 minijuegos</span>
+                            </div>
+                            <div class="vip-benefit-item">
+                                <span class="benefit-check">✓</span>
+                                <span>Contenido VIP y acceso exclusivo a nuevos modos</span>
+                            </div>
+                            <div class="vip-benefit-item">
+                                <span class="benefit-check">✓</span>
+                                <span>Pistas ilimitadas para resolver cualquier acertijo</span>
+                            </div>
+                            <div class="vip-benefit-item">
+                                <span class="benefit-check">✓</span>
+                                <span>Sincronización segura permanente para todos tus dispositivos</span>
+                            </div>
+                        </div>
+                        <div class="vip-action-container" id="vip-shop-action-container">
+                            <!-- Inyectado dinámicamente por vip-payment.js según autenticación y estado VIP -->
+                        </div>
+                    </div>
+
                     <!-- Sección de Skins -->
                     <div class="shop-category card">
                         <h3>🐍 Aspectos / Skins de Serpiente (Snake & Slither)</h3>
@@ -1729,70 +1765,102 @@
         </div>
     </div>
 
-    <!-- Modal de Pasarela de Pago VIP Premium (Monetización / Modelo de Negocio) -->
-    <div id="premium-buy-modal" class="modal-overlay hidden">
-        <div class="modal-card payment-modal-card">
+    <!-- Modal de Pasarela de Pago VIP (Culqi / Yape Oficial y Sandbox Test) -->
+    <div id="vip-checkout-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-card vip-checkout-card">
+            <button class="modal-close-x" id="btn-close-vip-checkout-modal" aria-label="Cerrar modal de pago">×</button>
             <div class="modal-mascot">👑</div>
-            <h3>¡Pase VIP MathQuest Premium!</h3>
-            <p style="font-size:0.85rem; margin-bottom:15px; color:var(--color-text-muted);">
-                Desbloquea instantáneamente todos los 55 niveles de la plataforma, adquiere pistas ilimitadas y equipa aspectos exclusivos.
+            <h3 class="vip-modal-title">MathQuest VIP</h3>
+            <p class="vip-modal-desc">
+                Desbloquea instantáneamente todos los 55 niveles de los 11 minijuegos, contenidos exclusivos y pistas ilimitadas.
             </p>
-            
-            <div class="payment-tabs">
-                <button id="payment-tab-card" class="payment-tab-btn active">💳 Tarjeta de Crédito</button>
-                <button id="payment-tab-coins" class="payment-tab-btn">🪙 10,000 MathCoins</button>
+
+            <div class="vip-user-pill">
+                <span>👤 Cuenta a vincular:</span>
+                <strong id="vip-checkout-user-label">usuario@correo.com</strong>
             </div>
 
-            <!-- Formulario de Tarjeta -->
-            <div id="payment-form-card-view" class="payment-tab-content">
-                <div class="checkout-price-badge">$4.99 USD <span style="font-size:0.75rem; font-weight:normal;">/ Pago Único</span></div>
-                <form id="checkout-card-form" onsubmit="event.preventDefault();">
+            <!-- Pestañas de Pago: Yape Oficial vs Simulador Sandbox -->
+            <div class="vip-modal-tabs">
+                <button type="button" class="vip-tab-btn active" id="tab-vip-yape-official">
+                    📱 Yape (Oficial)
+                </button>
+                <button type="button" class="vip-tab-btn" id="tab-vip-sandbox-test">
+                    🧪 Modo Pruebas (Sandbox)
+                </button>
+            </div>
+
+            <!-- VISTA 1: PAGO OFICIAL CON YAPE -->
+            <div id="view-vip-yape-official" class="vip-tab-content">
+                <div class="vip-price-display-banner">
+                    <span class="vip-price-tag-amount" id="vip-checkout-price-label">S/ 19.90</span>
+                    <span class="vip-price-tag-sub">PEN • Pago Único y Permanente</span>
+                </div>
+
+                <div class="vip-instructions-box">
+                    <ol class="vip-instructions-list">
+                        <li>Abre tu app <strong>Yape</strong> en tu celular.</li>
+                        <li>Toca en el menú y selecciona <strong>"Código de Aprobación"</strong>.</li>
+                        <li>Ingresa tu celular y el código de 6 dígitos aquí abajo para confirmar.</li>
+                    </ol>
+                </div>
+
+                <form id="form-yape-payment">
                     <div class="form-group">
-                        <label>Número de Tarjeta</label>
-                        <input type="text" id="cc-number" placeholder="4111 2222 3333 4444" maxlength="19" required>
+                        <label for="yape-phone-input">Número de Celular Yape</label>
+                        <input type="tel" id="yape-phone-input" placeholder="Ej: 987654321" maxlength="9" pattern="[9][0-9]{8}" required>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Expiración</label>
-                            <input type="text" id="cc-expiry" placeholder="MM/AA" maxlength="5" required>
-                        </div>
-                        <div class="form-group">
-                            <label>CVC (Seguridad)</label>
-                            <input type="text" id="cc-cvc" placeholder="123" maxlength="3" required>
-                        </div>
-                    </div>
+
                     <div class="form-group">
-                        <label>Nombre del Tarjetahabiente</label>
-                        <input type="text" id="cc-name" placeholder="Ej. Mateo Aventurero" required>
+                        <label for="yape-otp-input">Código de Aprobación Yape (6 dígitos)</label>
+                        <input type="text" id="yape-otp-input" placeholder="Ej: 123456" maxlength="6" pattern="[0-9]{6}" autocomplete="one-time-code" required>
                     </div>
-                    <button type="submit" id="btn-submit-payment-card" class="btn btn-primary w-100" style="margin-top:10px;">
-                        Comprar Pase VIP ($4.99)
+
+                    <button type="submit" id="btn-submit-yape-payment" class="btn btn-primary w-100 btn-yape-submit">
+                        <span>📱 Confirmar y Pagar S/ 19.90</span>
                     </button>
                 </form>
             </div>
 
-            <!-- Canje por Monedas -->
-            <div id="payment-form-coins-view" class="payment-tab-content hidden">
-                <div class="checkout-price-badge">🪙 10,000 MathCoins</div>
-                <p style="font-size:0.8rem; margin:15px 0; color:var(--color-text-muted);">
-                    ¿Has estado practicando duro? Puedes canjear 10,000 de tus monedas ganadas por el pase Bypass VIP ilimitado gratis.
-                </p>
-                <div id="coins-checkout-status" style="font-weight:bold; margin-bottom:15px;"></div>
-                <button id="btn-submit-payment-coins" class="btn btn-equipped w-100">
-                    Canjear Pase VIP con Monedas
-                </button>
-            </div>
+            <!-- VISTA 2: SIMULADOR SANDBOX PARA DESARROLLO Y VERIFICACIÓN -->
+            <div id="view-vip-sandbox-test" class="vip-tab-content hidden">
+                <div class="sandbox-banner">
+                    <span class="sandbox-badge">MODO PRUEBAS / SANDBOX</span>
+                    <p>Verifica todos los flujos de respuesta de la pasarela y Firestore sin realizar cobros reales.</p>
+                </div>
 
-            <div class="checkout-security-badges">
-                <span>🔒 Conexión segura SSL de 256-bits</span>
-                <div style="font-size: 0.65rem; color: var(--color-text-muted); margin-top:4px;">
-                    Esto es una simulación interactiva con fines educativos y de demostración comercial.
+                <div class="sandbox-buttons-grid">
+                    <button type="button" class="btn btn-success sandbox-btn" id="btn-sandbox-test-success">
+                        ✅ 1. Probar Pago Aprobado (Activa VIP)
+                    </button>
+                    <button type="button" class="btn btn-danger sandbox-btn" id="btn-sandbox-test-rejected">
+                        ❌ 2. Probar Pago Rechazado (OTP Inválido)
+                    </button>
+                    <button type="button" class="btn btn-secondary sandbox-btn" id="btn-sandbox-test-pending">
+                        🕒 3. Probar Pago Pendiente
+                    </button>
+                    <button type="button" class="btn btn-secondary sandbox-btn" id="btn-sandbox-test-canceled">
+                        ⚠️ 4. Probar Pago Cancelado
+                    </button>
+                    <button type="button" class="btn btn-primary sandbox-btn" id="btn-sandbox-test-webhook">
+                        🔔 5. Probar Notificación Webhook Culqi
+                    </button>
                 </div>
             </div>
-            
-            <button id="btn-close-payment-modal" class="btn btn-secondary w-100" style="margin-top:12px;">
-                Cancelar / Volver
-            </button>
+
+            <!-- Caja de Estados de Pago (Maneja: preparando, esperando, aprobado, rechazado, cancelado, pendiente, error_conexion, error_proveedor) -->
+            <div id="vip-checkout-status-box" class="vip-status-box hidden">
+                <span id="vip-checkout-status-icon" class="vip-status-icon">⏳</span>
+                <div class="vip-status-content">
+                    <strong id="vip-checkout-status-title">Preparando pago...</strong>
+                    <p id="vip-checkout-status-desc">Conectando con el servidor...</p>
+                </div>
+            </div>
+
+            <div class="vip-security-footer">
+                <span>🔒 Procesamiento seguro vía API Culqi & Yape</span>
+                <span>Registro criptográfico verificado en Firebase Auth & Firestore</span>
+            </div>
         </div>
     </div>
 
@@ -2030,6 +2098,7 @@
     <!-- Capa de Persistencia y Autenticación en la Nube Firebase (ES Modules) -->
     <script type="module" src="cloud-save.js"></script>
     <script type="module" src="auth.js"></script>
+    <script type="module" src="vip-payment.js"></script>
 
     <!-- Motores del Juego y Controlador Central (Compatible con GitHub Pages y Vite) -->
     <script src="app.js"></script>

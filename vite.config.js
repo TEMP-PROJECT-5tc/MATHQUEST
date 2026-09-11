@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import fs from 'fs';
 import path from 'path';
+import { handlePaymentRequest } from './server/payment-backend.js';
 
 export default defineConfig({
   base: './',
@@ -12,6 +13,19 @@ export default defineConfig({
     outDir: 'dist'
   },
   plugins: [
+    {
+      name: 'api-payment-routes',
+      configureServer(server) {
+        server.middlewares.use('/api', (req, res, next) => {
+          handlePaymentRequest(req, res).catch(next);
+        });
+      },
+      configurePreviewServer(server) {
+        server.middlewares.use('/api', (req, res, next) => {
+          handlePaymentRequest(req, res).catch(next);
+        });
+      }
+    },
     {
       name: 'copy-game-scripts-and-assets',
       closeBundle() {
@@ -32,6 +46,7 @@ export default defineConfig({
           'firebase.js',
           'cloud-save.js',
           'auth.js',
+          'vip-payment.js',
           'style.css',
           'avatar_cube.png',
           'avatar_cylinder.png',

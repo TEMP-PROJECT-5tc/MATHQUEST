@@ -931,6 +931,10 @@ const SHOP_CATALOG = {
 };
 
 function renderShop() {
+    if (window.MathQuestVIP?.renderShopVipCard) {
+        window.MathQuestVIP.renderShopVipCard();
+    }
+
     const skinsContainer = document.getElementById('shop-container-skins');
     const powerupsContainer = document.getElementById('shop-container-powerups');
     
@@ -1202,135 +1206,48 @@ function setupSettingsListeners() {
 }
 
 // --------------------------------------------------------------------------
-// 9. Monetización del Bypass VIP (Simulación e Interfaz de Checkout)
+// 9. Sistema Real de MathQuest VIP y Pasarela Yape / Culqi
 // --------------------------------------------------------------------------
 function setupVipBypassBilling() {
     const btnVipHeader = document.getElementById('btn-header-bypass-vip');
-    const billingModal = document.getElementById('premium-buy-modal');
-    const btnCloseBilling = document.getElementById('btn-close-payment-modal');
-    
-    const tabCard = document.getElementById('payment-tab-card');
-    const tabCoins = document.getElementById('payment-tab-coins');
-    const viewCard = document.getElementById('payment-form-card-view');
-    const viewCoins = document.getElementById('payment-form-coins-view');
-    
-    const ccForm = document.getElementById('checkout-card-form');
-    const btnPayCoins = document.getElementById('btn-submit-payment-coins');
-    const coinsStatus = document.getElementById('coins-checkout-status');
-    
-    // Inputs de Tarjeta
-    const ccNumInput = document.getElementById('cc-number');
-    const ccExpInput = document.getElementById('cc-expiry');
-    const ccCvcInput = document.getElementById('cc-cvc');
+    if (!btnVipHeader) return;
 
-    if (!btnVipHeader || !billingModal) return;
-
-    // Abrir Modal
-    btnVipHeader.addEventListener('click', () => {
+    btnVipHeader.addEventListener('click', (e) => {
+        e.stopPropagation();
         SoundEngine.playClick();
-        if (state.vipBypassPurchased) {
-            alert("✨ ¡Ya eres un usuario VIP Premium! Todos los 55 niveles ya están completamente desbloqueados.");
+
+        if (window.MathQuestVIP?.checkVipStatus?.() || (state.isRealVip && state.vipBypassPurchased)) {
+            alert("✨ ¡Tu cuenta tiene MathQuest VIP Activo! Todos los 55 niveles y contenidos exclusivos están permanentemente desbloqueados en la nube.");
             return;
         }
-        
-        // Actualizar estado de MathCoins para el canje
-        coinsStatus.innerText = `Tienes: 🪙 ${state.coins} MathCoins / Necesitas: 🪙 10000`;
-        coinsStatus.style.color = state.coins >= 10000 ? 'var(--color-accent-green)' : 'var(--color-accent-coral)';
 
-        billingModal.classList.remove('hidden');
-    });
-
-    // Cerrar Modal
-    btnCloseBilling.addEventListener('click', () => {
-        SoundEngine.playClick();
-        billingModal.classList.add('hidden');
-    });
-
-    // Cambiar de Pestaña (Tarjeta vs Monedas)
-    tabCard.addEventListener('click', () => {
-        SoundEngine.playClick();
-        tabCard.classList.add('active');
-        tabCoins.classList.remove('active');
-        viewCard.classList.remove('hidden');
-        viewCoins.classList.add('hidden');
-    });
-
-    tabCoins.addEventListener('click', () => {
-        SoundEngine.playClick();
-        tabCoins.classList.add('active');
-        tabCard.classList.remove('active');
-        viewCoins.classList.remove('hidden');
-        viewCard.classList.add('hidden');
-    });
-
-    // Formateadores automáticos de entrada de tarjeta de crédito
-    ccNumInput.addEventListener('input', (e) => {
-        let val = e.target.value.replace(/\D/g, '');
-        let formatted = val.match(/.{1,4}/g)?.join(' ') || val;
-        e.target.value = formatted;
-    });
-
-    ccExpInput.addEventListener('input', (e) => {
-        let val = e.target.value.replace(/\D/g, '');
-        if (val.length > 2) {
-            e.target.value = val.substring(0, 2) + '/' + val.substring(2, 4);
+        // Abrir el sistema oficial de pago y checkout con Yape / Sandbox
+        if (window.MathQuestVIP?.openCheckoutModal) {
+            window.MathQuestVIP.openCheckoutModal();
         } else {
-            e.target.value = val;
+            const billingModal = document.getElementById('vip-checkout-modal') || document.getElementById('premium-buy-modal');
+            if (billingModal) billingModal.classList.remove('hidden');
         }
-    });
-
-    ccCvcInput.addEventListener('input', (e) => {
-        e.target.value = e.target.value.replace(/\D/g, '');
-    });
-
-    // Pago Ficticio con Tarjeta de Crédito (Bypass)
-    ccForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        
-        const btnSubmit = document.getElementById('btn-submit-payment-card');
-        btnSubmit.disabled = true;
-        btnSubmit.innerText = "Procesando pago seguro... 🔒";
-        
-        SoundEngine.playTone(400, 'sine', 0.2, 0.1);
-
-        setTimeout(() => {
-            btnSubmit.disabled = false;
-            btnSubmit.innerText = "Comprar Pase VIP ($4.99)";
-            
-            activatePremiumVipPass();
-            billingModal.classList.add('hidden');
-            
-            alert("💳 ¡Pago aprobado con éxito! Tu Pase VIP Premium está activo. Se han desbloqueado todos los 55 niveles.");
-        }, 1500);
-    });
-
-    // Pago con Monedas
-    btnPayCoins.addEventListener('click', () => {
-        if (state.coins < 10000) {
-            SoundEngine.playWrong();
-            alert("🪙 ¡Monedas insuficientes! Necesitas al menos 10,000 MathCoins ganadas resolviendo desafíos.");
-            return;
-        }
-
-        SoundEngine.playClick();
-        state.coins -= 10000;
-        
-        activatePremiumVipPass();
-        billingModal.classList.add('hidden');
-        
-        alert("🪙 ¡Canje completado! Se restaron 10,000 MathCoins y se activó tu Pase VIP Premium.");
     });
 }
 
-function activatePremiumVipPass() {
+function activatePremiumVipPass(options = {}) {
     state.vipBypassPurchased = true;
+    if (options.confirmed) {
+        state.isRealVip = true;
+    }
     
     // Desbloquear los 5 niveles de los 11 juegos (55 niveles en total)
     const games = ['snake', 'slider', 'rush', 'tetris', 'arkanoid', 'builder', 'sudoku', 'ahorcado', 'tres', 'escape', 'duel'];
-    state.unlockedLevels = [];
+    if (!Array.isArray(state.unlockedLevels)) {
+        state.unlockedLevels = [];
+    }
     games.forEach(g => {
         for (let l = 1; l <= 5; l++) {
-            state.unlockedLevels.push(`${g}-${l}`);
+            const key = `${g}-${l}`;
+            if (!state.unlockedLevels.includes(key)) {
+                state.unlockedLevels.push(key);
+            }
         }
     });
 
@@ -1338,6 +1255,10 @@ function activatePremiumVipPass() {
     saveStateToStorage();
     updateHeaderStats();
     renderDuolingoPath();
+
+    if (window.MathQuestVIP?.renderShopVipCard) {
+        window.MathQuestVIP.renderShopVipCard();
+    }
 }
 
 // --------------------------------------------------------------------------
