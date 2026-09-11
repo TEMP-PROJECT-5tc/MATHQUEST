@@ -12,15 +12,50 @@ import https from 'https';
 import fs from 'fs';
 import path from 'path';
 
-// Configuración de Precios y Producto (Fácilmente modificable)
+// Configuración de Precios y Producto (Controlado exclusivamente por el backend)
+const configuredPriceCents = parseInt(process.env.VIP_PRICE_CENTS || '1990', 10);
+// Validación de monto compatible con Culqi (mínimo S/ 3.00 = 300 céntimos en PEN)
+const finalPriceCents = (!isNaN(configuredPriceCents) && configuredPriceCents >= 300) 
+    ? configuredPriceCents 
+    : 1990;
+
 export const PAYMENT_CONFIG = {
     productId: 'mathquest-vip',
     productName: 'MathQuest VIP - Acceso Total',
-    priceCents: parseInt(process.env.VIP_PRICE_CENTS || '1990', 10), // 1990 céntimos = S/ 19.90 PEN
+    priceCents: finalPriceCents,
     currency: process.env.VIP_CURRENCY || 'PEN',
-    priceDisplay: 'S/ 19.90',
+    get priceDisplay() {
+        const prefix = this.currency === 'PEN' ? 'S/ ' : '$ ';
+        return `${prefix}${(this.priceCents / 100).toFixed(2)}`;
+    },
     sandbox: process.env.CULQI_SANDBOX !== 'false'
 };
+
+/**
+ * Validación de seguridad estricta para evitar mezclar credenciales de Sandbox y Producción
+ */
+export function validateCulqiKeysForEnvironment() {
+    const isSandbox = PAYMENT_CONFIG.sandbox;
+    const secretKey = (process.env.CULQI_SECRET_KEY || '').trim();
+    const publicKey = (process.env.CULQI_PUBLIC_KEY || '').trim();
+
+    if (isSandbox) {
+        if (secretKey.startsWith('sk_live_') || publicKey.startsWith('pk_live_')) {
+            return {
+                valid: false,
+                error: 'Bloqueo de seguridad: CULQI_SANDBOX=true pero se detectaron claves de producción (sk_live_... / pk_live_...). En modo Sandbox solo se permiten claves de prueba (sk_test_... / pk_test_...).'
+            };
+        }
+    } else {
+        if (secretKey.startsWith('sk_test_') || publicKey.startsWith('pk_test_')) {
+            return {
+                valid: false,
+                error: 'Bloqueo de configuración: CULQI_SANDBOX=false (Producción) pero se detectaron claves de prueba (sk_test_... / pk_test_...). En producción debes configurar claves live oficiales.'
+            };
+        }
+    }
+    return { valid: true };
+}
 
 // Carga perezosa (lazy) de Firebase Admin para evitar bloqueos si faltan credenciales
 let adminInstance = null;
@@ -37,12 +72,14 @@ async function getFirebaseAdmin() {
 
         if (!admin.apps.length) {
             // Cargar configuración de applet si existe
-            let projectId = process.env.FIREBASE_PROJECT_ID || 'mathquest-66689';
+            let projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'mathquest-66689';
+            let databaseId = process.env.FIREBASE_DATABASE_ID || '';
             const configPath = path.resolve('firebase-applet-config.json');
             if (fs.existsSync(configPath)) {
                 try {
                     const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
                     if (cfg.projectId) projectId = cfg.projectId;
+                    if (cfg.firestoreDatabaseId) databaseId = cfg.firestoreDatabaseId;
                 } catch (e) {
                     console.warn("Aviso al leer firebase-applet-config.json:", e.message);
                 }
@@ -51,10 +88,21 @@ async function getFirebaseAdmin() {
             admin.initializeApp({
                 projectId: projectId
             });
+
+            if (databaseId && databaseId !== '(default)' && typeof admin.firestore === 'function') {
+                try {
+                    firestoreDb = admin.firestore(databaseId);
+                } catch (dbErr) {
+                    firestoreDb = admin.firestore();
+                }
+            } else if (typeof admin.firestore === 'function') {
+                firestoreDb = admin.firestore();
+            }
+        } else {
+            firestoreDb = admin.firestore();
         }
 
         adminInstance = admin;
-        firestoreDb = admin.firestore();
         return { admin: adminInstance, db: firestoreDb };
     } catch (err) {
         console.warn("Aviso al inicializar Firebase Admin SDK:", err.message);
@@ -163,6 +211,9 @@ export async function verifyAuthToken(authHeader) {
 export async function activateUserVipInFirestore({ uid, paymentId, amount, currency, method, metadata = {} }) {
     if (!uid) throw new Error("Se requiere el UID de Firebase del usuario");
 
+    const isSandbox = PAYMENT_CONFIG.sandbox;
+    const environmentTag = isSandbox ? 'sandbox' : 'production';
+
     const vipRecord = {
         active: true,
         productId: PAYMENT_CONFIG.productId,
@@ -171,10 +222,15 @@ export async function activateUserVipInFirestore({ uid, paymentId, amount, curre
         paymentId: paymentId,
         amount: amount / 100, // En Soles
         amountCents: amount,
-        currency: currency || 'PEN',
+        currency: currency || PAYMENT_CONFIG.currency,
         method: method || 'yape',
         status: 'confirmed',
-        metadata: metadata
+        environment: environmentTag,
+        isTestPayment: isSandbox,
+        metadata: {
+            ...metadata,
+            environment: environmentTag
+        }
     };
 
     const paymentRecord = {
@@ -182,11 +238,16 @@ export async function activateUserVipInFirestore({ uid, paymentId, amount, curre
         uid: uid,
         productId: PAYMENT_CONFIG.productId,
         amount: amount,
-        currency: currency || 'PEN',
+        currency: currency || PAYMENT_CONFIG.currency,
         method: method || 'yape',
         status: 'approved',
+        environment: environmentTag,
+        isTestPayment: isSandbox,
         createdAt: Date.now(),
-        metadata: metadata
+        metadata: {
+            ...metadata,
+            environment: environmentTag
+        }
     };
 
     const { db } = await getFirebaseAdmin();
@@ -265,7 +326,10 @@ export async function handlePaymentRequest(req, res) {
 
     // 1. GET /api/payments/config - Configuración pública para el frontend (sin secretos)
     if (pathname === '/payments/config' && req.method === 'GET') {
-        const hasSecretKey = Boolean(process.env.CULQI_SECRET_KEY);
+        const hasSecretKey = Boolean(process.env.CULQI_SECRET_KEY && process.env.CULQI_SECRET_KEY.trim());
+        const hasPublicKey = Boolean(process.env.CULQI_PUBLIC_KEY && process.env.CULQI_PUBLIC_KEY.trim());
+        const isConfigured = hasSecretKey && hasPublicKey;
+
         sendJson(200, {
             productId: PAYMENT_CONFIG.productId,
             productName: PAYMENT_CONFIG.productName,
@@ -273,8 +337,17 @@ export async function handlePaymentRequest(req, res) {
             priceDisplay: PAYMENT_CONFIG.priceDisplay,
             currency: PAYMENT_CONFIG.currency,
             sandbox: PAYMENT_CONFIG.sandbox,
-            publicKey: process.env.CULQI_PUBLIC_KEY || 'pk_test_mathquest_sandbox_placeholder',
-            isConfigured: hasSecretKey
+            isConfigured: isConfigured,
+            publicKey: (process.env.CULQI_PUBLIC_KEY || '').trim(),
+            environment: PAYMENT_CONFIG.sandbox ? 'sandbox' : 'production',
+            status: !isConfigured ? 'pending_credentials' : 'ready',
+            message: !isConfigured
+                ? (PAYMENT_CONFIG.sandbox 
+                    ? 'Credenciales de Culqi Sandbox pendientes en el servidor. Puedes realizar pruebas en el simulador interactivo.' 
+                    : 'Credenciales de Culqi Producción pendientes.')
+                : (PAYMENT_CONFIG.sandbox 
+                    ? 'Pasarela Culqi Sandbox configurada y lista para pruebas.' 
+                    : 'Pasarela Culqi Producción activa.')
         });
         return;
     }
@@ -287,6 +360,17 @@ export async function handlePaymentRequest(req, res) {
                 success: false,
                 status: 'unauthorized',
                 error: 'Debes iniciar sesión con tu cuenta de MathQuest para comprar el pase VIP.'
+            });
+            return;
+        }
+
+        // Validación preventiva de entorno vs claves
+        const keyCheck = validateCulqiKeysForEnvironment();
+        if (!keyCheck.valid) {
+            sendJson(400, {
+                success: false,
+                status: 'key_environment_mismatch',
+                error: keyCheck.error
             });
             return;
         }
@@ -304,44 +388,19 @@ export async function handlePaymentRequest(req, res) {
             return;
         }
 
-        const culqiSecretKey = process.env.CULQI_SECRET_KEY;
+        const culqiSecretKey = (process.env.CULQI_SECRET_KEY || '').trim();
         const isSandbox = PAYMENT_CONFIG.sandbox;
 
         // Si no hay clave secreta de Culqi configurada y estamos en Sandbox,
         // orientar amigablemente al desarrollador explicando cómo probar o configurar
         if (!culqiSecretKey) {
             if (isSandbox) {
-                console.log(`[CULQI SANDBOX] Simulando procesamiento Yape para UID: ${user.uid}`);
-                // En sandbox sin clave externa, validar formato de OTP y teléfono
-                if (otp === '000000') {
-                    sendJson(402, {
-                        success: false,
-                        status: 'rejected',
-                        error: 'Pago rechazado: Código OTP inválido o saldo insuficiente en Yape (Simulado).'
-                    });
-                    return;
-                }
-
-                // Generar ID de pago simulado
-                const testPaymentId = `chr_test_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-                const result = await activateUserVipInFirestore({
-                    uid: user.uid,
-                    paymentId: testPaymentId,
-                    amount: PAYMENT_CONFIG.priceCents,
-                    currency: PAYMENT_CONFIG.currency,
-                    method: 'yape',
-                    metadata: {
-                        phoneNumber: phoneNumber || '999999999',
-                        mode: 'sandbox_simulation'
-                    }
-                });
-
                 sendJson(200, {
-                    success: true,
-                    status: 'approved',
-                    paymentId: testPaymentId,
-                    message: '¡Pago con Yape completado con éxito en entorno de pruebas!',
-                    vip: result.vip
+                    success: false,
+                    status: 'sandbox_unconfigured',
+                    isConfigured: false,
+                    error: 'Credenciales de Culqi Sandbox pendientes en el servidor (CULQI_SECRET_KEY). Para probar el flujo ahora mismo sin credenciales externas, usa la pestaña "🧪 Modo Pruebas (Sandbox)".',
+                    help: 'Configura CULQI_PUBLIC_KEY y CULQI_SECRET_KEY en las variables del servidor para validar contra la API real de Culqi Sandbox.'
                 });
                 return;
             } else {
@@ -537,9 +596,23 @@ export async function handlePaymentRequest(req, res) {
     // 4. POST /api/payments/sandbox-simulate - Simulador para el entorno de pruebas del desarrollador
     // Permite testear todos los escenarios: exitoso, rechazado, pendiente, cancelado y webhook
     if (pathname === '/payments/sandbox-simulate' && req.method === 'POST') {
+        // Bloqueo estricto: Este endpoint solo existe y funciona en MODO SANDBOX
+        if (!PAYMENT_CONFIG.sandbox) {
+            sendJson(403, {
+                success: false,
+                status: 'forbidden',
+                error: 'El endpoint de simulación Sandbox está estrictamente deshabilitado en modo producción.'
+            });
+            return;
+        }
+
         const user = await verifyAuthToken(req.headers.authorization);
         if (!user || !user.uid) {
-            sendJson(401, { success: false, error: 'Inicia sesión para ejecutar pruebas de pago.' });
+            sendJson(401, {
+                success: false,
+                status: 'unauthorized',
+                error: 'Debes iniciar sesión con tu cuenta de MathQuest para ejecutar pruebas de pago en Sandbox.'
+            });
             return;
         }
 

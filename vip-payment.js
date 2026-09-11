@@ -76,6 +76,10 @@ async function loadBackendConfig() {
             if (data.priceCents) VIP_CONFIG.priceCents = data.priceCents;
             if (data.currency) VIP_CONFIG.currency = data.currency;
             if (data.sandbox !== undefined) VIP_CONFIG.sandbox = data.sandbox;
+            VIP_CONFIG.isConfigured = Boolean(data.isConfigured);
+            VIP_CONFIG.publicKey = data.publicKey || '';
+            VIP_CONFIG.status = data.status || '';
+            VIP_CONFIG.message = data.message || '';
             console.log("✓ Configuración de pagos cargada:", VIP_CONFIG.priceDisplay, data.sandbox ? '(Sandbox Test)' : '(Producción)');
         }
     } catch (e) {
@@ -401,14 +405,42 @@ export function openCheckoutModal() {
 
     // Resetear estado del modal
     setPaymentState('ready');
-    document.getElementById('yape-phone-input').value = currentUser.phoneNumber ? currentUser.phoneNumber.replace(/\D/g, '').slice(-9) : '';
-    document.getElementById('yape-otp-input').value = '';
+    const phoneInput = document.getElementById('yape-phone-input');
+    if (phoneInput) {
+        phoneInput.value = currentUser.phoneNumber ? currentUser.phoneNumber.replace(/\D/g, '').slice(-9) : '';
+    }
+    const otpInput = document.getElementById('yape-otp-input');
+    if (otpInput) otpInput.value = '';
 
     const priceLabel = document.getElementById('vip-checkout-price-label');
     if (priceLabel) priceLabel.textContent = VIP_CONFIG.priceDisplay;
 
     const userLabel = document.getElementById('vip-checkout-user-label');
     if (userLabel) userLabel.textContent = currentUser.email || currentUser.displayName || currentUser.uid.substring(0, 8);
+
+    // Indicador dinámico de Sandbox / Pruebas
+    const sandboxPill = document.getElementById('vip-sandbox-indicator-pill');
+    if (sandboxPill) {
+        if (VIP_CONFIG.sandbox) {
+            sandboxPill.textContent = '🧪 ENTORNO DE PRUEBAS (SANDBOX) • SIN COBROS REALES';
+            sandboxPill.classList.remove('hidden');
+        } else {
+            sandboxPill.classList.add('hidden');
+        }
+    }
+
+    // Aviso de estado de configuración de Culqi en Sandbox
+    const configNotice = document.getElementById('vip-yape-config-notice');
+    if (configNotice) {
+        if (VIP_CONFIG.sandbox && !VIP_CONFIG.isConfigured) {
+            configNotice.innerHTML = `
+                <span>ℹ️ <strong>Credenciales Culqi de Sandbox pendientes:</strong> Las claves de prueba <code>CULQI_PUBLIC_KEY</code> y <code>CULQI_SECRET_KEY</code> aún no están configuradas en el servidor. Puedes probar todas las respuestas ahora mismo en la pestaña <strong>🧪 Modo Pruebas (Sandbox)</strong>.</span>
+            `;
+            configNotice.classList.remove('hidden');
+        } else {
+            configNotice.classList.add('hidden');
+        }
+    }
 
     modal.classList.remove('hidden');
 }
@@ -638,6 +670,10 @@ export async function processYapePayment({ phoneNumber, otp }) {
                 closeCheckoutModal();
             }, 2500);
 
+        } else if (data.status === 'sandbox_unconfigured') {
+            setPaymentState('error_proveedor', `${data.error} ${data.help || ''}`);
+        } else if (data.status === 'key_environment_mismatch') {
+            setPaymentState('error_proveedor', data.error);
         } else if (data.status === 'rejected') {
             setPaymentState('rechazado', data.error || 'Pago rechazado: Código OTP inválido o saldo insuficiente.');
         } else if (data.status === 'pending') {

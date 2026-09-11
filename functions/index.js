@@ -12,10 +12,13 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// Configuración de producto
-const VIP_PRICE_CENTS = 1990; // S/ 19.90
-const VIP_CURRENCY = 'PEN';
+// Configuración de producto (Configurable mediante variables de entorno)
+const configuredPriceCents = parseInt(process.env.VIP_PRICE_CENTS || '1990', 10);
+const VIP_PRICE_CENTS = (!isNaN(configuredPriceCents) && configuredPriceCents >= 300) ? configuredPriceCents : 1990;
+const VIP_CURRENCY = process.env.VIP_CURRENCY || 'PEN';
 const VIP_PRODUCT_ID = 'mathquest-vip';
+const isSandbox = process.env.CULQI_SANDBOX !== 'false';
+const environmentTag = isSandbox ? 'sandbox' : 'production';
 
 /**
  * Webhook Oficial de Culqi para Firebase Cloud Functions
@@ -68,6 +71,8 @@ exports.culqiWebhook = functions.https.onRequest(async (req, res) => {
                 currency: currency,
                 status: 'approved',
                 method: 'yape',
+                environment: environmentTag,
+                isTestPayment: isSandbox,
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 source: 'culqi_webhook'
             });
@@ -83,7 +88,9 @@ exports.culqiWebhook = functions.https.onRequest(async (req, res) => {
                     amount: amount / 100,
                     currency: currency,
                     method: 'yape',
-                    status: 'confirmed'
+                    status: 'confirmed',
+                    environment: environmentTag,
+                    isTestPayment: isSandbox
                 },
                 updatedAt: Date.now()
             }, { merge: true });

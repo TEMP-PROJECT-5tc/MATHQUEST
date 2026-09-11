@@ -5277,7 +5277,33 @@ body {
     color: #fef08a;
 }
 
-/* Sandbox Panel */
+/* Sandbox Panel & Indicadores */
+.vip-sandbox-tag-indicator {
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    color: #93c5fd;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 6px 10px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.vip-config-notice {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: #fef08a;
+    font-size: 0.76rem;
+    line-height: 1.4;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    text-align: left;
+}
+
 .sandbox-banner {
     background: rgba(59, 130, 246, 0.1);
     border: 1px solid rgba(59, 130, 246, 0.3);

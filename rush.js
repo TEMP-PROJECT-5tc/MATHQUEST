@@ -61,7 +61,7 @@
     const LEVEL_CONFIG = {
         1: { target: 5, speed: 2.5, label: 'Nivel 1: Sumas y Restas Relámpago' },
         2: { target: 6, speed: 3.0, label: 'Nivel 2: Multiplicaciones y Divisiones de Pista' },
-        3: { target: 7, speed: 3,5, label: 'Nivel 3: Álgebra - Ecuaciones Lineales' },
+        3: { target: 7, speed: 3.5, label: 'Nivel 3: Álgebra - Ecuaciones Lineales' },
         4: { target: 8, speed: 4.0, label: 'Nivel 4: Potencias, Raíces y Binomios' },
         5: { target: 10, speed: 4.5, label: 'Nivel 5: Reto Boss Rush - Velocidad Máxima' }
     };
