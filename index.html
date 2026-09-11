@@ -2100,6 +2100,22 @@
         </div>
     </div>
 
+    <!-- Modal de Confirmación para Restablecer Progreso -->
+    <div id="reset-confirm-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="reset-modal-title">
+        <div class="modal-card" style="max-width: 440px; text-align: center;">
+            <button class="modal-close-x" id="btn-close-reset-modal" aria-label="Cerrar ventana">×</button>
+            <div class="modal-mascot">⚠️</div>
+            <h3 id="reset-modal-title" style="color: #ef4444; margin-bottom: 8px; font-size: 1.25rem; font-weight: 800;">¿Borrar todo el progreso?</h3>
+            <p style="font-size: 0.95rem; line-height: 1.5; color: var(--text-secondary, #94a3b8); margin-bottom: 20px;">
+                Esta acción eliminará <strong>TODO</strong> el progreso del juego (estrellas, monedas, niveles desbloqueados, racha e inventario). Esta acción no se puede deshacer.
+            </p>
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button type="button" id="btn-cancel-reset" class="btn btn-secondary" style="flex: 1;">Cancelar</button>
+                <button type="button" id="btn-confirm-reset" class="btn btn-danger" style="flex: 1; background: #ef4444; border-color: #dc2626; color: #fff;">Borrar progreso</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast de Notificaciones para Avisos y Pistas -->
     <div id="app-toast" class="app-toast hidden"></div>
 

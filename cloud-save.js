@@ -146,7 +146,7 @@ export function formatProgressData(user = null) {
                 : []
         },
         customization: {
-            equippedAvatar: s.equippedAvatar || 'cube',
+            equippedAvatar: (s.equippedAvatar === 'cube' ? 'cubo' : s.equippedAvatar) || 'cubo',
             equippedSkin: s.equippedSkin || 'standard',
             equippedBadge: s.equippedBadge || '',
             unlockedSkins: Array.isArray(s.unlockedSkins) ? [...s.unlockedSkins] : ['standard']
@@ -237,7 +237,7 @@ export function reconcileAndMerge(cloudData, localState) {
         globalHints: mergedHints,
         lives: 3,
         userLevel: mergedUserLevel,
-        equippedAvatar: localState.equippedAvatar || cloudCust.equippedAvatar || 'cube',
+        equippedAvatar: ((localState.equippedAvatar === 'cube' ? 'cubo' : localState.equippedAvatar) || (cloudCust.equippedAvatar === 'cube' ? 'cubo' : cloudCust.equippedAvatar)) || 'cubo',
         equippedSkin: localState.equippedSkin || cloudCust.equippedSkin || 'standard',
         equippedBadge: localState.equippedBadge || cloudCust.equippedBadge || '',
         unlockedSkins: mergedSkins.length ? mergedSkins : ['standard'],
@@ -294,11 +294,20 @@ function applyMergedStateToApp(mergedState) {
     if (typeof window.updateHeaderStats === 'function') {
         window.updateHeaderStats();
     }
+    if (typeof window.renderDuolingoPath === 'function') {
+        window.renderDuolingoPath();
+    }
     if (typeof window.renderAllPathNodes === 'function') {
         window.renderAllPathNodes();
     }
     if (typeof window.renderStreakCalendar === 'function') {
         window.renderStreakCalendar();
+    }
+    if (typeof window.renderAchievements === 'function') {
+        window.renderAchievements();
+    }
+    if (typeof window.renderShop === 'function') {
+        window.renderShop();
     }
 }
 
@@ -411,6 +420,44 @@ export function triggerDebouncedSave() {
 }
 
 /**
+ * Restablecer progreso en la nube de forma segura para users/{uid}
+ * Reemplaza la progresión, personalización e inventario por los valores iniciales.
+ * No borra la cuenta, ni el usuario, ni los pagos ni el estado VIP del servidor.
+ * @param {Object} [user]
+ */
+export async function resetUserProgress(user = null) {
+    if (syncDebounceTimer) {
+        clearTimeout(syncDebounceTimer);
+        syncDebounceTimer = null;
+    }
+
+    const targetUser = user || window.MathQuestAuth?.getCurrentUser();
+    const uid = targetUser?.uid || activeUid;
+
+    if (!uid) {
+        return;
+    }
+
+    updateSyncStatus('saving', 'Restableciendo progreso en la nube...');
+
+    try {
+        const rawPayload = formatProgressData(targetUser);
+        const payload = sanitizeForFirestore(rawPayload);
+        const userDocRef = doc(db, 'users', uid);
+
+        // Guardar estado inicial limpio en users/{uid}
+        await setDoc(userDocRef, payload, { merge: true });
+
+        lastSaveTimestamp = Date.now();
+        updateSyncStatus('saved', 'Progreso restablecido en la nube');
+        console.log("✓ Progreso restablecido exitosamente en Firestore para UID:", uid);
+    } catch (err) {
+        console.warn("Aviso al restablecer progreso en Firestore:", err?.code, err?.message);
+        updateSyncStatus('local-only', 'Progreso local restablecido');
+    }
+}
+
+/**
  * Resetear estado al cerrar sesión
  */
 export function handleUserLogout() {
@@ -425,6 +472,7 @@ export function handleUserLogout() {
 window.MathQuestCloudSave = {
     loadUserProgress,
     saveUserProgress,
+    resetUserProgress,
     triggerDebouncedSave,
     formatProgressData,
     reconcileAndMerge,

@@ -567,6 +567,47 @@ export function setPaymentState(status, message = '') {
             }
             break;
 
+        case 'webhook_processed':
+            statusBox.classList.remove('hidden');
+            statusBox.classList.add('status-success');
+            statusIcon.textContent = '⚡';
+            statusTitle.textContent = '¡Webhook Sandbox Procesado!';
+            statusDesc.textContent = message || 'El webhook de Sandbox fue procesado con éxito y el VIP ha sido activado.';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<span>✓ VIP Activado</span>`;
+            }
+            window.SoundEngine?.playFanfare?.();
+            break;
+
+        case 'unauthorized':
+            statusBox.classList.remove('hidden');
+            statusBox.classList.add('status-warning');
+            statusIcon.textContent = '👤';
+            statusTitle.textContent = 'Sesión Requerida';
+            statusDesc.textContent = message || 'Debes iniciar sesión para ejecutar una prueba de pago.';
+            if (submitBtn) submitBtn.disabled = false;
+            break;
+
+        case 'forbidden':
+            statusBox.classList.remove('hidden');
+            statusBox.classList.add('status-error');
+            statusIcon.textContent = '🚫';
+            statusTitle.textContent = 'Modo No Disponible';
+            statusDesc.textContent = message || 'El simulador está disponible únicamente en entorno Sandbox.';
+            if (submitBtn) submitBtn.disabled = false;
+            break;
+
+        case 'internal_error':
+            statusBox.classList.remove('hidden');
+            statusBox.classList.add('status-error');
+            statusIcon.textContent = '⚠️';
+            statusTitle.textContent = 'Error Interno del Servidor';
+            statusDesc.textContent = message || 'Ocurrió un error interno en el servidor de pagos.';
+            if (submitBtn) submitBtn.disabled = false;
+            window.SoundEngine?.playWrong?.();
+            break;
+
         case 'pendiente':
             statusBox.classList.remove('hidden');
             statusBox.classList.add('status-warning');
@@ -700,14 +741,27 @@ export async function processYapePayment({ phoneNumber, otp }) {
 export async function simulateSandboxScenario(scenario) {
     const currentUser = auth.currentUser || (window.MathQuestAuth && window.MathQuestAuth.getCurrentUser());
     if (!currentUser) {
-        alert("Inicia sesión para probar las simulaciones de pago.");
+        alert("Debes iniciar sesión para ejecutar una prueba de pago.");
+        setPaymentState('unauthorized', "Debes iniciar sesión para ejecutar una prueba de pago.");
+        return;
+    }
+
+    let idToken = '';
+    try {
+        idToken = await currentUser.getIdToken();
+    } catch (err) {
+        console.warn("No se pudo obtener ID Token de Firebase:", err);
+    }
+
+    if (!idToken) {
+        alert("Debes iniciar sesión para ejecutar una prueba de pago.");
+        setPaymentState('unauthorized', "Debes iniciar sesión para ejecutar una prueba de pago.");
         return;
     }
 
     setPaymentState('preparando', `Simulando escenario Sandbox: [${scenario}]...`);
 
     try {
-        const idToken = await currentUser.getIdToken().catch(() => '');
         setPaymentState('esperando', 'Ejecutando prueba en backend de Sandbox...');
 
         const res = await fetch('/api/payments/sandbox-simulate', {
@@ -719,9 +773,26 @@ export async function simulateSandboxScenario(scenario) {
             body: JSON.stringify({ scenario: scenario })
         });
 
-        const data = await res.json().catch(() => ({}));
+        // Intentar leer cuerpo JSON de forma robusta
+        let data = null;
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            try {
+                data = await res.json();
+            } catch (jsonErr) {
+                console.warn("Error al procesar JSON devuelto por backend:", jsonErr);
+                data = null;
+            }
+        }
 
-        if (res.ok && data.success) {
+        // Si no se recibió JSON válido, no ocultar el código HTTP ni el fallo
+        if (!data) {
+            setPaymentState('internal_error', `Error HTTP ${res.status}: ${res.statusText || 'Respuesta no válida del servidor'}`);
+            return;
+        }
+
+        // Manejo explícito y prioritario de cada estado esperado
+        if (res.ok && data.success === true && data.status === 'approved') {
             setPaymentState('aprobado', data.message);
             currentVipState = {
                 active: true,
@@ -732,17 +803,34 @@ export async function simulateSandboxScenario(scenario) {
                 isLegacyLocal: false
             };
             applyConfirmedVipToApp();
+        } else if (res.ok && data.success === true && data.status === 'webhook_processed') {
+            setPaymentState('webhook_processed', data.message || 'Webhook Sandbox recibido y procesado exitosamente.');
+            currentVipState = {
+                active: true,
+                productId: 'mathquest-vip',
+                purchasedAt: Date.now(),
+                paymentId: data.paymentId,
+                method: 'yape',
+                isLegacyLocal: false
+            };
+            applyConfirmedVipToApp();
         } else if (data.status === 'rejected') {
-            setPaymentState('rechazado', data.error);
+            setPaymentState('rechazado', data.error || 'Pago rechazado.');
         } else if (data.status === 'pending') {
-            setPaymentState('pendiente', data.message);
+            setPaymentState('pendiente', data.message || 'Pago pendiente en validación.');
         } else if (data.status === 'canceled') {
-            setPaymentState('cancelado', data.message);
+            setPaymentState('cancelado', data.message || 'Operación cancelada.');
+        } else if (res.status === 401 || data.status === 'unauthorized') {
+            setPaymentState('unauthorized', data.error || 'Debes iniciar sesión para ejecutar una prueba de pago.');
+        } else if (res.status === 403 || data.status === 'forbidden') {
+            setPaymentState('forbidden', data.error || 'El simulador está disponible únicamente en Sandbox.');
+        } else if (res.status === 500 || data.status === 'internal_error') {
+            setPaymentState('internal_error', data.error || 'Ocurrió un error interno en el servidor de pagos.');
         } else {
-            setPaymentState('error_proveedor', data.error || 'Respuesta no esperada de Sandbox.');
+            setPaymentState('error_proveedor', data.error || data.message || `Error del servidor (${res.status})`);
         }
     } catch (e) {
-        setPaymentState('error_conexion', e.message);
+        setPaymentState('error_conexion', e.message || 'No se pudo contactar con el backend.');
     }
 }
 

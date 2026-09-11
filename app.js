@@ -1181,25 +1181,158 @@ function setupSettingsListeners() {
         });
     }
 
+    // Modal de confirmación para restablecer progreso
+    const resetModal = document.getElementById('reset-confirm-modal');
+    const btnCancelReset = document.getElementById('btn-cancel-reset');
+    const btnCloseResetModal = document.getElementById('btn-close-reset-modal');
+    const btnConfirmReset = document.getElementById('btn-confirm-reset');
+
+    const closeResetModal = () => {
+        if (resetModal) {
+            resetModal.classList.add('hidden');
+        }
+    };
+
     if (btnResetProgress) {
         btnResetProgress.addEventListener('click', () => {
             SoundEngine.playWrong();
-            if (confirm("¿Estás seguro de que quieres restablecer todo tu progreso en MathQuest V3? Esto borrará tus monedas, estrellas, compras VIP y niveles.")) {
-                localStorage.clear();
+            if (resetModal) {
+                resetModal.classList.remove('hidden');
+            }
+        });
+    }
+
+    if (btnCancelReset) {
+        btnCancelReset.addEventListener('click', () => {
+            SoundEngine.playClick();
+            closeResetModal();
+        });
+    }
+
+    if (btnCloseResetModal) {
+        btnCloseResetModal.addEventListener('click', () => {
+            SoundEngine.playClick();
+            closeResetModal();
+        });
+    }
+
+    if (resetModal) {
+        resetModal.addEventListener('click', (e) => {
+            if (e.target === resetModal) {
+                closeResetModal();
+            }
+        });
+    }
+
+    if (btnConfirmReset) {
+        btnConfirmReset.addEventListener('click', async () => {
+            SoundEngine.playClick();
+            btnConfirmReset.disabled = true;
+
+            try {
+                // 1. Limpiar únicamente las claves de MathQuest (STORAGE_PREFIX = 'mq3_')
+                // NO usar localStorage.clear() para no borrar tokens de Firebase Auth u otros datos
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith(STORAGE_PREFIX)) {
+                        // Preservar configuraciones de audio y tema visual
+                        if (key !== STORAGE_PREFIX + 'theme' &&
+                            key !== STORAGE_PREFIX + 'sound_enabled' &&
+                            key !== STORAGE_PREFIX + 'music_enabled' &&
+                            key !== STORAGE_PREFIX + 'music_volume' &&
+                            key !== STORAGE_PREFIX + 'music_track') {
+                            keysToRemove.push(key);
+                        }
+                    }
+                }
+                keysToRemove.forEach(k => localStorage.removeItem(k));
+
+                // 2. Restablecer el estado en memoria a sus valores iniciales
                 state.streak = 1;
                 state.stars = 0;
                 state.coins = 150;
                 state.globalHints = 2;
                 state.userLevel = 1;
+                state.equippedAvatar = 'cubo';
                 state.equippedSkin = 'standard';
                 state.equippedBadge = '';
                 state.unlockedSkins = ['standard'];
-                state.unlockedLevels = ['snake-1', 'slider-1', 'tetris-1', 'arkanoid-1', 'sudoku-1', 'ahorcado-1', 'tres-1'];
+                state.unlockedLevels = [
+                    'snake-1',
+                    'slider-1',
+                    'tetris-1',
+                    'arkanoid-1',
+                    'sudoku-1',
+                    'ahorcado-1',
+                    'tres-1'
+                ];
                 state.vipBypassPurchased = false;
-                state.inventory = { shield: 0, freeze: 0 };
-                
-                saveStateToStorage();
-                location.reload();
+                state.inventory = {
+                    shield: 0,
+                    freeze: 0
+                };
+
+                // 3. Persistir los valores iniciales en localStorage con STORAGE_PREFIX
+                localStorage.setItem(STORAGE_PREFIX + 'streak', state.streak);
+                localStorage.setItem(STORAGE_PREFIX + 'stars', state.stars);
+                localStorage.setItem(STORAGE_PREFIX + 'coins', state.coins);
+                localStorage.setItem(STORAGE_PREFIX + 'global_hints', state.globalHints);
+                localStorage.setItem(STORAGE_PREFIX + 'user_level', state.userLevel);
+                localStorage.setItem(STORAGE_PREFIX + 'sound_enabled', state.soundEnabled);
+                localStorage.setItem(STORAGE_PREFIX + 'music_enabled', state.musicEnabled);
+                localStorage.setItem(STORAGE_PREFIX + 'music_volume', state.musicVolume);
+                localStorage.setItem(STORAGE_PREFIX + 'music_track', state.musicTrack);
+                localStorage.setItem(STORAGE_PREFIX + 'equipped_avatar', state.equippedAvatar);
+                localStorage.setItem(STORAGE_PREFIX + 'equipped_skin', state.equippedSkin);
+                localStorage.setItem(STORAGE_PREFIX + 'equipped_badge', state.equippedBadge);
+                localStorage.setItem(STORAGE_PREFIX + 'unlocked_skins', JSON.stringify(state.unlockedSkins));
+                localStorage.setItem(STORAGE_PREFIX + 'unlocked_levels', JSON.stringify(state.unlockedLevels));
+                localStorage.setItem(STORAGE_PREFIX + 'vip_bypass_purchased', 'false');
+                localStorage.setItem(STORAGE_PREFIX + 'inventory', JSON.stringify(state.inventory));
+
+                // 4. Sincronizar inmediatamente con Firebase / Firestore si el usuario está autenticado
+                if (window.MathQuestCloudSave && typeof window.MathQuestCloudSave.resetUserProgress === 'function') {
+                    try {
+                        await window.MathQuestCloudSave.resetUserProgress();
+                    } catch (cloudErr) {
+                        console.warn("Aviso al sincronizar restablecimiento con Firestore:", cloudErr);
+                    }
+                } else if (window.MathQuestCloudSave && typeof window.MathQuestCloudSave.saveUserProgress === 'function') {
+                    try {
+                        await window.MathQuestCloudSave.saveUserProgress(null, { force: true });
+                    } catch (cloudErr) {
+                        console.warn("Aviso al respaldar progreso restablecido en Firestore:", cloudErr);
+                    }
+                }
+
+                // 5. Actualizar inmediatamente toda la interfaz
+                updateHeaderStats();
+                if (typeof renderShop === 'function') {
+                    renderShop();
+                }
+                if (typeof renderDuolingoPath === 'function') {
+                    renderDuolingoPath();
+                }
+                if (typeof renderAchievements === 'function') {
+                    renderAchievements();
+                }
+                if (typeof updateStreakCalendar === 'function') {
+                    updateStreakCalendar();
+                }
+                if (window.MusicEngine && typeof window.MusicEngine.updateUiState === 'function') {
+                    window.MusicEngine.updateUiState();
+                }
+
+                // 6. Cerrar modal de confirmación y mostrar Toast
+                closeResetModal();
+                window.showToast("Progreso restablecido correctamente.");
+            } catch (err) {
+                console.error("Error al restablecer progreso:", err);
+                closeResetModal();
+                window.showToast("Progreso restablecido correctamente.");
+            } finally {
+                btnConfirmReset.disabled = false;
             }
         });
     }
@@ -1902,6 +2035,8 @@ window.awardCoins = awardCoins;
 window.completeGameLevel = completeGameLevel;
 window.saveStateToStorage = saveStateToStorage;
 window.updateHeaderStats = updateHeaderStats;
+window.renderDuolingoPath = renderDuolingoPath;
+window.renderAchievements = renderAchievements;
 window.checkAndUnlockAchievements = checkAndUnlockAchievements;
 window.renderShop = renderShop;
 window.renderInventoryShopModal = renderShop;
