@@ -1,12 +1,11 @@
 /**
- * MathQuest Production Full-Stack Server
- * Serves static frontend files and provides secure /api/payments/* endpoints on Port 3000
+ * MathQuest Production Server
+ * Serves static frontend files on Port 3000
  */
 
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
-import { handlePaymentRequest } from './server/payment-backend.js';
 
 const PORT = 3000;
 const DIST_DIR = path.resolve('dist');
@@ -25,13 +24,8 @@ const MIME_TYPES = {
     '.woff2': 'font/woff2'
 };
 
-const server = http.createServer(async (req, res) => {
-    // 1. Enrutar APIs de pagos
-    if (req.url.startsWith('/api/')) {
-        return handlePaymentRequest(req, res);
-    }
-
-    // 2. Servir archivos estáticos del build de Vite en producción
+const server = http.createServer((req, res) => {
+    // Servir archivos estáticos del build de Vite en producción
     const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     let safePath = path.normalize(decodeURIComponent(parsedUrl.pathname));
     if (safePath === '/') safePath = '/index.html';

@@ -1,42 +1,64 @@
 /**
- * MathQuest VIP Payment System (Culqi / Yape Integration)
+ * MathQuest VIP Payment System (Manual Yape & WhatsApp Flow)
  * 
- * Flujo:
- * Firebase Auth UID -> Backend API /api/payments/yape/create-charge -> Culqi API -> Webhook -> Firestore users/{uid}/vip -> MathQuest VIP Activado
+ * Flujo de Pago Manual:
+ * 1. El usuario inicia sesión en MathQuest.
+ * 2. Ingresa a la sección VIP o hace clic en el botón VIP.
+ * 3. Se muestra el precio único de S/ 4.90.
+ * 4. Se muestra el número de Yape oficial y las instrucciones claras.
+ * 5. El usuario realiza el pago de S/ 4.90 en su app Yape.
+ * 6. Hace clic en "Enviar Comprobante por WhatsApp" con un mensaje preparado que incluye su cuenta.
+ * 7. El administrador valida el comprobante y activa manualmente el VIP en Firestore.
+ * 8. Firestore sincroniza en tiempo real con la app del usuario y desbloquea todos los niveles.
  */
 
 import { doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import { db, auth } from './firebase.js';
 
+// Configuración centralizada para Yape y WhatsApp
+const env = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
+
 export const VIP_CONFIG = {
     productId: 'mathquest-vip',
-    productName: 'MathQuest VIP',
-    priceDisplay: 'S/ 19.90',
-    priceCents: 1990,
+    productName: 'MathQuest VIP - Acceso Total',
+    price: 4.90,
+    priceDisplay: 'S/ 4.90',
     currency: 'PEN',
-    sandbox: true
+    // Números configurables desde variables de entorno VITE_* o variables globales en window
+    yapeNumber: env.VITE_YAPE_NUMBER || (typeof window !== 'undefined' && window.MATHQUEST_YAPE_NUMBER) || '987654321',
+    whatsappNumber: env.VITE_WHATSAPP_NUMBER || (typeof window !== 'undefined' && window.MATHQUEST_WHATSAPP_NUMBER) || '51987654321'
 };
 
 let currentVipState = {
     active: false,
     productId: 'mathquest-vip',
     purchasedAt: null,
-    paymentId: null,
+    amount: 4.90,
+    currency: 'PEN',
     method: null,
+    status: 'none',
     isLegacyLocal: false
 };
 
 let firestoreUnsubscribe = null;
-let isProcessingPayment = false;
 
 /**
- * Inicializar el sistema de pagos VIP
+ * Formatear número de teléfono para visualización clara (ej: 987 654 321)
+ */
+function formatPhoneForDisplay(phone) {
+    if (!phone) return '987 654 321';
+    const clean = String(phone).replace(/\D/g, '');
+    if (clean.length === 9) {
+        return `${clean.slice(0, 3)} ${clean.slice(3, 6)} ${clean.slice(6, 9)}`;
+    }
+    return phone;
+}
+
+/**
+ * Inicializar el sistema de pagos manual VIP
  */
 export async function initVipPaymentSystem() {
-    console.log("💳 Inicializando sistema de pagos MathQuest VIP...");
-
-    // Cargar configuración pública desde el backend
-    await loadBackendConfig();
+    console.log("👑 Inicializando sistema MathQuest VIP (Pago Manual Yape)...");
 
     // Renderizar tarjeta VIP en la tienda
     renderShopVipCard();
@@ -44,52 +66,32 @@ export async function initVipPaymentSystem() {
     // Configurar listeners de la interfaz
     setupVipUiListeners();
 
-    // Escuchar cambios de autenticación para vincular el listener de Firestore
+    // Escuchar sesión actual si ya existe
     if (typeof window.MathQuestAuth !== 'undefined') {
         const currentUser = window.MathQuestAuth.getCurrentUser();
         if (currentUser) {
             setupFirestoreVipListener(currentUser.uid);
         }
+    } else if (auth.currentUser) {
+        setupFirestoreVipListener(auth.currentUser.uid);
     }
 
-    // Exportar API global
+    // Exportar API global para consumo por app.js y auth.js
     window.MathQuestVIP = {
         openCheckoutModal,
         closeCheckoutModal,
         checkVipStatus,
-        processYapePayment,
-        simulateSandboxScenario,
         renderShopVipCard,
-        getVipState: () => ({ ...currentVipState })
+        setupFirestoreVipListener,
+        teardownFirestoreVipListener,
+        getVipState: () => ({ ...currentVipState }),
+        config: VIP_CONFIG
     };
 }
 
 /**
- * Cargar configuración pública desde /api/payments/config
- */
-async function loadBackendConfig() {
-    try {
-        const res = await fetch('/api/payments/config');
-        if (res.ok) {
-            const data = await res.json();
-            if (data.priceDisplay) VIP_CONFIG.priceDisplay = data.priceDisplay;
-            if (data.priceCents) VIP_CONFIG.priceCents = data.priceCents;
-            if (data.currency) VIP_CONFIG.currency = data.currency;
-            if (data.sandbox !== undefined) VIP_CONFIG.sandbox = data.sandbox;
-            VIP_CONFIG.isConfigured = Boolean(data.isConfigured);
-            VIP_CONFIG.publicKey = data.publicKey || '';
-            VIP_CONFIG.status = data.status || '';
-            VIP_CONFIG.message = data.message || '';
-            console.log("✓ Configuración de pagos cargada:", VIP_CONFIG.priceDisplay, data.sandbox ? '(Sandbox Test)' : '(Producción)');
-        }
-    } catch (e) {
-        console.warn("Aviso al consultar /api/payments/config, usando valores predeterminados:", e.message);
-    }
-}
-
-/**
  * Escuchar cambios en Firestore en tiempo real para users/{uid}
- * Cuando el webhook o backend active el VIP, el juego se actualiza automáticamente.
+ * Cuando el administrador activa el VIP en Firestore, la app se actualiza al instante.
  */
 export function setupFirestoreVipListener(uid) {
     if (firestoreUnsubscribe) {
@@ -108,9 +110,13 @@ export function setupFirestoreVipListener(uid) {
                     currentVipState = {
                         active: true,
                         productId: data.vip.productId || 'mathquest-vip',
+                        productName: data.vip.productName || 'MathQuest VIP - Acceso Total',
                         purchasedAt: data.vip.purchasedAt || null,
-                        paymentId: data.vip.paymentId || null,
-                        method: data.vip.method || 'yape',
+                        amount: data.vip.amount !== undefined ? data.vip.amount : 4.90,
+                        currency: data.vip.currency || 'PEN',
+                        method: data.vip.method || 'yape_manual',
+                        status: data.vip.status || 'confirmed',
+                        environment: data.vip.environment || 'manual',
                         isLegacyLocal: false
                     };
 
@@ -123,8 +129,10 @@ export function setupFirestoreVipListener(uid) {
                         active: false,
                         productId: 'mathquest-vip',
                         purchasedAt: null,
-                        paymentId: null,
+                        amount: null,
+                        currency: 'PEN',
                         method: null,
+                        status: 'none',
                         isLegacyLocal: isLocalBypass
                     };
                 }
@@ -152,8 +160,10 @@ export function teardownFirestoreVipListener() {
         active: false,
         productId: 'mathquest-vip',
         purchasedAt: null,
-        paymentId: null,
+        amount: null,
+        currency: 'PEN',
         method: null,
+        status: 'none',
         isLegacyLocal: isLocalBypass
     };
     renderShopVipCard();
@@ -161,7 +171,7 @@ export function teardownFirestoreVipListener() {
 }
 
 /**
- * Aplicar estado VIP confirmado por el backend a la aplicación MathQuest
+ * Aplicar estado VIP confirmado por Firestore a la aplicación MathQuest
  */
 function applyConfirmedVipToApp() {
     if (!window.state) window.state = {};
@@ -242,7 +252,7 @@ export function renderShopVipCard() {
                 </div>
                 <div class="vip-active-details">
                     <p>¡Membresía confirmada y vinculada a tu cuenta de MathQuest!</p>
-                    <span class="vip-active-meta">ID de Pago: ${currentVipState.paymentId || 'Verificado'} • Fecha: ${dateStr}</span>
+                    <span class="vip-active-meta">Estado: Verificado • Fecha: ${dateStr}</span>
                 </div>
             </div>
         `;
@@ -259,7 +269,7 @@ export function renderShopVipCard() {
                     <span class="vip-price-period">/ Pago único</span>
                 </div>
                 <button class="btn btn-primary btn-vip-cta" id="btn-shop-vip-login">
-                    🔒 Inicia sesión para comprar VIP
+                    🔒 Inicia sesión para adquirir VIP
                 </button>
                 <span class="vip-security-note">El estado VIP se asocia de forma permanente a tu cuenta en la nube.</span>
             </div>
@@ -274,10 +284,10 @@ export function renderShopVipCard() {
         return;
     }
 
-    // Caso 3: Usuario autenticado SIN VIP (Listo para comprar)
+    // Caso 3: Usuario autenticado SIN VIP (Listo para comprar con Yape)
     const isLegacy = currentVipState.isLegacyLocal;
     const legacyNotice = isLegacy 
-        ? `<div class="vip-legacy-notice">⚠️ Tienes un acceso temporal local previo. Cómpralo con Yape para sincronizarlo permanentemente en tu cuenta de Firebase y todos tus dispositivos.</div>` 
+        ? `<div class="vip-legacy-notice">⚠️ Tienes un acceso temporal local previo. Adquiérelo con Yape para sincronizarlo permanentemente en tu cuenta de Firebase y todos tus dispositivos.</div>` 
         : '';
 
     container.innerHTML = `
@@ -289,12 +299,12 @@ export function renderShopVipCard() {
                 <span class="vip-price-period">PEN (Yape)</span>
             </div>
             <button class="btn btn-primary btn-vip-cta pulse-subtle" id="btn-shop-buy-vip-yape">
-                📱 Comprar VIP con Yape (${VIP_CONFIG.priceDisplay})
+                📱 Adquirir VIP con Yape (${VIP_CONFIG.priceDisplay})
             </button>
         </div>
         <div class="vip-security-row">
-            <span>🔒 Transacción segura procesada vía pasarela Culqi & Yape</span>
-            <span>⚡ Activación instantánea en tu cuenta (${currentUser.email || currentUser.displayName || 'UID: ' + currentUser.uid.substring(0, 6)})</span>
+            <span>📱 Pago manual simple vía Yape • Verificación rápida por WhatsApp</span>
+            <span>⚡ Activación permanente en tu cuenta (${currentUser.email || currentUser.displayName || 'UID: ' + currentUser.uid.substring(0, 6)})</span>
         </div>
     `;
 
@@ -314,66 +324,46 @@ function setupVipUiListeners() {
         closeCheckoutModal();
     });
 
-    // Cambiar pestañas del modal (Yape Oficial vs Simulador Sandbox)
-    document.getElementById('tab-vip-yape-official')?.addEventListener('click', () => {
-        window.SoundEngine?.playClick?.();
-        switchCheckoutTab('yape');
-    });
-
-    document.getElementById('tab-vip-sandbox-test')?.addEventListener('click', () => {
-        window.SoundEngine?.playClick?.();
-        switchCheckoutTab('sandbox');
-    });
-
-    // Formulario de Pago con Yape
-    const yapeForm = document.getElementById('form-yape-payment');
-    if (yapeForm) {
-        yapeForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const phone = document.getElementById('yape-phone-input')?.value || '';
-            const otp = document.getElementById('yape-otp-input')?.value || '';
-            processYapePayment({ phoneNumber: phone, otp: otp });
+    // Cerrar modal al hacer clic en el backdrop
+    const modal = document.getElementById('vip-checkout-modal');
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeCheckoutModal();
+            }
         });
     }
 
-    // Formateador automático de teléfono (9 dígitos)
-    const phoneInput = document.getElementById('yape-phone-input');
-    if (phoneInput) {
-        phoneInput.addEventListener('input', (e) => {
-            e.target.value = e.target.value.replace(/\D/g, '').substring(0, 9);
+    // Cerrar con tecla Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+            closeCheckoutModal();
+        }
+    });
+
+    // Botón para copiar número de Yape
+    const btnCopyYape = document.getElementById('btn-copy-yape-number');
+    if (btnCopyYape) {
+        btnCopyYape.addEventListener('click', () => {
+            window.SoundEngine?.playClick?.();
+            const cleanPhone = String(VIP_CONFIG.yapeNumber).replace(/\D/g, '');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(cleanPhone).then(() => {
+                    const originalText = btnCopyYape.innerHTML;
+                    btnCopyYape.innerHTML = "✓ ¡Copiado!";
+                    setTimeout(() => {
+                        btnCopyYape.innerHTML = originalText;
+                    }, 2000);
+                }).catch(() => {
+                    prompt("Copia el número de Yape manualmente:", cleanPhone);
+                });
+            } else {
+                prompt("Copia el número de Yape manualmente:", cleanPhone);
+            }
         });
     }
 
-    // Formateador automático de OTP (6 dígitos)
-    const otpInput = document.getElementById('yape-otp-input');
-    if (otpInput) {
-        otpInput.addEventListener('input', (e) => {
-            e.target.value = e.target.value.replace(/\D/g, '').substring(0, 6);
-        });
-    }
-
-    // Botones del Simulador Sandbox (para probar los 5 escenarios sin dinero real)
-    document.getElementById('btn-sandbox-test-success')?.addEventListener('click', () => {
-        simulateSandboxScenario('success');
-    });
-
-    document.getElementById('btn-sandbox-test-rejected')?.addEventListener('click', () => {
-        simulateSandboxScenario('rejected');
-    });
-
-    document.getElementById('btn-sandbox-test-pending')?.addEventListener('click', () => {
-        simulateSandboxScenario('pending');
-    });
-
-    document.getElementById('btn-sandbox-test-canceled')?.addEventListener('click', () => {
-        simulateSandboxScenario('canceled');
-    });
-
-    document.getElementById('btn-sandbox-test-webhook')?.addEventListener('click', () => {
-        simulateSandboxScenario('webhook_simulation');
-    });
-
-    // Reemplazar el botón de compra ficticia del header para abrir el modal real
+    // Botón del header para abrir el modal VIP
     const btnVipHeader = document.getElementById('btn-header-bypass-vip');
     if (btnVipHeader) {
         btnVipHeader.addEventListener('click', (e) => {
@@ -403,43 +393,32 @@ export function openCheckoutModal() {
         return;
     }
 
-    // Resetear estado del modal
-    setPaymentState('ready');
-    const phoneInput = document.getElementById('yape-phone-input');
-    if (phoneInput) {
-        phoneInput.value = currentUser.phoneNumber ? currentUser.phoneNumber.replace(/\D/g, '').slice(-9) : '';
-    }
-    const otpInput = document.getElementById('yape-otp-input');
-    if (otpInput) otpInput.value = '';
+    // Identificador de cuenta
+    const accountLabel = currentUser.email || currentUser.displayName || (`Cuenta UID: ${currentUser.uid.substring(0, 8)}`);
+
+    // Actualizar etiquetas en el modal
+    const userLabelEl = document.getElementById('vip-checkout-user-label');
+    if (userLabelEl) userLabelEl.textContent = accountLabel;
+
+    const accountInstEl = document.getElementById('vip-instructions-account-label');
+    if (accountInstEl) accountInstEl.textContent = accountLabel;
 
     const priceLabel = document.getElementById('vip-checkout-price-label');
     if (priceLabel) priceLabel.textContent = VIP_CONFIG.priceDisplay;
 
-    const userLabel = document.getElementById('vip-checkout-user-label');
-    if (userLabel) userLabel.textContent = currentUser.email || currentUser.displayName || currentUser.uid.substring(0, 8);
+    const phoneDisplay = document.getElementById('vip-yape-phone-display');
+    if (phoneDisplay) phoneDisplay.textContent = formatPhoneForDisplay(VIP_CONFIG.yapeNumber);
 
-    // Indicador dinámico de Sandbox / Pruebas
-    const sandboxPill = document.getElementById('vip-sandbox-indicator-pill');
-    if (sandboxPill) {
-        if (VIP_CONFIG.sandbox) {
-            sandboxPill.textContent = '🧪 ENTORNO DE PRUEBAS (SANDBOX) • SIN COBROS REALES';
-            sandboxPill.classList.remove('hidden');
-        } else {
-            sandboxPill.classList.add('hidden');
-        }
-    }
-
-    // Aviso de estado de configuración de Culqi en Sandbox
-    const configNotice = document.getElementById('vip-yape-config-notice');
-    if (configNotice) {
-        if (VIP_CONFIG.sandbox && !VIP_CONFIG.isConfigured) {
-            configNotice.innerHTML = `
-                <span>ℹ️ <strong>Credenciales Culqi de Sandbox pendientes:</strong> Las claves de prueba <code>CULQI_PUBLIC_KEY</code> y <code>CULQI_SECRET_KEY</code> aún no están configuradas en el servidor. Puedes probar todas las respuestas ahora mismo en la pestaña <strong>🧪 Modo Pruebas (Sandbox)</strong>.</span>
-            `;
-            configNotice.classList.remove('hidden');
-        } else {
-            configNotice.classList.add('hidden');
-        }
+    // Configurar enlace de WhatsApp con mensaje preparado
+    const whatsappBtn = document.getElementById('btn-send-whatsapp-receipt');
+    if (whatsappBtn) {
+        const cleanWhatsapp = String(VIP_CONFIG.whatsappNumber).replace(/\D/g, '');
+        const message = `Hola, quiero activar MathQuest VIP. Mi cuenta es: ${accountLabel}`;
+        const encodedMsg = encodeURIComponent(message);
+        whatsappBtn.href = `https://wa.me/${cleanWhatsapp}?text=${encodedMsg}`;
+        whatsappBtn.onclick = () => {
+            window.SoundEngine?.playClick?.();
+        };
     }
 
     modal.classList.remove('hidden');
@@ -452,385 +431,6 @@ export function closeCheckoutModal() {
     const modal = document.getElementById('vip-checkout-modal');
     if (modal) {
         modal.classList.add('hidden');
-    }
-}
-
-/**
- * Cambiar de pestaña en el modal (Yape Oficial vs Sandbox)
- */
-function switchCheckoutTab(tab) {
-    const tabYape = document.getElementById('tab-vip-yape-official');
-    const tabSandbox = document.getElementById('tab-vip-sandbox-test');
-    const viewYape = document.getElementById('view-vip-yape-official');
-    const viewSandbox = document.getElementById('view-vip-sandbox-test');
-
-    if (tab === 'yape') {
-        tabYape?.classList.add('active');
-        tabSandbox?.classList.remove('active');
-        viewYape?.classList.remove('hidden');
-        viewSandbox?.classList.add('hidden');
-    } else {
-        tabSandbox?.classList.add('active');
-        tabYape?.classList.remove('active');
-        viewSandbox?.classList.remove('hidden');
-        viewYape?.classList.add('hidden');
-    }
-}
-
-/**
- * Manejador de Estados Visuales de Pago (Req 10):
- * - preparando
- * - esperando
- * - aprobado
- * - rechazado
- * - cancelado
- * - pendiente
- * - error_conexion
- * - error_proveedor
- */
-export function setPaymentState(status, message = '') {
-    const statusBox = document.getElementById('vip-checkout-status-box');
-    const statusIcon = document.getElementById('vip-checkout-status-icon');
-    const statusTitle = document.getElementById('vip-checkout-status-title');
-    const statusDesc = document.getElementById('vip-checkout-status-desc');
-    const submitBtn = document.getElementById('btn-submit-yape-payment');
-
-    if (!statusBox || !statusTitle || !statusDesc) return;
-
-    statusBox.className = 'vip-status-box';
-
-    switch (status) {
-        case 'ready':
-            statusBox.classList.add('hidden');
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = `<span>📱 Confirmar y Pagar ${VIP_CONFIG.priceDisplay}</span>`;
-            }
-            break;
-
-        case 'preparando':
-            statusBox.classList.remove('hidden');
-            statusBox.classList.add('status-loading');
-            statusIcon.textContent = '⏳';
-            statusTitle.textContent = 'Preparando pago...';
-            statusDesc.textContent = message || 'Conectando con los servicios de autenticación y pasarela...';
-            if (submitBtn) submitBtn.disabled = true;
-            break;
-
-        case 'esperando':
-            statusBox.classList.remove('hidden');
-            statusBox.classList.add('status-loading');
-            statusIcon.textContent = '📱';
-            statusTitle.textContent = 'Esperando pago...';
-            statusDesc.textContent = message || 'Validando código de aprobación con Yape y Culqi...';
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = `<span>🔄 Verificando en Yape...</span>`;
-            }
-            break;
-
-        case 'aprobado':
-            statusBox.classList.remove('hidden');
-            statusBox.classList.add('status-success');
-            statusIcon.textContent = '🎉';
-            statusTitle.textContent = '¡Pago Aprobado!';
-            statusDesc.textContent = message || 'Tu membresía MathQuest VIP está activa de forma permanente en tu cuenta.';
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = `<span>✓ VIP Activado</span>`;
-            }
-            window.SoundEngine?.playFanfare?.();
-            break;
-
-        case 'rechazado':
-            statusBox.classList.remove('hidden');
-            statusBox.classList.add('status-error');
-            statusIcon.textContent = '❌';
-            statusTitle.textContent = 'Pago Rechazado';
-            statusDesc.textContent = message || 'El código de aprobación de Yape es inválido o la operación fue declinada.';
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = `<span>Reintentar Pago (${VIP_CONFIG.priceDisplay})</span>`;
-            }
-            window.SoundEngine?.playWrong?.();
-            break;
-
-        case 'cancelado':
-            statusBox.classList.remove('hidden');
-            statusBox.classList.add('status-warning');
-            statusIcon.textContent = '⚠️';
-            statusTitle.textContent = 'Pago Cancelado';
-            statusDesc.textContent = message || 'La operación fue cancelada por el usuario.';
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = `<span>Intentar Nuevamente</span>`;
-            }
-            break;
-
-        case 'webhook_processed':
-            statusBox.classList.remove('hidden');
-            statusBox.classList.add('status-success');
-            statusIcon.textContent = '⚡';
-            statusTitle.textContent = '¡Webhook Sandbox Procesado!';
-            statusDesc.textContent = message || 'El webhook de Sandbox fue procesado con éxito y el VIP ha sido activado.';
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = `<span>✓ VIP Activado</span>`;
-            }
-            window.SoundEngine?.playFanfare?.();
-            break;
-
-        case 'unauthorized':
-            statusBox.classList.remove('hidden');
-            statusBox.classList.add('status-warning');
-            statusIcon.textContent = '👤';
-            statusTitle.textContent = 'Sesión Requerida';
-            statusDesc.textContent = message || 'Debes iniciar sesión para ejecutar una prueba de pago.';
-            if (submitBtn) submitBtn.disabled = false;
-            break;
-
-        case 'forbidden':
-            statusBox.classList.remove('hidden');
-            statusBox.classList.add('status-error');
-            statusIcon.textContent = '🚫';
-            statusTitle.textContent = 'Modo No Disponible';
-            statusDesc.textContent = message || 'El simulador está disponible únicamente en entorno Sandbox.';
-            if (submitBtn) submitBtn.disabled = false;
-            break;
-
-        case 'internal_error':
-            statusBox.classList.remove('hidden');
-            statusBox.classList.add('status-error');
-            statusIcon.textContent = '⚠️';
-            statusTitle.textContent = 'Error Interno del Servidor';
-            statusDesc.textContent = message || 'Ocurrió un error interno en el servidor de pagos.';
-            if (submitBtn) submitBtn.disabled = false;
-            window.SoundEngine?.playWrong?.();
-            break;
-
-        case 'pendiente':
-            statusBox.classList.remove('hidden');
-            statusBox.classList.add('status-warning');
-            statusIcon.textContent = '🕒';
-            statusTitle.textContent = 'Pago Pendiente';
-            statusDesc.textContent = message || 'El pago está en proceso de validación por Yape. Tu VIP se activará en cuanto sea confirmado.';
-            if (submitBtn) submitBtn.disabled = false;
-            break;
-
-        case 'error_conexion':
-            statusBox.classList.remove('hidden');
-            statusBox.classList.add('status-error');
-            statusIcon.textContent = '🔌';
-            statusTitle.textContent = 'Error de Conexión';
-            statusDesc.textContent = message || 'No se pudo contactar con el servidor. Revisa tu conexión a internet.';
-            if (submitBtn) submitBtn.disabled = false;
-            window.SoundEngine?.playWrong?.();
-            break;
-
-        case 'error_proveedor':
-            statusBox.classList.remove('hidden');
-            statusBox.classList.add('status-error');
-            statusIcon.textContent = '⚠️';
-            statusTitle.textContent = 'Error del Proveedor';
-            statusDesc.textContent = message || 'La pasarela de pagos reportó un error técnico momentáneo.';
-            if (submitBtn) submitBtn.disabled = false;
-            window.SoundEngine?.playWrong?.();
-            break;
-    }
-}
-
-/**
- * Procesar Pago Oficial con Yape mediante /api/payments/yape/create-charge
- */
-export async function processYapePayment({ phoneNumber, otp }) {
-    if (isProcessingPayment) return;
-
-    const currentUser = auth.currentUser || (window.MathQuestAuth && window.MathQuestAuth.getCurrentUser());
-    if (!currentUser) {
-        alert("Debes iniciar sesión con tu cuenta de MathQuest para procesar la compra.");
-        return;
-    }
-
-    const cleanPhone = (phoneNumber || '').replace(/\D/g, '');
-    const cleanOtp = (otp || '').trim();
-
-    if (cleanPhone.length !== 9 || !cleanPhone.startsWith('9')) {
-        alert("Por favor ingresa un número de celular de Yape válido (9 dígitos que inicie con 9).");
-        return;
-    }
-
-    if (cleanOtp.length !== 6) {
-        alert("Por favor ingresa el código de aprobación de 6 dígitos que aparece en tu app Yape.");
-        return;
-    }
-
-    isProcessingPayment = true;
-    setPaymentState('preparando', 'Obteniendo credenciales seguras de sesión...');
-
-    try {
-        // Obtener ID Token criptográfico de Firebase Auth
-        let idToken = '';
-        try {
-            idToken = await currentUser.getIdToken(true);
-        } catch (tErr) {
-            console.warn("No se pudo refrescar token criptográfico, usando sesión actual:", tErr);
-        }
-
-        setPaymentState('esperando', 'Enviando cobro de S/ 19.90 a Yape...');
-
-        const response = await fetch('/api/payments/yape/create-charge', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${idToken}`
-            },
-            body: JSON.stringify({
-                phoneNumber: cleanPhone,
-                otp: cleanOtp,
-                email: currentUser.email || 'usuario@mathquest.app'
-            })
-        });
-
-        const data = await response.json().catch(() => ({}));
-
-        if (response.ok && data.success) {
-            setPaymentState('aprobado', data.message || '¡Pago con Yape confirmado exitosamente!');
-            
-            // Actualizar estado local inmediatamente mientras Firestore sincroniza
-            currentVipState = {
-                active: true,
-                productId: 'mathquest-vip',
-                purchasedAt: Date.now(),
-                paymentId: data.paymentId || 'yape_approved',
-                method: 'yape',
-                isLegacyLocal: false
-            };
-            applyConfirmedVipToApp();
-
-            setTimeout(() => {
-                closeCheckoutModal();
-            }, 2500);
-
-        } else if (data.status === 'sandbox_unconfigured') {
-            setPaymentState('error_proveedor', `${data.error} ${data.help || ''}`);
-        } else if (data.status === 'key_environment_mismatch') {
-            setPaymentState('error_proveedor', data.error);
-        } else if (data.status === 'rejected') {
-            setPaymentState('rechazado', data.error || 'Pago rechazado: Código OTP inválido o saldo insuficiente.');
-        } else if (data.status === 'pending') {
-            setPaymentState('pendiente', data.message || 'La operación está pendiente de confirmación en Yape.');
-        } else if (data.status === 'canceled') {
-            setPaymentState('cancelado', data.message || 'Operación cancelada.');
-        } else if (data.status === 'configuration_error' || data.status === 'gateway_error') {
-            setPaymentState('error_proveedor', data.error || 'Aviso de configuración en la pasarela de pagos.');
-        } else {
-            setPaymentState('error_proveedor', data.error || 'No se pudo completar la transacción.');
-        }
-
-    } catch (netErr) {
-        console.error("Error de red al procesar pago Yape:", netErr);
-        setPaymentState('error_conexion', 'No se pudo conectar con el backend de pagos.');
-    } finally {
-        isProcessingPayment = false;
-    }
-}
-
-/**
- * Ejecutar Simulador Sandbox (Permite probar los 5 escenarios sin dinero real)
- */
-export async function simulateSandboxScenario(scenario) {
-    const currentUser = auth.currentUser || (window.MathQuestAuth && window.MathQuestAuth.getCurrentUser());
-    if (!currentUser) {
-        alert("Debes iniciar sesión para ejecutar una prueba de pago.");
-        setPaymentState('unauthorized', "Debes iniciar sesión para ejecutar una prueba de pago.");
-        return;
-    }
-
-    let idToken = '';
-    try {
-        idToken = await currentUser.getIdToken();
-    } catch (err) {
-        console.warn("No se pudo obtener ID Token de Firebase:", err);
-    }
-
-    if (!idToken) {
-        alert("Debes iniciar sesión para ejecutar una prueba de pago.");
-        setPaymentState('unauthorized', "Debes iniciar sesión para ejecutar una prueba de pago.");
-        return;
-    }
-
-    setPaymentState('preparando', `Simulando escenario Sandbox: [${scenario}]...`);
-
-    try {
-        setPaymentState('esperando', 'Ejecutando prueba en backend de Sandbox...');
-
-        const res = await fetch('/api/payments/sandbox-simulate', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${idToken}`
-            },
-            body: JSON.stringify({ scenario: scenario })
-        });
-
-        // Intentar leer cuerpo JSON de forma robusta
-        let data = null;
-        const contentType = res.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-            try {
-                data = await res.json();
-            } catch (jsonErr) {
-                console.warn("Error al procesar JSON devuelto por backend:", jsonErr);
-                data = null;
-            }
-        }
-
-        // Si no se recibió JSON válido, no ocultar el código HTTP ni el fallo
-        if (!data) {
-            setPaymentState('internal_error', `Error HTTP ${res.status}: ${res.statusText || 'Respuesta no válida del servidor'}`);
-            return;
-        }
-
-        // Manejo explícito y prioritario de cada estado esperado
-        if (res.ok && data.success === true && data.status === 'approved') {
-            setPaymentState('aprobado', data.message);
-            currentVipState = {
-                active: true,
-                productId: 'mathquest-vip',
-                purchasedAt: Date.now(),
-                paymentId: data.paymentId,
-                method: 'yape',
-                isLegacyLocal: false
-            };
-            applyConfirmedVipToApp();
-        } else if (res.ok && data.success === true && data.status === 'webhook_processed') {
-            setPaymentState('webhook_processed', data.message || 'Webhook Sandbox recibido y procesado exitosamente.');
-            currentVipState = {
-                active: true,
-                productId: 'mathquest-vip',
-                purchasedAt: Date.now(),
-                paymentId: data.paymentId,
-                method: 'yape',
-                isLegacyLocal: false
-            };
-            applyConfirmedVipToApp();
-        } else if (data.status === 'rejected') {
-            setPaymentState('rechazado', data.error || 'Pago rechazado.');
-        } else if (data.status === 'pending') {
-            setPaymentState('pendiente', data.message || 'Pago pendiente en validación.');
-        } else if (data.status === 'canceled') {
-            setPaymentState('cancelado', data.message || 'Operación cancelada.');
-        } else if (res.status === 401 || data.status === 'unauthorized') {
-            setPaymentState('unauthorized', data.error || 'Debes iniciar sesión para ejecutar una prueba de pago.');
-        } else if (res.status === 403 || data.status === 'forbidden') {
-            setPaymentState('forbidden', data.error || 'El simulador está disponible únicamente en Sandbox.');
-        } else if (res.status === 500 || data.status === 'internal_error') {
-            setPaymentState('internal_error', data.error || 'Ocurrió un error interno en el servidor de pagos.');
-        } else {
-            setPaymentState('error_proveedor', data.error || data.message || `Error del servidor (${res.status})`);
-        }
-    } catch (e) {
-        setPaymentState('error_conexion', e.message || 'No se pudo contactar con el backend.');
     }
 }
 

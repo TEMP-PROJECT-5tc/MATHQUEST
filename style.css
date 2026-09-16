@@ -3191,6 +3191,749 @@ body {
 }
 
 /* =========================================
+   MATHQUEST V3 — ECUACIÓN-SNAKE
+   ========================================= */
+
+/* -----------------------------------------
+   1. Main game container & layout
+   ----------------------------------------- */
+#screen-snake,
+.snake-screen {
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    animation: snakeFadeIn 0.3s ease-out;
+}
+
+#screen-snake .game-layout,
+#screen-snake .snake-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+/* -----------------------------------------
+   2. Sidebar (Control & Stats)
+   ----------------------------------------- */
+#screen-snake .game-sidebar,
+#screen-snake .snake-sidebar {
+    background: linear-gradient(180deg, var(--color-card, #1e293b) 0%, rgba(15, 23, 42, 0.96) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: var(--border-radius-large, 20px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+#screen-snake .game-sidebar::before,
+#screen-snake .snake-sidebar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #10b981 0%, #34d399 50%, #059669 100%);
+}
+
+#screen-snake .snake-header,
+#screen-snake .game-sidebar h2 {
+    font-family: var(--font-heading, 'Fredoka', system-ui, sans-serif);
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+}
+
+#screen-snake .snake-description,
+#screen-snake .game-desc {
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--color-text-muted, #94a3b8);
+    margin-bottom: 16px;
+}
+
+/* -----------------------------------------
+   3. Lives panel
+   ----------------------------------------- */
+#screen-snake .lives-display-panel,
+#screen-snake .snake-lives-panel {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: var(--border-radius-medium, 12px);
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+#screen-snake .lives-display-panel .panel-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#screen-snake #snake-hearts-box {
+    font-size: 1.35rem;
+    letter-spacing: 4px;
+    line-height: 1.2;
+    filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.4));
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+}
+
+#screen-snake.snake-lives-critical #snake-hearts-box,
+#screen-snake .snake-hearts-critical {
+    animation: snakeHeartBeat 0.8s infinite alternate ease-in-out;
+}
+
+/* -----------------------------------------
+   4. Equation panel (KaTeX)
+   ----------------------------------------- */
+#screen-snake .equation-panel,
+#screen-snake .snake-equation-panel {
+    background: rgba(11, 15, 25, 0.85);
+    border: 1.5px solid rgba(16, 185, 129, 0.35);
+    border-radius: var(--border-radius-medium, 12px);
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), inset 0 0 12px rgba(16, 185, 129, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+#screen-snake .equation-panel::after,
+#screen-snake .snake-equation-panel::after {
+    content: '';
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle, rgba(52, 211, 153, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+#screen-snake .equation-label,
+#screen-snake #snake-lbl-prompt {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+    color: #34d399;
+    margin-bottom: 6px;
+}
+
+#screen-snake #snake-equation,
+#screen-snake .snake-equation-box {
+    font-family: var(--font-heading, 'Fredoka', system-ui, sans-serif);
+    font-size: clamp(1.2rem, 2.2vw, 1.55rem) !important;
+    font-weight: 800;
+    line-height: 1.3;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.92) !important;
+    color: #fde047 !important;
+    text-align: center;
+    border: 1px solid rgba(253, 224, 71, 0.25);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 10px rgba(253, 224, 71, 0.15);
+    word-break: break-word;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* -----------------------------------------
+   5. Stats row (Twin pills)
+   ----------------------------------------- */
+#screen-snake .game-stats-row,
+#screen-snake .snake-stats-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+#screen-snake .stat-pill,
+#screen-snake .snake-stat-pill {
+    flex: 1;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(16, 185, 129, 0.22);
+    border-radius: var(--border-radius-medium, 12px);
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+    transition: border-color 0.2s ease, transform 0.15s ease;
+}
+
+#screen-snake .stat-pill:hover,
+#screen-snake .snake-stat-pill:hover {
+    border-color: rgba(52, 211, 153, 0.45);
+    transform: translateY(-1px);
+}
+
+#screen-snake .stat-pill-label,
+#screen-snake .stat-pill span {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #94a3b8;
+}
+
+#screen-snake #snake-level-display {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #34d399;
+    text-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
+    font-variant-numeric: tabular-nums;
+}
+
+#screen-snake .snake-score-wrapper {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+}
+
+#screen-snake #snake-score {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #fbbf24;
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+    font-variant-numeric: tabular-nums;
+}
+
+#screen-snake .stat-pill-target {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    font-weight: 700;
+    margin-left: 3px;
+}
+
+/* -----------------------------------------
+   6. Action buttons (Hint, Restart)
+   ----------------------------------------- */
+#screen-snake #btn-use-hint-snake,
+#screen-snake .snake-btn-hint {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(5, 150, 105, 0.28) 100%);
+    border: 1.5px solid rgba(52, 211, 153, 0.45);
+    color: #34d399;
+    font-family: var(--font-heading, system-ui, sans-serif);
+    font-size: 0.95rem;
+    font-weight: 700;
+    border-radius: var(--border-radius-medium, 12px);
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+#screen-snake #btn-use-hint-snake:hover,
+#screen-snake .snake-btn-hint:hover {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.28) 0%, rgba(5, 150, 105, 0.4) 100%);
+    border-color: #6ee7b7;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.35);
+    transform: translateY(-1px);
+}
+
+#screen-snake #btn-use-hint-snake:active,
+#screen-snake .snake-btn-hint:active {
+    transform: translateY(1px);
+}
+
+#screen-snake #btn-restart-snake,
+#screen-snake .snake-btn-restart {
+    background: linear-gradient(135deg, #475569 0%, #334155 100%);
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    color: #f1f5f9;
+    font-family: var(--font-heading, system-ui, sans-serif);
+    font-size: 0.95rem;
+    font-weight: 700;
+    border-radius: var(--border-radius-medium, 12px);
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 0;
+}
+
+#screen-snake #btn-restart-snake:hover,
+#screen-snake .snake-btn-restart:hover {
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+#screen-snake #btn-restart-snake:active,
+#screen-snake .snake-btn-restart:active {
+    transform: translateY(1px);
+}
+
+/* -----------------------------------------
+   7. Inventory / Powerup Panel
+   ----------------------------------------- */
+#screen-snake .snake-inventory-section,
+#screen-snake #snake-inventory-panel {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: var(--border-radius-medium, 12px);
+    background: rgba(15, 23, 42, 0.6);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+#screen-snake .snake-inventory-title,
+#screen-snake #snake-inventory-panel h4 {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #94a3b8;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#screen-snake .snake-inventory-buttons,
+#screen-snake #snake-inventory-panel > div {
+    display: flex;
+    gap: 8px;
+}
+
+#screen-snake #btn-use-shield-snake,
+#screen-snake #btn-use-freeze-snake,
+#screen-snake .snake-inv-btn {
+    flex: 1;
+    min-height: 38px;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(30, 41, 59, 0.8);
+    color: #e2e8f0;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+#screen-snake #btn-use-shield-snake:hover:not(:disabled),
+#screen-snake #btn-use-freeze-snake:hover:not(:disabled),
+#screen-snake .snake-inv-btn:hover:not(:disabled) {
+    border-color: #34d399;
+    color: #ffffff;
+    background: rgba(5, 150, 105, 0.35);
+    transform: translateY(-1px);
+}
+
+#screen-snake #btn-use-shield-snake:disabled,
+#screen-snake #btn-use-freeze-snake:disabled,
+#screen-snake .snake-inv-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* -----------------------------------------
+   8. Main game canvas area
+   ----------------------------------------- */
+#screen-snake .game-canvas-area,
+#screen-snake .snake-canvas-area {
+    background: linear-gradient(180deg, var(--color-card, #1e293b) 0%, rgba(15, 23, 42, 0.98) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.22);
+    border-radius: var(--border-radius-large, 20px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+#screen-snake .game-canvas-area::before,
+#screen-snake .snake-canvas-area::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 15%;
+    right: 15%;
+    height: 2px;
+    background: radial-gradient(ellipse at center, rgba(52, 211, 153, 0.7) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+#screen-snake .canvas-container,
+#screen-snake .snake-canvas-container {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 16px;
+}
+
+#screen-snake #snake-canvas {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    display: block;
+    border-radius: 14px;
+    background-color: #0b1120;
+    border: 2px solid rgba(16, 185, 129, 0.35);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(16, 185, 129, 0.18), inset 0 0 25px rgba(0, 0, 0, 0.8);
+    touch-action: none;
+    transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+#screen-snake #snake-canvas:hover {
+    border-color: rgba(52, 211, 153, 0.6);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7), 0 0 28px rgba(16, 185, 129, 0.3);
+}
+
+/* -----------------------------------------
+   9. Touch controls (D-Pad)
+   ----------------------------------------- */
+#screen-snake .touch-controller,
+#screen-snake .snake-touch-controller {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+}
+
+#screen-snake .touch-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+}
+
+#screen-snake .ctrl-spacer,
+#screen-snake .snake-ctrl-spacer {
+    width: 60px;
+    height: 50px;
+}
+
+#screen-snake .ctrl-btn,
+#screen-snake .snake-ctrl-btn {
+    width: 60px;
+    height: 50px;
+    min-height: 48px;
+    background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+    border: 2px solid rgba(16, 185, 129, 0.3);
+    border-radius: var(--border-radius-medium, 12px);
+    color: #f8fafc;
+    font-size: 1.15rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.12s ease;
+}
+
+#screen-snake .ctrl-btn:hover,
+#screen-snake .snake-ctrl-btn:hover {
+    background: linear-gradient(180deg, #059669 0%, #047857 100%);
+    border-color: #34d399;
+    color: #ffffff;
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.45);
+    transform: translateY(-2px);
+}
+
+#screen-snake .ctrl-btn:active,
+#screen-snake .snake-ctrl-btn:active {
+    transform: translateY(1px) scale(0.96);
+    background: linear-gradient(180deg, #047857 0%, #064e3b 100%);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* -----------------------------------------
+   10. Overlay (Mission & Results)
+   ----------------------------------------- */
+#screen-snake #snake-overlay,
+#screen-snake .snake-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(11, 15, 25, 0.88);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    z-index: 20;
+    padding: 16px;
+    animation: snakeFadeIn 0.25s ease-out;
+}
+
+#screen-snake #snake-overlay.hidden {
+    display: none !important;
+}
+
+#screen-snake #snake-overlay .overlay-content,
+#screen-snake .snake-overlay-content {
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    border: 1.5px solid rgba(16, 185, 129, 0.35);
+    border-radius: var(--border-radius-large, 20px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(16, 185, 129, 0.25);
+    padding: 24px 20px;
+    width: 100%;
+    max-width: 350px;
+    text-align: center;
+    color: #f8fafc;
+}
+
+#screen-snake #snake-overlay-title,
+#screen-snake .snake-overlay-title {
+    font-family: var(--font-heading, 'Fredoka', system-ui, sans-serif);
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #f8fafc;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+}
+
+#screen-snake #snake-overlay .rules-explanation-box,
+#screen-snake .snake-rules-box {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--border-radius-medium, 12px);
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    text-align: left;
+}
+
+#screen-snake #snake-overlay .rules-explanation-box h4,
+#screen-snake .snake-rules-box h4 {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #34d399;
+    margin-bottom: 8px;
+}
+
+#screen-snake #snake-overlay .rules-explanation-box ul,
+#screen-snake .snake-rules-box ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#screen-snake #snake-overlay .rules-explanation-box li,
+#screen-snake .snake-rules-box li {
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: #cbd5e1;
+}
+
+#screen-snake #snake-overlay-text,
+#screen-snake .snake-overlay-text {
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: #e2e8f0;
+    margin-bottom: 16px;
+}
+
+#screen-snake #btn-start-snake-game,
+#screen-snake .btn-snake-start {
+    width: 100%;
+    min-height: 48px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: 2px solid #34d399;
+    border-radius: var(--border-radius-medium, 12px);
+    color: #ffffff;
+    font-family: var(--font-heading, system-ui, sans-serif);
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    transition: all 0.2s ease;
+}
+
+#screen-snake #btn-start-snake-game:hover,
+#screen-snake .btn-snake-start:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    border-color: #6ee7b7;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+    transform: translateY(-2px);
+}
+
+#screen-snake #btn-start-snake-game:active,
+#screen-snake .btn-snake-start:active {
+    transform: translateY(1px);
+}
+
+/* -----------------------------------------
+   11. Animations
+   ----------------------------------------- */
+@keyframes snakeFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes snakeHeartBeat {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.4));
+    }
+    100% {
+        transform: scale(1.15);
+        filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.9));
+    }
+}
+
+@keyframes snakeShake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    20%, 60% {
+        transform: translateX(-5px);
+    }
+    40%, 80% {
+        transform: translateX(5px);
+    }
+}
+
+.snake-shake {
+    animation: snakeShake 0.4s ease-in-out;
+}
+
+/* -----------------------------------------
+   12. Responsive / Mobile
+   ----------------------------------------- */
+@media (max-width: 900px) {
+    #screen-snake .game-layout,
+    #screen-snake .snake-layout {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    #screen-snake .game-sidebar,
+    #screen-snake .snake-sidebar {
+        order: 2;
+        max-width: 480px;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    #screen-snake .game-canvas-area,
+    #screen-snake .snake-canvas-area {
+        order: 1;
+        max-width: 480px;
+        margin: 0 auto;
+        width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    #screen-snake {
+        padding: 0 4px;
+    }
+
+    #screen-snake .game-sidebar,
+    #screen-snake .game-canvas-area,
+    #screen-snake .snake-sidebar,
+    #screen-snake .snake-canvas-area {
+        padding: 14px 12px;
+        border-radius: 16px;
+    }
+
+    #screen-snake .snake-header,
+    #screen-snake .game-sidebar h2 {
+        font-size: 1.3rem;
+    }
+
+    #screen-snake #snake-equation {
+        font-size: 1.25rem !important;
+        padding: 8px 10px;
+    }
+
+    #screen-snake .canvas-container,
+    #screen-snake #snake-canvas {
+        max-width: 100%;
+        border-radius: 12px;
+    }
+
+    #screen-snake .touch-controller,
+    #screen-snake .snake-touch-controller {
+        margin-top: 12px;
+    }
+
+    #screen-snake .ctrl-btn,
+    #screen-snake .snake-ctrl-btn {
+        width: 54px;
+        height: 48px;
+        min-height: 44px;
+        font-size: 1rem;
+    }
+
+    #screen-snake .ctrl-spacer,
+    #screen-snake .snake-ctrl-spacer {
+        width: 54px;
+        height: 48px;
+    }
+
+    #screen-snake #snake-overlay .overlay-content,
+    #screen-snake .snake-overlay-content {
+        padding: 18px 14px;
+        max-width: 95%;
+    }
+}
+
+/* =========================================
    MATHQUEST V3 — CONSTRUCTOR MATEMÁTICO
    ========================================= */
 
@@ -5147,31 +5890,66 @@ body {
     color: var(--color-text);
 }
 
-.vip-modal-tabs {
-    display: flex;
-    gap: 8px;
+.vip-yape-details-card {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(109, 40, 217, 0.25) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.45);
+    border-radius: 12px;
+    padding: 14px 16px;
     margin-bottom: 16px;
-    border-bottom: 1px solid var(--color-border);
-    padding-bottom: 10px;
 }
 
-.vip-tab-btn {
-    flex: 1;
-    background: transparent;
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    padding: 8px 10px;
-    font-size: 0.82rem;
+.vip-method-header {
+    margin-bottom: 10px;
+}
+
+.vip-yape-badge {
+    background: #7c3aed;
+    color: #ffffff;
+    font-size: 0.76rem;
     font-weight: 700;
-    color: var(--color-text-muted);
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: inline-block;
+    letter-spacing: 0.3px;
+}
+
+.vip-phone-number-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.vip-phone-label-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.vip-phone-title {
+    font-size: 0.72rem;
+    color: #cbd5e1;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.vip-phone-number {
+    font-size: 1.45rem;
+    font-weight: 900;
+    color: #fef08a;
+    letter-spacing: 1px;
+    font-family: var(--font-heading);
+}
+
+.btn-copy-phone {
+    padding: 8px 14px !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+    white-space: nowrap !important;
     cursor: pointer;
     transition: all 0.15s ease;
-}
-
-.vip-tab-btn.active {
-    background: rgba(59, 130, 246, 0.15);
-    border-color: var(--color-accent-blue);
-    color: #ffffff;
 }
 
 .vip-price-display-banner {
@@ -5200,148 +5978,57 @@ body {
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-radius: 10px;
-    padding: 10px 14px;
+    padding: 12px 14px;
     margin-bottom: 16px;
+    text-align: left;
+}
+
+.vip-instructions-title {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #fef08a;
+    margin-bottom: 8px;
+    letter-spacing: 0.2px;
 }
 
 .vip-instructions-list {
     margin: 0;
-    padding-left: 18px;
+    padding-left: 20px;
     font-size: 0.78rem;
     color: #cbd5e1;
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
-.btn-yape-submit {
-    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
-    border: none !important;
-    color: #ffffff !important;
-    font-size: 1rem !important;
-    font-weight: 800 !important;
-    padding: 12px !important;
-    border-radius: 10px !important;
-    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4) !important;
-    margin-top: 14px;
-    cursor: pointer;
-}
-
-/* Caja de Estados */
-.vip-status-box {
-    margin-top: 14px;
-    padding: 12px 14px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 0.82rem;
-    transition: all 0.2s ease;
-}
-
-.vip-status-icon {
-    font-size: 1.5rem;
-}
-
-.vip-status-content strong {
-    display: block;
-    font-size: 0.9rem;
-    margin-bottom: 2px;
-}
-
-.vip-status-content p {
-    margin: 0;
-    font-size: 0.78rem;
-    line-height: 1.3;
-}
-
-.status-loading {
-    background: rgba(59, 130, 246, 0.15);
-    border: 1px solid #3b82f6;
-    color: #bfdbfe;
-}
-
-.status-success {
-    background: rgba(16, 185, 129, 0.15);
-    border: 1px solid #10b981;
-    color: #a7f3d0;
-}
-
-.status-error {
-    background: rgba(239, 68, 68, 0.15);
-    border: 1px solid #ef4444;
-    color: #fecaca;
-}
-
-.status-warning {
-    background: rgba(245, 158, 11, 0.15);
-    border: 1px solid #f59e0b;
-    color: #fef08a;
-}
-
-/* Sandbox Panel & Indicadores */
-.vip-sandbox-tag-indicator {
-    background: rgba(59, 130, 246, 0.12);
-    border: 1px solid rgba(59, 130, 246, 0.4);
-    color: #93c5fd;
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    text-align: center;
-    padding: 6px 10px;
-    border-radius: 8px;
-    margin-bottom: 12px;
-}
-
-.vip-config-notice {
-    background: rgba(245, 158, 11, 0.1);
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    color: #fef08a;
-    font-size: 0.76rem;
-    line-height: 1.4;
-    padding: 10px 12px;
-    border-radius: 8px;
-    margin-bottom: 14px;
-    text-align: left;
-}
-
-.sandbox-banner {
-    background: rgba(59, 130, 246, 0.1);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    border-radius: 10px;
-    padding: 10px 12px;
-    margin-bottom: 14px;
-    text-align: center;
-}
-
-.sandbox-badge {
-    background: #2563eb;
-    color: #ffffff;
-    font-size: 0.68rem;
-    font-weight: 800;
-    padding: 2px 8px;
-    border-radius: 12px;
-    display: inline-block;
+.vip-instructions-list li {
     margin-bottom: 4px;
 }
 
-.sandbox-banner p {
-    margin: 0;
-    font-size: 0.78rem;
-    color: #cbd5e1;
+.vip-instructions-list strong {
+    color: #ffffff;
 }
 
-.sandbox-buttons-grid {
-    display: flex;
-    flex-direction: column;
+.btn-whatsapp-submit {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     gap: 8px;
+    background: linear-gradient(135deg, #25D366 0%, #128C7E 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-size: 0.95rem !important;
+    font-weight: 800 !important;
+    padding: 13px 18px !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35) !important;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    margin-bottom: 12px;
 }
 
-.sandbox-btn {
-    text-align: left !important;
-    padding: 10px 14px !important;
-    font-size: 0.82rem !important;
-    border-radius: 8px !important;
-    cursor: pointer;
+.btn-whatsapp-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(37, 211, 102, 0.45) !important;
 }
 
 .vip-security-footer {

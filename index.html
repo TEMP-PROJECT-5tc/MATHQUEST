@@ -653,72 +653,106 @@
         </section>
 
         <!-- PANTALLA 2: JUEGO 1 - MATH SNAKE -->
-        <section id="screen-snake" class="screen hidden">
-            <div class="game-layout">
-                <div class="game-sidebar card">
-                    <h2>🐍 Ecuación-Snake</h2>
-                    <p class="game-desc" id="snake-game-instruction">Resuelve la ecuación comiendo la manzana correcta. ¡Usa WASD o Flechas!</p>
+        <section id="screen-snake" class="screen snake-screen hidden">
+            <div class="game-layout snake-layout">
+                <!-- SIDEBAR DE CONTROL E INFORMACIÓN -->
+                <div class="game-sidebar card snake-sidebar">
+                    <h2 class="snake-header">🐍 Ecuación-Snake</h2>
+                    <p class="game-desc snake-description" id="snake-game-instruction">Resuelve la ecuación y guía la serpiente hacia la manzana correcta.</p>
                     
-                    <div class="lives-display-panel">
-                        <span class="panel-label">Vidas (Corazones):</span>
+                    <!-- PANEL DE VIDAS -->
+                    <div class="lives-display-panel snake-lives-panel">
+                        <span class="panel-label">❤️ Vidas:</span>
                         <div class="hearts-container" id="snake-hearts-box">
                             ❤️ ❤️ ❤️
                         </div>
                     </div>
 
-                    <div class="equation-panel">
-                        <span class="equation-label" id="snake-lbl-prompt">Halla el valor de x:</span>
+                    <!-- PANEL DE ECUACIÓN (KaTeX) -->
+                    <div class="equation-panel snake-equation-panel">
+                        <span class="equation-label" id="snake-lbl-prompt">¿Cuál es el valor de x?</span>
                         <!-- Ecuación renderizada en LaTeX KaTeX -->
-                        <div id="snake-equation" class="equation-box"></div>
+                        <div id="snake-equation" class="equation-box snake-equation-box"></div>
                     </div>
                     
-                    <div class="game-stats-row">
-                        <div class="stat-pill stars-pill">
-                            <span>Manzanas:</span>
-                            <strong id="snake-score">0</strong>
+                    <!-- ESTADÍSTICAS DEL NIVEL (PILLS GEMELAS) -->
+                    <div class="game-stats-row snake-stats-row">
+                        <div class="stat-pill snake-stat-pill">
+                            <span class="stat-pill-label">Nivel</span>
+                            <strong id="snake-level-display" class="stat-pill-value">1</strong>
+                        </div>
+                        <div class="stat-pill snake-stat-pill">
+                            <span class="stat-pill-label">Manzanas</span>
+                            <div class="snake-score-wrapper">
+                                <strong id="snake-score" class="stat-pill-value">0</strong>
+                                <span class="stat-pill-target">/ 5</span>
+                            </div>
                         </div>
                     </div>
 
-                    <button id="btn-use-hint-snake" class="btn btn-secondary w-100 btn-use-hint">
+                    <!-- BOTÓN DE PISTA CENTRAL (MOCHILA) -->
+                    <button id="btn-use-hint-snake" class="btn btn-secondary w-100 btn-use-hint snake-btn-hint">
                         💡 Usar Pista (Mochila)
                     </button>
                     
-                    <button id="btn-restart-snake" class="btn btn-accent w-100" style="margin-top: 10px;">Reiniciar</button>
-                </div>
+                    <!-- BOTÓN DE REINICIO -->
+                    <button id="btn-restart-snake" class="btn btn-accent w-100 snake-btn-restart">
+                        🔄 Reiniciar Nivel
+                    </button>
 
-                <div class="game-canvas-area card">
-                    <div class="canvas-container">
-                        <div id="snake-overlay" class="game-overlay">
-                            <div class="overlay-content">
-                                <h3 id="snake-overlay-title">Álgebra Snake 🍏</h3>
-                                <div id="snake-overlay-instructions" class="rules-explanation-box">
-                                    <h4>📜 Reglas del Juego:</h4>
-                                    <ul>
-                                        <li>💡 Resuelve the **ecuación LaTeX** mostrada al lateral.</li>
-                                        <li>🍏 Guía la serpiente hacia la manzana con el resultado exacto.</li>
-                                        <li>⌨️ Controla con **W A S D** o las **Flechas del Teclado**.</li>
-                                        <li>💥 Chocar contra muros o comer la manzana errónea resta **1 vida**.</li>
-                                    </ul>
-                                </div>
-                                <p id="snake-overlay-text">Presiona empezar para jugar.</p>
-                                <button id="btn-start-snake-game" class="btn btn-primary btn-large">¡Empezar!</button>
+                    <!-- SECCIÓN DE OBJETOS / INVENTARIO -->
+                    <div class="snake-inventory-section">
+                        <div id="snake-inventory-panel" class="snake-inventory-panel">
+                            <h4 class="snake-inventory-title">🎒 Tus Objetos de Tienda:</h4>
+                            <div class="snake-inventory-buttons">
+                                <button id="btn-use-shield-snake" class="btn btn-secondary snake-inv-btn" disabled>
+                                    🛡️ Escudo (0)
+                                </button>
+                                <button id="btn-use-freeze-snake" class="btn btn-secondary snake-inv-btn" disabled>
+                                    ⏱️ Congelar (0)
+                                </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- ÁREA PRINCIPAL DE JUEGO (CANVAS + CONTROLES) -->
+                <div class="game-canvas-area card snake-canvas-area">
+                    <div class="canvas-container snake-canvas-container">
+                        <!-- OVERLAY DE INICIO / VICTORIA / DERROTA -->
+                        <div id="snake-overlay" class="game-overlay snake-overlay">
+                            <div class="overlay-content snake-overlay-content">
+                                <h3 id="snake-overlay-title" class="snake-overlay-title">Álgebra Snake 🍏</h3>
+                                <div id="snake-overlay-instructions" class="rules-explanation-box snake-rules-box">
+                                    <h4>📜 Reglas del Juego:</h4>
+                                    <ul>
+                                        <li>💡 <strong>Resuelve la ecuación:</strong> Halla el valor de la incógnita <em>x</em>.</li>
+                                        <li>🍏 <strong>Guía la serpiente:</strong> Come la manzana con el resultado exacto.</li>
+                                        <li>💥 <strong>Evita colisiones:</strong> Chocar contra muros o tu propio cuerpo resta 1 vida.</li>
+                                        <li>🌟 <strong>Meta del nivel:</strong> Consigue 5 manzanas correctas para avanzar.</li>
+                                    </ul>
+                                </div>
+                                <p id="snake-overlay-text" class="snake-overlay-text">Resuelve las ecuaciones para ganar. ¡Pon a prueba tus reflejos algebraicos!</p>
+                                <button id="btn-start-snake-game" class="btn btn-primary btn-large btn-snake-start">¡Empezar!</button>
+                            </div>
+                        </div>
+
+                        <!-- CANVAS DE JUEGO -->
                         <canvas id="snake-canvas" width="400" height="400"></canvas>
                     </div>
 
-                    <!-- Mandos táctiles en pantalla -->
-                    <div class="touch-controller">
-                        <div class="touch-row">
-                            <button id="ctrl-up" class="ctrl-btn">▲</button>
+                    <!-- MANDOS TÁCTILES EN PANTALLA (CRUCETA ERGONÓMICA) -->
+                    <div class="touch-controller snake-touch-controller">
+                        <div class="touch-row snake-touch-row-top">
+                            <button id="ctrl-up" class="ctrl-btn snake-ctrl-btn" aria-label="Arriba">▲</button>
                         </div>
-                        <div class="touch-row">
-                            <button id="ctrl-left" class="ctrl-btn">◀</button>
-                            <div class="ctrl-spacer"></div>
-                            <button id="ctrl-right" class="ctrl-btn">▶</button>
+                        <div class="touch-row snake-touch-row-mid">
+                            <button id="ctrl-left" class="ctrl-btn snake-ctrl-btn" aria-label="Izquierda">◀</button>
+                            <div class="ctrl-spacer snake-ctrl-spacer"></div>
+                            <button id="ctrl-right" class="ctrl-btn snake-ctrl-btn" aria-label="Derecha">▶</button>
                         </div>
-                        <div class="touch-row">
-                            <button id="ctrl-down" class="ctrl-btn">▼</button>
+                        <div class="touch-row snake-touch-row-bottom">
+                            <button id="ctrl-down" class="ctrl-btn snake-ctrl-btn" aria-label="Abajo">▼</button>
                         </div>
                     </div>
                 </div>
@@ -1765,19 +1799,19 @@
         </div>
     </div>
 
-    <!-- Modal de Pasarela de Pago VIP (Culqi / Yape Oficial y Sandbox Test) -->
-    <div id="vip-checkout-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <!-- Modal de Pago Manual VIP con Yape y WhatsApp -->
+    <div id="vip-checkout-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="vip-modal-title">
         <div class="modal-card vip-checkout-card">
             <button class="modal-close-x" id="btn-close-vip-checkout-modal" aria-label="Cerrar modal de pago">×</button>
             <div class="modal-mascot">👑</div>
-            <h3 class="vip-modal-title">MathQuest VIP</h3>
+            <h3 id="vip-modal-title" class="vip-modal-title">MathQuest VIP</h3>
             <p class="vip-modal-desc">
-                Desbloquea instantáneamente todos los 55 niveles de los 11 minijuegos, contenidos exclusivos y pistas ilimitadas.
+                Acceso completo e ilimitado a todos los 55 niveles de los 11 minijuegos, contenidos exclusivos y pistas ilimitadas.
             </p>
 
-            <!-- Indicador Dinámico de Entorno Sandbox / Pruebas -->
-            <div id="vip-sandbox-indicator-pill" class="vip-sandbox-tag-indicator">
-                🧪 ENTORNO DE PRUEBAS (SANDBOX) • SIN COBROS REALES
+            <div class="vip-price-display-banner">
+                <span class="vip-price-tag-amount" id="vip-checkout-price-label">S/ 4.90</span>
+                <span class="vip-price-tag-sub">PEN • Pago Único y Permanente</span>
             </div>
 
             <div class="vip-user-pill">
@@ -1785,89 +1819,42 @@
                 <strong id="vip-checkout-user-label">usuario@correo.com</strong>
             </div>
 
-            <!-- Pestañas de Pago: Yape Oficial vs Simulador Sandbox -->
-            <div class="vip-modal-tabs">
-                <button type="button" class="vip-tab-btn active" id="tab-vip-yape-official">
-                    📱 Yape (Oficial)
-                </button>
-                <button type="button" class="vip-tab-btn" id="tab-vip-sandbox-test">
-                    🧪 Modo Pruebas (Sandbox)
-                </button>
-            </div>
-
-            <!-- VISTA 1: PAGO OFICIAL CON YAPE -->
-            <div id="view-vip-yape-official" class="vip-tab-content">
-                <!-- Aviso si faltan credenciales de Culqi en Sandbox -->
-                <div id="vip-yape-config-notice" class="vip-config-notice hidden"></div>
-
-                <div class="vip-price-display-banner">
-                    <span class="vip-price-tag-amount" id="vip-checkout-price-label">S/ 19.90</span>
-                    <span class="vip-price-tag-sub">PEN • Pago Único y Permanente</span>
+            <!-- Datos de Pago Manual con Yape -->
+            <div class="vip-yape-details-card">
+                <div class="vip-method-header">
+                    <span class="vip-yape-badge">📱 Método de Pago: <strong>Yape</strong></span>
                 </div>
-
-                <div class="vip-instructions-box">
-                    <ol class="vip-instructions-list">
-                        <li>Abre tu app <strong>Yape</strong> en tu celular.</li>
-                        <li>Toca en el menú y selecciona <strong>"Código de Aprobación"</strong>.</li>
-                        <li>Ingresa tu celular y el código de 6 dígitos aquí abajo para confirmar.</li>
-                    </ol>
-                </div>
-
-                <form id="form-yape-payment">
-                    <div class="form-group">
-                        <label for="yape-phone-input">Número de Celular Yape</label>
-                        <input type="tel" id="yape-phone-input" placeholder="Ej: 987654321" maxlength="9" pattern="[9][0-9]{8}" required>
+                <div class="vip-phone-number-row">
+                    <div class="vip-phone-label-col">
+                        <span class="vip-phone-title">Número de Yape:</span>
+                        <strong id="vip-yape-phone-display" class="vip-phone-number">987 654 321</strong>
                     </div>
-
-                    <div class="form-group">
-                        <label for="yape-otp-input">Código de Aprobación Yape (6 dígitos)</label>
-                        <input type="text" id="yape-otp-input" placeholder="Ej: 123456" maxlength="6" pattern="[0-9]{6}" autocomplete="one-time-code" required>
-                    </div>
-
-                    <button type="submit" id="btn-submit-yape-payment" class="btn btn-primary w-100 btn-yape-submit">
-                        <span>📱 Confirmar y Pagar S/ 19.90</span>
-                    </button>
-                </form>
-            </div>
-
-            <!-- VISTA 2: SIMULADOR SANDBOX PARA DESARROLLO Y VERIFICACIÓN -->
-            <div id="view-vip-sandbox-test" class="vip-tab-content hidden">
-                <div class="sandbox-banner">
-                    <span class="sandbox-badge">MODO PRUEBAS / SANDBOX</span>
-                    <p>Verifica todos los flujos de respuesta de la pasarela y Firestore sin realizar cobros reales.</p>
-                </div>
-
-                <div class="sandbox-buttons-grid">
-                    <button type="button" class="btn btn-success sandbox-btn" id="btn-sandbox-test-success">
-                        ✅ 1. Probar Pago Aprobado (Activa VIP)
-                    </button>
-                    <button type="button" class="btn btn-danger sandbox-btn" id="btn-sandbox-test-rejected">
-                        ❌ 2. Probar Pago Rechazado (OTP Inválido)
-                    </button>
-                    <button type="button" class="btn btn-secondary sandbox-btn" id="btn-sandbox-test-pending">
-                        🕒 3. Probar Pago Pendiente
-                    </button>
-                    <button type="button" class="btn btn-secondary sandbox-btn" id="btn-sandbox-test-canceled">
-                        ⚠️ 4. Probar Pago Cancelado
-                    </button>
-                    <button type="button" class="btn btn-primary sandbox-btn" id="btn-sandbox-test-webhook">
-                        🔔 5. Probar Notificación Webhook Culqi
+                    <button type="button" id="btn-copy-yape-number" class="btn btn-secondary btn-copy-phone" title="Copiar número de Yape">
+                        📋 Copiar
                     </button>
                 </div>
             </div>
 
-            <!-- Caja de Estados de Pago (Maneja: preparando, esperando, aprobado, rechazado, cancelado, pendiente, error_conexion, error_proveedor) -->
-            <div id="vip-checkout-status-box" class="vip-status-box hidden">
-                <span id="vip-checkout-status-icon" class="vip-status-icon">⏳</span>
-                <div class="vip-status-content">
-                    <strong id="vip-checkout-status-title">Preparando pago...</strong>
-                    <p id="vip-checkout-status-desc">Conectando con el servidor...</p>
-                </div>
+            <!-- Pasos de Activación Manual -->
+            <div class="vip-instructions-box">
+                <div class="vip-instructions-title">📋 Pasos para activar tu VIP:</div>
+                <ol class="vip-instructions-list">
+                    <li>Realiza el pago de <strong>S/ 4.90</strong> en tu app Yape.</li>
+                    <li>Toma una <strong>captura del comprobante</strong> de pago.</li>
+                    <li>Envía la captura por <strong>WhatsApp</strong> con el botón inferior.</li>
+                    <li>Indica el correo o nombre de tu cuenta MathQuest (<strong id="vip-instructions-account-label">tu cuenta</strong>).</li>
+                    <li>Después de verificar el pago, <strong>activaremos tu VIP</strong> permanentemente.</li>
+                </ol>
             </div>
+
+            <!-- Botón para Enviar Comprobante por WhatsApp -->
+            <a id="btn-send-whatsapp-receipt" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-success w-100 btn-whatsapp-submit">
+                <span>💬 Enviar Comprobante por WhatsApp</span>
+            </a>
 
             <div class="vip-security-footer">
-                <span>🔒 Procesamiento seguro vía API Culqi & Yape</span>
-                <span>Registro criptográfico verificado en Firebase Auth & Firestore</span>
+                <span>🔒 Activación manual directa por el administrador en Firestore</span>
+                <span>El estado VIP quedará permanentemente vinculado a tu cuenta</span>
             </div>
         </div>
     </div>

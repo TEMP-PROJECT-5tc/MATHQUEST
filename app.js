@@ -1339,7 +1339,7 @@ function setupSettingsListeners() {
 }
 
 // --------------------------------------------------------------------------
-// 9. Sistema Real de MathQuest VIP y Pasarela Yape / Culqi
+// 9. Sistema Real de MathQuest VIP y Pago Manual Yape
 // --------------------------------------------------------------------------
 function setupVipBypassBilling() {
     const btnVipHeader = document.getElementById('btn-header-bypass-vip');
@@ -1354,7 +1354,7 @@ function setupVipBypassBilling() {
             return;
         }
 
-        // Abrir el sistema oficial de pago y checkout con Yape / Sandbox
+        // Abrir el modal de información y pago manual con Yape
         if (window.MathQuestVIP?.openCheckoutModal) {
             window.MathQuestVIP.openCheckoutModal();
         } else {
