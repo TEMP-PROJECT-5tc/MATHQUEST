@@ -191,15 +191,20 @@ export function reconcileAndMerge(cloudData, localState) {
     const cloudSec = cloudData.security || {};
     const cloudSet = cloudData.settings || {};
 
-    // Fuente de Verdad VIP: Firestore (escrito exclusivamente por backend/administrador autorizado)
-    const cloudVip = cloudData.vip || {};
-    const isCloudVipActive = Boolean(cloudVip.active === true);
+    // Fuente de Verdad VIP: Firestore (soporta booleano directo 'vip: true/false', 'isVip', o mapa)
+    const isCloudVipActive = Boolean(
+        cloudData.vip === true ||
+        cloudData.isVip === true ||
+        cloudData.vipActive === true ||
+        cloudData.bypassPurchased === true ||
+        (cloudData.vip && typeof cloudData.vip === 'object' && (cloudData.vip.active === true || cloudData.vip.status === 'confirmed'))
+    );
     const isGlobalVipActive = Boolean(window.MathQuestVIP?.isGlobalVip?.() || window.state?.isGlobalVip);
     const localLegacyBypass = Boolean(localState.vipBypassPurchased && !localState.isGlobalVip);
 
     if (isCloudVipActive) {
-        cachedUserVip = cloudVip;
-    } else if (cloudData.vip) {
+        cachedUserVip = (cloudData.vip !== undefined) ? cloudData.vip : true;
+    } else if (cloudData.vip !== undefined) {
         cachedUserVip = cloudData.vip;
     }
 

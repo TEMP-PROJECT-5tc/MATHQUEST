@@ -12,7 +12,7 @@
  * 8. Firestore sincroniza en tiempo real con la app del usuario y desbloquea todos los niveles.
  */
 
-import { doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+import { doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import { db, auth } from './firebase.js';
 
 // Configuración centralizada para Yape y WhatsApp
@@ -88,6 +88,8 @@ export async function initVipPaymentSystem() {
         checkVipStatus,
         isGlobalVip,
         isIndividualVip,
+        isIndividualVipActive,
+        setUserVipStatus,
         renderShopVipCard,
         setupFirestoreVipListener,
         setupFirestoreGlobalVipListener,
@@ -95,6 +97,53 @@ export async function initVipPaymentSystem() {
         getVipState: () => ({ ...currentVipState, isGlobal: isGlobalVipActive }),
         config: VIP_CONFIG
     };
+}
+
+/**
+ * Evalúa si los datos de un usuario en Firestore contienen VIP activo.
+ * Admite:
+ * - Booleano simple directo: vip: true / false (la forma más fácil en Firebase Console)
+ * - Booleano simple directo: isVip: true / false
+ * - Booleano simple directo: bypassPurchased: true / false
+ * - Estructura de mapa: vip: { active: true / false }
+ */
+export function isIndividualVipActive(data) {
+    if (!data) return false;
+    // 1. Booleano simple directo en la raíz del documento (lo más fácil para el admin)
+    if (data.vip === true || data.isVip === true || data.vipActive === true || data.bypassPurchased === true) {
+        return true;
+    }
+    // 2. Booleano explícitamente en false
+    if (data.vip === false || data.isVip === false || data.vipActive === false || data.bypassPurchased === false) {
+        return false;
+    }
+    // 3. Estructura de mapa vip: { active: true }
+    if (data.vip && typeof data.vip === 'object') {
+        if (data.vip.active === true || data.vip.status === 'confirmed') return true;
+        if (data.vip.active === false) return false;
+    }
+    return false;
+}
+
+/**
+ * Función de Administrador: Activa o desactiva el VIP de un usuario individual en Firestore
+ * Guarda el booleano 'vip: true' o 'vip: false' en users/{uid}
+ */
+export async function setUserVipStatus(targetUid, active) {
+    if (!targetUid || typeof targetUid !== 'string' || !targetUid.trim()) {
+        throw new Error("Debes proporcionar un UID de usuario válido.");
+    }
+    const cleanUid = targetUid.trim();
+    const boolVal = Boolean(active);
+    const userDocRef = doc(db, 'users', cleanUid);
+    
+    await setDoc(userDocRef, {
+        vip: boolVal,
+        updatedAt: Date.now()
+    }, { merge: true });
+
+    console.log(`👑 Admin: Estado VIP de ${cleanUid} guardado como: ${boolVal}`);
+    return true;
 }
 
 /**
@@ -149,17 +198,19 @@ export function setupFirestoreVipListener(uid) {
         firestoreUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                if (data && data.vip && data.vip.active === true) {
+                const hasVip = isIndividualVipActive(data);
+                if (hasVip) {
+                    const vipObj = (data.vip && typeof data.vip === 'object') ? data.vip : {};
                     currentVipState = {
                         active: true,
-                        productId: data.vip.productId || 'mathquest-vip',
-                        productName: data.vip.productName || 'MathQuest VIP - Acceso Total',
-                        purchasedAt: data.vip.purchasedAt || null,
-                        amount: data.vip.amount !== undefined ? data.vip.amount : 4.90,
-                        currency: data.vip.currency || 'PEN',
-                        method: data.vip.method || 'yape_manual',
-                        status: data.vip.status || 'confirmed',
-                        environment: data.vip.environment || 'manual',
+                        productId: vipObj.productId || 'mathquest-vip',
+                        productName: vipObj.productName || 'MathQuest VIP - Acceso Total',
+                        purchasedAt: vipObj.purchasedAt || null,
+                        amount: vipObj.amount !== undefined ? vipObj.amount : 4.90,
+                        currency: vipObj.currency || 'PEN',
+                        method: vipObj.method || 'admin_grant',
+                        status: vipObj.status || 'confirmed',
+                        environment: vipObj.environment || 'firestore',
                         isLegacyLocal: false
                     };
                 } else {

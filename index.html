@@ -2077,6 +2077,41 @@
                     <strong id="auth-stat-vip">Estándar</strong>
                 </div>
 
+                <!-- Panel de Administrador: Gestión de VIP por Usuario -->
+                <div id="admin-vip-panel" class="admin-vip-panel hidden" style="margin-top: 14px; padding: 12px; background: rgba(245, 158, 11, 0.08); border: 1px dashed #f59e0b; border-radius: 10px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="font-weight: 800; color: #f59e0b; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
+                            👑 Control Administrador VIP
+                        </span>
+                        <span id="admin-badge-role" style="font-size: 0.7rem; background: #f59e0b; color: #000; font-weight: 700; padding: 2px 6px; border-radius: 4px;">ADMIN</span>
+                    </div>
+
+                    <!-- 1. Alternar VIP en tu propia cuenta -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                        <span style="font-size: 0.85rem; color: #e2e8f0;">Tu cuenta actual:</span>
+                        <button id="btn-admin-toggle-self-vip" class="btn btn-sm btn-primary" type="button" style="padding: 5px 12px; font-size: 0.8rem; font-weight: 700;">
+                            Alternar VIP
+                        </button>
+                    </div>
+
+                    <!-- 2. Activar/Desactivar VIP a otro usuario por UID -->
+                    <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px;">
+                        Activar o desactivar a cualquier usuario (UID de Firestore):
+                    </div>
+                    <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+                        <input type="text" id="admin-target-uid-input" placeholder="Pega el UID del usuario..." class="auth-input" style="font-size: 0.8rem; padding: 6px 10px; flex: 1; min-height: 36px;" />
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <button id="btn-admin-activate-user-vip" class="btn btn-sm btn-success" type="button" style="flex: 1; padding: 6px 8px; font-size: 0.75rem; font-weight: 700; background: #10b981; border: none; color: #fff;">
+                            ⭐ Activar VIP
+                        </button>
+                        <button id="btn-admin-deactivate-user-vip" class="btn btn-sm btn-danger" type="button" style="flex: 1; padding: 6px 8px; font-size: 0.75rem; font-weight: 700; background: #ef4444; border: none; color: #fff;">
+                            ❌ Desactivar VIP
+                        </button>
+                    </div>
+                    <div id="admin-action-feedback" style="font-size: 0.75rem; margin-top: 8px; text-align: center; min-height: 16px; font-weight: 600;"></div>
+                </div>
+
                 <!-- Botones de Acción de Usuario Autenticado -->
                 <div class="auth-profile-actions">
                     <button id="btn-auth-logout" class="btn btn-danger w-100" type="button">

@@ -2,44 +2,50 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Función de seguridad: Impide que el cliente pueda autootorgarse VIP activo
+    // Función para identificar al administrador del juego
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'yeanfranco44@gmail.com'
+      );
+    }
+
+    // Función de seguridad: Impide que jugadores regulares puedan autootorgarse VIP
     function vipUnchanged() {
       // Si la petición no incluye el campo 'vip', está permitida
       return (!('vip' in request.resource.data)) ||
-             // Si ya existe 'vip' en el documento, su valor no puede ser modificado por el cliente
+             // Si ya existía 'vip' en el documento, su valor se mantiene idéntico (sea booleano o mapa)
              (resource != null && 'vip' in resource.data && request.resource.data.vip == resource.data.vip) ||
-             // Si es un documento nuevo o no tenía 'vip', 'active' no puede ser 'true'
+             // Si es false explícito (desactivado)
+             (request.resource.data.vip == false) ||
+             // Si es un mapa nuevo, 'active' no puede ser true
              ((resource == null || !('vip' in resource.data)) && (!('active' in request.resource.data.vip) || request.resource.data.vip.active == false));
     }
 
     match /users/{userId} {
-      // El usuario puede leer su propio perfil y estado VIP
-      allow read: if request.auth != null && request.auth.uid == userId;
+      // El usuario puede leer su propio perfil y el administrador puede leer cualquier perfil
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
       
-      // El cliente solo puede guardar su progreso si NO altera el estado VIP
-      allow create: if request.auth != null && request.auth.uid == userId && vipUnchanged();
-      allow update: if request.auth != null && request.auth.uid == userId && vipUnchanged();
-      allow delete: if false;
+      // El administrador puede crear o actualizar cualquier usuario (incluyendo activar/desactivar VIP)
+      // Los jugadores regulares solo pueden guardar su propio progreso si no alteran el VIP
+      allow create: if request.auth != null && (isAdmin() || (request.auth.uid == userId && vipUnchanged()));
+      allow update: if request.auth != null && (isAdmin() || (request.auth.uid == userId && vipUnchanged()));
+      allow delete: if isAdmin();
     }
     
     match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
     }
 
-    // Configuración global compartida (ej: VIP global administrado desde Firebase Console)
-    // Cualquier cliente puede leer la configuración del juego.
-    // NINGÚN cliente desde el navegador puede escribir ni modificar esta configuración (solo Administrador vía Consola).
+    // Configuración global compartida
     match /config/{configDoc} {
       allow read: if true;
-      allow write: if false;
+      allow write: if isAdmin();
     }
 
-    // Colección de comprobantes de pago:
-    // Los usuarios solo pueden consultar sus propios pagos.
-    // NINGÚN cliente puede crear, editar o borrar pagos directamente (solo backend/Admin autorizado)
+    // Colección de comprobantes de pago
     match /payments/{paymentId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.uid;
-      allow write: if false;
+      allow read: if request.auth != null && (request.auth.uid == resource.data.uid || isAdmin());
+      allow write: if isAdmin();
     }
   }
 }

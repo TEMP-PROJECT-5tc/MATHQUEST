@@ -545,6 +545,27 @@ function renderAuthenticatedProfile(user) {
             vip.style.color = 'inherit';
         }
     }
+
+    // Gestión del Panel de Administrador VIP (yeanfranco44@gmail.com)
+    const adminPanel = document.getElementById('admin-vip-panel');
+    const isAdmin = Boolean(user && user.email === 'yeanfranco44@gmail.com');
+    if (adminPanel) {
+        if (isAdmin) {
+            adminPanel.classList.remove('hidden');
+            const hasMyVip = Boolean(
+                (window.MathQuestVIP && typeof window.MathQuestVIP.isIndividualVip === 'function' && window.MathQuestVIP.isIndividualVip()) ||
+                s.isRealVip
+            );
+            const btnSelfToggle = document.getElementById('btn-admin-toggle-self-vip');
+            if (btnSelfToggle) {
+                btnSelfToggle.textContent = hasMyVip ? '❌ Desactivar mi VIP' : '⭐ Activar mi VIP';
+                btnSelfToggle.style.background = hasMyVip ? '#ef4444' : '#10b981';
+                btnSelfToggle.style.color = '#ffffff';
+            }
+        } else {
+            adminPanel.classList.add('hidden');
+        }
+    }
 }
 
 /**
@@ -720,6 +741,75 @@ function setupAuthEventListeners() {
         showToast('✓ ¡Progreso sincronizado en la nube!');
         if (btn) btn.disabled = false;
     });
+
+    // Controles de Administrador VIP (yeanfranco44@gmail.com)
+    const btnSelfToggle = document.getElementById('btn-admin-toggle-self-vip');
+    if (btnSelfToggle) {
+        btnSelfToggle.addEventListener('click', async () => {
+            if (!currentUser) return;
+            const hasMyVip = Boolean(
+                (window.MathQuestVIP && typeof window.MathQuestVIP.isIndividualVip === 'function' && window.MathQuestVIP.isIndividualVip()) ||
+                window.state?.isRealVip
+            );
+            btnSelfToggle.disabled = true;
+            btnSelfToggle.textContent = 'Guardando...';
+            try {
+                if (window.MathQuestVIP?.setUserVipStatus) {
+                    await window.MathQuestVIP.setUserVipStatus(currentUser.uid, !hasMyVip);
+                }
+                const feedback = document.getElementById('admin-action-feedback');
+                if (feedback) {
+                    feedback.textContent = `Tu VIP fue ${!hasMyVip ? 'ACTIVADO ⭐' : 'DESACTIVADO ❌'}`;
+                    feedback.style.color = !hasMyVip ? '#10b981' : '#f59e0b';
+                }
+            } catch (err) {
+                alert("Error al actualizar VIP: " + err.message);
+            } finally {
+                btnSelfToggle.disabled = false;
+                updateModalUserInfo(currentUser);
+            }
+        });
+    }
+
+    const btnActivate = document.getElementById('btn-admin-activate-user-vip');
+    const btnDeactivate = document.getElementById('btn-admin-deactivate-user-vip');
+    const uidInput = document.getElementById('admin-target-uid-input');
+    const feedback = document.getElementById('admin-action-feedback');
+
+    async function handleTargetUserVip(active) {
+        const targetUid = uidInput?.value?.trim();
+        if (!targetUid) {
+            alert("Por favor introduce el UID del usuario.");
+            return;
+        }
+        if (btnActivate) btnActivate.disabled = true;
+        if (btnDeactivate) btnDeactivate.disabled = true;
+        if (feedback) {
+            feedback.textContent = 'Actualizando en Firestore...';
+            feedback.style.color = '#94a3b8';
+        }
+        try {
+            if (window.MathQuestVIP?.setUserVipStatus) {
+                await window.MathQuestVIP.setUserVipStatus(targetUid, active);
+            }
+            if (feedback) {
+                feedback.textContent = `✓ Usuario ${targetUid.slice(0, 10)}... VIP ${active ? 'ACTIVADO ⭐' : 'DESACTIVADO ❌'}`;
+                feedback.style.color = active ? '#10b981' : '#ef4444';
+            }
+            if (uidInput) uidInput.value = '';
+        } catch (err) {
+            if (feedback) {
+                feedback.textContent = 'Error: ' + err.message;
+                feedback.style.color = '#ef4444';
+            }
+        } finally {
+            if (btnActivate) btnActivate.disabled = false;
+            if (btnDeactivate) btnDeactivate.disabled = false;
+        }
+    }
+
+    if (btnActivate) btnActivate.addEventListener('click', () => handleTargetUserVip(true));
+    if (btnDeactivate) btnDeactivate.addEventListener('click', () => handleTargetUserVip(false));
 
     // Cerrar sesión
     document.getElementById('btn-auth-logout')?.addEventListener('click', () => {
