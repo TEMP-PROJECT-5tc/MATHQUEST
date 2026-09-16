@@ -1,0 +1,59 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Perfil de usuario y progreso en MathQuest",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "vip": {
+          "type": "object",
+          "description": "Estado VIP individual confirmado por el administrador"
+        },
+        "progression": { "type": "object" },
+        "customization": { "type": "object" },
+        "inventory": { "type": "object" },
+        "settings": { "type": "object" }
+      },
+      "required": ["uid"]
+    },
+    "GlobalConfig": {
+      "title": "GlobalConfig",
+      "description": "Configuración global compartida del sistema MathQuest",
+      "type": "object",
+      "properties": {
+        "globalVipActive": {
+          "type": "boolean",
+          "description": "Interruptor maestro para habilitar acceso VIP a todos los usuarios desde Firebase Console"
+        }
+      }
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Registro de comprobante de pago",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["uid", "amount", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Documentos privados de progreso y estado VIP por usuario"
+    },
+    "/config/{configDoc}": {
+      "schema": "GlobalConfig",
+      "description": "Documentos compartidos de configuración global del juego (solo editables por Administrador)"
+    },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Registros de compras y comprobantes de usuarios"
+    }
+  }
+}

@@ -158,16 +158,8 @@ function loadStateFromStorage() {
             }
 
             state.vipBypassPurchased = localStorage.getItem(STORAGE_PREFIX + 'vip_bypass_purchased') === 'true';
-            if (state.vipBypassPurchased) {
-                // Asegurar los 55 niveles para cuentas con Pase VIP adquirido
-                const allGames = ['snake', 'slider', 'rush', 'tetris', 'arkanoid', 'builder', 'sudoku', 'ahorcado', 'tres', 'escape', 'duel'];
-                allGames.forEach(g => {
-                    for (let l = 1; l <= 5; l++) {
-                        const k = `${g}-${l}`;
-                        if (!state.unlockedLevels.includes(k)) state.unlockedLevels.push(k);
-                    }
-                });
-            }
+            // El desbloqueo visual y de juego para VIP (global o individual) es dinámico mediante renderDuolingoPath()
+            // para no contaminar permanentemente el progreso guardado si el acceso global se desactiva.
 
             const savedInventory = localStorage.getItem(STORAGE_PREFIX + 'inventory');
             if (savedInventory) {
@@ -1448,12 +1440,16 @@ function updateHeaderStats() {
 
 function renderDuolingoPath() {
     const nodes = document.querySelectorAll('.path-node');
+    const hasVip = (window.MathQuestVIP && typeof window.MathQuestVIP.checkVipStatus === 'function')
+        ? window.MathQuestVIP.checkVipStatus()
+        : (Boolean(state.isRealVip && state.vipBypassPurchased) || Boolean(state.isGlobalVip));
+
     nodes.forEach(node => {
         const game = node.getAttribute('data-game');
         const level = node.getAttribute('data-level');
         const nodeKey = `${game}-${level}`;
 
-        const isUnlocked = state.unlockedLevels.includes(nodeKey);
+        const isUnlocked = hasVip || (Array.isArray(state.unlockedLevels) && state.unlockedLevels.includes(nodeKey));
         
         if (isUnlocked) {
             node.classList.remove('locked');

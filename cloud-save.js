@@ -162,8 +162,8 @@ export function formatProgressData(user = null) {
             musicTrack: s.musicTrack || 'arcade'
         },
         security: {
-            // Nota arquitectónica: Flag de compatibilidad con versiones previas
-            vipBypassPurchased: Boolean(s.vipBypassPurchased)
+            // Nota arquitectónica: Flag de compatibilidad con versiones previas (solo individual)
+            vipBypassPurchased: Boolean(s.isRealVip || (s.vipBypassPurchased && !s.isGlobalVip))
         },
         updatedAt: Date.now(),
         clientVersion: 'MathQuest-V3.2'
@@ -191,10 +191,11 @@ export function reconcileAndMerge(cloudData, localState) {
     const cloudSec = cloudData.security || {};
     const cloudSet = cloudData.settings || {};
 
-    // Fuente de Verdad VIP: Firestore (escrito exclusivamente por backend autorizado)
+    // Fuente de Verdad VIP: Firestore (escrito exclusivamente por backend/administrador autorizado)
     const cloudVip = cloudData.vip || {};
     const isCloudVipActive = Boolean(cloudVip.active === true);
-    const localLegacyBypass = Boolean(localState.vipBypassPurchased);
+    const isGlobalVipActive = Boolean(window.MathQuestVIP?.isGlobalVip?.() || window.state?.isGlobalVip);
+    const localLegacyBypass = Boolean(localState.vipBypassPurchased && !localState.isGlobalVip);
 
     if (isCloudVipActive) {
         cachedUserVip = cloudVip;
@@ -227,8 +228,8 @@ export function reconcileAndMerge(cloudData, localState) {
     const mergedShield = Math.max(Number(localState.inventory?.shield) || 0, Number(cloudInv.shield) || 0);
     const mergedFreeze = Math.max(Number(localState.inventory?.freeze) || 0, Number(cloudInv.freeze) || 0);
 
-    // Membresía VIP: Si la nube lo confirma, es VIP Real. Si solo estaba localmente, se mantiene como bypass compatible
-    const hasVipAccess = isCloudVipActive || localLegacyBypass;
+    // Membresía VIP: Si la nube individual lo confirma, es VIP Real. Si el VIP Global está activo, concede acceso
+    const hasVipAccess = isCloudVipActive || isGlobalVipActive || localLegacyBypass;
 
     return {
         streak: mergedStreak,
@@ -245,6 +246,7 @@ export function reconcileAndMerge(cloudData, localState) {
         unlockedAchievements: mergedAchievements,
         vipBypassPurchased: hasVipAccess,
         isRealVip: isCloudVipActive,
+        isGlobalVip: isGlobalVipActive,
         vip: cachedUserVip || { active: false, productId: 'mathquest-vip' },
         inventory: {
             shield: mergedShield,
@@ -284,7 +286,10 @@ function applyMergedStateToApp(mergedState) {
         localStorage.setItem(STORAGE_PREFIX + 'equipped_badge', window.state.equippedBadge);
         localStorage.setItem(STORAGE_PREFIX + 'unlocked_skins', JSON.stringify(window.state.unlockedSkins));
         localStorage.setItem(STORAGE_PREFIX + 'unlocked_levels', JSON.stringify(window.state.unlockedLevels));
-        localStorage.setItem(STORAGE_PREFIX + 'vip_bypass_purchased', window.state.vipBypassPurchased);
+        // Persistir vip_bypass_purchased como 'true' solo si el usuario tiene VIP individual confirmado o bypass local legacy
+        // NUNCA persistir VIP Global como compra local individual
+        const persistVip = Boolean(window.state.isRealVip || (localLegacyBypass && !window.state.isGlobalVip));
+        localStorage.setItem(STORAGE_PREFIX + 'vip_bypass_purchased', persistVip);
         localStorage.setItem(STORAGE_PREFIX + 'inventory', JSON.stringify(window.state.inventory));
     } catch (e) {
         console.warn("Aviso al persistir estado reconciliado en localStorage:", e);

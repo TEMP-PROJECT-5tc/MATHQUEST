@@ -531,9 +531,12 @@ function renderAuthenticatedProfile(user) {
     if (streak) streak.textContent = `${s.streak || 1} días`;
     if (coins) coins.textContent = s.coins || 150;
     if (vip) {
-        if (window.MathQuestVIP?.checkVipStatus?.() || s.isRealVip) {
+        if (s.isRealVip || (window.MathQuestVIP && typeof window.MathQuestVIP.isIndividualVip === 'function' && window.MathQuestVIP.isIndividualVip())) {
             vip.textContent = '⭐ VIP Confirmado (Nube)';
             vip.style.color = '#10b981';
+        } else if (s.isGlobalVip || (window.MathQuestVIP && typeof window.MathQuestVIP.isGlobalVip === 'function' && window.MathQuestVIP.isGlobalVip())) {
+            vip.textContent = '🌐 VIP Global Activo (Todos)';
+            vip.style.color = '#3b82f6';
         } else if (s.vipBypassPurchased) {
             vip.textContent = '👑 VIP Local (Sin vincular)';
             vip.style.color = '#f59e0b';

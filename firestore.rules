@@ -26,6 +26,14 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Configuración global compartida (ej: VIP global administrado desde Firebase Console)
+    // Cualquier cliente puede leer la configuración del juego.
+    // NINGÚN cliente desde el navegador puede escribir ni modificar esta configuración (solo Administrador vía Consola).
+    match /config/{configDoc} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Colección de comprobantes de pago:
     // Los usuarios solo pueden consultar sus propios pagos.
     // NINGÚN cliente puede crear, editar o borrar pagos directamente (solo backend/Admin autorizado)

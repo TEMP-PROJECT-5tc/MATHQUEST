@@ -40,7 +40,9 @@ let currentVipState = {
     isLegacyLocal: false
 };
 
+let isGlobalVipActive = false;
 let firestoreUnsubscribe = null;
+let globalFirestoreUnsubscribe = null;
 
 /**
  * Formatear número de teléfono para visualización clara (ej: 987 654 321)
@@ -55,10 +57,13 @@ function formatPhoneForDisplay(phone) {
 }
 
 /**
- * Inicializar el sistema de pagos manual VIP
+ * Inicializar el sistema de pagos manual VIP y listeners de estado
  */
 export async function initVipPaymentSystem() {
-    console.log("👑 Inicializando sistema MathQuest VIP (Pago Manual Yape)...");
+    console.log("👑 Inicializando sistema MathQuest VIP (Pago Manual Yape y Control Global)...");
+
+    // Iniciar listener en tiempo real de la configuración global
+    setupFirestoreGlobalVipListener();
 
     // Renderizar tarjeta VIP en la tienda
     renderShopVipCard();
@@ -81,17 +86,55 @@ export async function initVipPaymentSystem() {
         openCheckoutModal,
         closeCheckoutModal,
         checkVipStatus,
+        isGlobalVip,
+        isIndividualVip,
         renderShopVipCard,
         setupFirestoreVipListener,
+        setupFirestoreGlobalVipListener,
         teardownFirestoreVipListener,
-        getVipState: () => ({ ...currentVipState }),
+        getVipState: () => ({ ...currentVipState, isGlobal: isGlobalVipActive }),
         config: VIP_CONFIG
     };
 }
 
 /**
+ * Escuchar cambios en la configuración global compartida en config/global
+ * Permite activar o desactivar el VIP para todos los usuarios en tiempo real desde Firebase Console
+ */
+export function setupFirestoreGlobalVipListener() {
+    if (globalFirestoreUnsubscribe) {
+        globalFirestoreUnsubscribe();
+        globalFirestoreUnsubscribe = null;
+    }
+
+    try {
+        const globalDocRef = doc(db, 'config', 'global');
+        globalFirestoreUnsubscribe = onSnapshot(globalDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                // Soporta globalVipActive, vipGlobalActive o globalVip
+                isGlobalVipActive = Boolean(
+                    data && (data.globalVipActive === true || data.vipGlobalActive === true || data.globalVip === true)
+                );
+            } else {
+                isGlobalVipActive = false;
+            }
+
+            console.log(`🌐 MathQuest VIP Global: ${isGlobalVipActive ? 'ACTIVADO' : 'INACTIVO'}`);
+            updateEffectiveVipState();
+        }, (err) => {
+            console.warn("Aviso en listener de VIP Global:", err.message);
+            isGlobalVipActive = false;
+            updateEffectiveVipState();
+        });
+    } catch (e) {
+        console.warn("No se pudo iniciar listener de VIP Global:", e.message);
+    }
+}
+
+/**
  * Escuchar cambios en Firestore en tiempo real para users/{uid}
- * Cuando el administrador activa el VIP en Firestore, la app se actualiza al instante.
+ * Cuando el administrador activa el VIP individual en Firestore, la app se actualiza al instante.
  */
 export function setupFirestoreVipListener(uid) {
     if (firestoreUnsubscribe) {
@@ -119,12 +162,9 @@ export function setupFirestoreVipListener(uid) {
                         environment: data.vip.environment || 'manual',
                         isLegacyLocal: false
                     };
-
-                    // Aplicar estado VIP al juego
-                    applyConfirmedVipToApp();
                 } else {
                     // Verificar si tenía bypass local legacy
-                    const isLocalBypass = Boolean(window.state && window.state.vipBypassPurchased);
+                    const isLocalBypass = Boolean(window.state && window.state.vipBypassPurchased && !window.state.isGlobalVip);
                     currentVipState = {
                         active: false,
                         productId: 'mathquest-vip',
@@ -137,8 +177,7 @@ export function setupFirestoreVipListener(uid) {
                     };
                 }
             }
-            renderShopVipCard();
-            updateHeaderVipBadge();
+            updateEffectiveVipState();
         }, (err) => {
             console.warn("Aviso en listener de Firestore VIP:", err.message);
         });
@@ -148,14 +187,14 @@ export function setupFirestoreVipListener(uid) {
 }
 
 /**
- * Desconectar listener al cerrar sesión
+ * Desconectar listener de usuario al cerrar sesión
  */
 export function teardownFirestoreVipListener() {
     if (firestoreUnsubscribe) {
         firestoreUnsubscribe();
         firestoreUnsubscribe = null;
     }
-    const isLocalBypass = Boolean(window.state && window.state.vipBypassPurchased);
+    const isLocalBypass = Boolean(window.state && window.state.vipBypassPurchased && !window.state.isGlobalVip);
     currentVipState = {
         active: false,
         productId: 'mathquest-vip',
@@ -166,37 +205,27 @@ export function teardownFirestoreVipListener() {
         status: 'none',
         isLegacyLocal: isLocalBypass
     };
-    renderShopVipCard();
-    updateHeaderVipBadge();
+    updateEffectiveVipState();
 }
 
 /**
- * Aplicar estado VIP confirmado por Firestore a la aplicación MathQuest
+ * Actualizar el estado VIP unificado en la aplicación
+ * Regla: Acceso VIP = VIP Global activo O VIP individual confirmado
  */
-function applyConfirmedVipToApp() {
+export function updateEffectiveVipState() {
+    const hasVip = isGlobalVipActive || currentVipState.active;
+
     if (!window.state) window.state = {};
-    window.state.vipBypassPurchased = true;
-    window.state.isRealVip = true;
-    window.state.vip = { ...currentVipState };
+    window.state.vipBypassPurchased = hasVip || Boolean(currentVipState.isLegacyLocal);
+    window.state.isRealVip = currentVipState.active === true;
+    window.state.isGlobalVip = isGlobalVipActive === true;
+    window.state.vip = {
+        ...currentVipState,
+        active: currentVipState.active,
+        isGlobal: isGlobalVipActive
+    };
 
-    // Desbloquear todos los 55 niveles de los 11 juegos
-    const games = ['snake', 'slider', 'rush', 'tetris', 'arkanoid', 'builder', 'sudoku', 'ahorcado', 'tres', 'escape', 'duel'];
-    if (!Array.isArray(window.state.unlockedLevels)) {
-        window.state.unlockedLevels = [];
-    }
-
-    games.forEach(g => {
-        for (let l = 1; l <= 5; l++) {
-            const key = `${g}-${l}`;
-            if (!window.state.unlockedLevels.includes(key)) {
-                window.state.unlockedLevels.push(key);
-            }
-        }
-    });
-
-    if (typeof window.saveStateToStorage === 'function') {
-        window.saveStateToStorage();
-    }
+    // Actualizar interfaz del juego sin recargar
     if (typeof window.updateHeaderStats === 'function') {
         window.updateHeaderStats();
     }
@@ -205,6 +234,18 @@ function applyConfirmedVipToApp() {
     }
     renderShopVipCard();
     updateHeaderVipBadge();
+
+    // Actualizar modal de cuenta si está visible
+    if (window.MathQuestAuth?.updateModalStats) {
+        window.MathQuestAuth.updateModalStats(window.state);
+    }
+}
+
+/**
+ * Aplicar estado VIP confirmado por Firestore a la aplicación MathQuest
+ */
+function applyConfirmedVipToApp() {
+    updateEffectiveVipState();
 }
 
 /**
@@ -219,13 +260,21 @@ function updateHeaderVipBadge() {
         btnVipHeader.style.background = "linear-gradient(135deg, #10b981 0%, #059669 100%)";
         btnVipHeader.style.borderColor = "#047857";
         btnVipHeader.style.boxShadow = "0 0 12px rgba(16, 185, 129, 0.4)";
+    } else if (isGlobalVipActive) {
+        btnVipHeader.innerHTML = "🌐 VIP Global";
+        btnVipHeader.style.background = "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)";
+        btnVipHeader.style.borderColor = "#1e40af";
+        btnVipHeader.style.boxShadow = "0 0 12px rgba(37, 99, 235, 0.4)";
     } else if (currentVipState.isLegacyLocal) {
         btnVipHeader.innerHTML = "👑 VIP Local";
         btnVipHeader.style.background = "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)";
         btnVipHeader.style.borderColor = "#b45309";
+        btnVipHeader.style.boxShadow = "none";
     } else {
         btnVipHeader.innerHTML = "👑 VIP";
         btnVipHeader.style.background = "linear-gradient(135deg, #f59e0b 0%, #b45309 100%)";
+        btnVipHeader.style.borderColor = "";
+        btnVipHeader.style.boxShadow = "none";
     }
 }
 
@@ -238,7 +287,7 @@ export function renderShopVipCard() {
 
     const currentUser = auth.currentUser || (window.MathQuestAuth && window.MathQuestAuth.getCurrentUser());
 
-    // Caso 1: Usuario ya tiene VIP confirmado en Firestore
+    // Caso 1: Usuario ya tiene VIP confirmado individualmente en Firestore
     if (currentVipState.active) {
         const dateStr = currentVipState.purchasedAt 
             ? new Date(currentVipState.purchasedAt).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -253,6 +302,23 @@ export function renderShopVipCard() {
                 <div class="vip-active-details">
                     <p>¡Membresía confirmada y vinculada a tu cuenta de MathQuest!</p>
                     <span class="vip-active-meta">Estado: Verificado • Fecha: ${dateStr}</span>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    // Caso 2: Modo VIP Global activado desde Firebase Console
+    if (isGlobalVipActive) {
+        container.innerHTML = `
+            <div class="vip-status-active-badge" style="border-color: #3b82f6;">
+                <div class="vip-active-chip" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
+                    <span>🌐</span>
+                    <strong>VIP GLOBAL ACTIVO</strong>
+                </div>
+                <div class="vip-active-details">
+                    <p>¡Acceso VIP activado para todos los usuarios por el Administrador! Todos los niveles y funciones están disponibles.</p>
+                    <span class="vip-active-meta" style="color: #60a5fa;">Modo: Acceso Global Concedido</span>
                 </div>
             </div>
         `;
@@ -373,6 +439,10 @@ function setupVipUiListeners() {
                 alert("⭐ ¡Ya eres miembro MathQuest VIP! Tu cuenta tiene acceso permanente a todos los 55 niveles y contenidos exclusivos.");
                 return;
             }
+            if (isGlobalVipActive) {
+                alert("🌐 ¡Acceso VIP Global Activo! El Administrador ha habilitado todos los 55 niveles y contenidos VIP para todos los jugadores.");
+                return;
+            }
             openCheckoutModal();
         });
     }
@@ -435,10 +505,24 @@ export function closeCheckoutModal() {
 }
 
 /**
- * Consultar si el usuario actual tiene VIP activo confirmado
+ * Consultar si el VIP global está activo
+ */
+export function isGlobalVip() {
+    return isGlobalVipActive === true;
+}
+
+/**
+ * Consultar si el usuario tiene VIP individual confirmado en Firestore
+ */
+export function isIndividualVip() {
+    return currentVipState.active === true;
+}
+
+/**
+ * Consultar si el usuario actual tiene acceso VIP (Global activo O Individual confirmado)
  */
 export function checkVipStatus() {
-    return currentVipState.active === true;
+    return isGlobalVipActive === true || currentVipState.active === true;
 }
 
 // Auto-inicializar cuando cargue el documento
