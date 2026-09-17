@@ -26,6 +26,14 @@ import {
   getDoc, 
   setDoc,
   updateDoc,
+  collection,
+  query,
+  orderBy,
+  limit,
+  getDocs,
+  where,
+  increment,
+  runTransaction,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
@@ -91,6 +99,14 @@ export {
   getDoc,
   setDoc,
   updateDoc,
+  collection,
+  query,
+  orderBy,
+  limit,
+  getDocs,
+  where,
+  increment,
+  runTransaction,
   serverTimestamp
 };
 

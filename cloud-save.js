@@ -34,6 +34,24 @@ function sanitizeForFirestore(obj) {
 }
 
 /**
+ * Calcula el identificador ISO de la temporada semanal activa (ej. 2026-W38)
+ * @returns {string}
+ */
+export function getActiveSeasonId() {
+    const d = new Date();
+    const target = new Date(d.valueOf());
+    const dayNr = (d.getUTCDay() + 6) % 7;
+    target.setUTCDate(target.getUTCDate() - dayNr + 3);
+    const firstThursday = target.valueOf();
+    target.setUTCMonth(0, 1);
+    if (target.getUTCDay() !== 4) {
+        target.setUTCMonth(0, 1 + ((4 - target.getUTCDay()) + 7) % 7);
+    }
+    const weekNumber = 1 + Math.ceil((firstThursday - target) / 604800000);
+    return `${target.getUTCFullYear()}-W${String(weekNumber).padStart(2, '0')}`;
+}
+
+/**
  * Notificar cambios de estado de sincronización al resto de la aplicación
  * @param {'offline' | 'saving' | 'saved' | 'error' | 'local-only'} status 
  * @param {string} [detail]
@@ -121,7 +139,7 @@ export function formatProgressData(user = null) {
 
     const currentUser = user || window.MathQuestAuth?.getCurrentUser();
 
-    return {
+    const payload = {
         profile: {
             uid: currentUser?.uid || activeUid || '',
             displayName: currentUser?.displayName || 'Aventurero Matemático',
@@ -138,6 +156,10 @@ export function formatProgressData(user = null) {
             globalHints: Number(s.globalHints ?? 2),
             lives: Number(s.lives ?? 3),
             userLevel: Number(s.userLevel) || 1,
+            rankingPoints: Number(s.rankingPoints) || 0,
+            historicRankingPoints: Number(s.historicRankingPoints) || 0,
+            currentSeasonId: s.currentSeasonId || getActiveSeasonId(),
+            rankingStats: s.rankingStats || { bestRank: null, seasonsWon: 0, seasonsParticipated: 0, rewardsClaimedCount: 0 },
             unlockedLevels: Array.isArray(s.unlockedLevels) 
                 ? [...s.unlockedLevels] 
                 : ['snake-1', 'slider-1', 'tetris-1', 'arkanoid-1', 'sudoku-1', 'ahorcado-1', 'tres-1'],
@@ -166,7 +188,7 @@ export function formatProgressData(user = null) {
             vipBypassPurchased: Boolean(s.isRealVip || (s.vipBypassPurchased && !s.isGlobalVip))
         },
         updatedAt: Date.now(),
-        clientVersion: 'MathQuest-V3.2'
+        clientVersion: 'MathQuest-V3.3'
     };
 
     // Si existe información VIP confirmada en la nube, preservarla exactamente para no violar las reglas de Firestore
@@ -228,6 +250,37 @@ export function reconcileAndMerge(cloudData, localState) {
     const mergedCoins = Math.max(Number(localState.coins) || 0, Number(cloudProg.coins) || 0);
     const mergedHints = Math.max(Number(localState.globalHints) || 0, Number(cloudProg.globalHints) || 0);
     const mergedUserLevel = Math.max(Number(localState.userLevel) || 1, Number(cloudProg.userLevel) || 1);
+    // Manejo inteligente de temporadas competitivas
+    const activeSeasonId = getActiveSeasonId();
+    const cloudSeasonId = cloudProg.currentSeasonId || '';
+    const localSeasonId = localState.currentSeasonId || '';
+
+    let localWeeklyPts = Number(localState.rankingPoints) || 0;
+    let cloudWeeklyPts = Number(cloudProg.rankingPoints) || 0;
+    let localHistoricPts = Number(localState.historicRankingPoints) || 0;
+    let cloudHistoricPts = Number(cloudProg.historicRankingPoints) || 0;
+
+    // Si los puntos provienen de una temporada anterior, transferirlos a histórico de forma segura
+    if (cloudSeasonId && cloudSeasonId !== activeSeasonId && cloudWeeklyPts > 0) {
+        cloudHistoricPts += cloudWeeklyPts;
+        cloudWeeklyPts = 0;
+    }
+    if (localSeasonId && localSeasonId !== activeSeasonId && localWeeklyPts > 0) {
+        localHistoricPts += localWeeklyPts;
+        localWeeklyPts = 0;
+    }
+
+    const mergedRankingPoints = Math.max(localWeeklyPts, cloudWeeklyPts);
+    const mergedHistoricRankingPoints = Math.max(localHistoricPts, cloudHistoricPts);
+
+    const mergedRankingStats = {
+        bestRank: (localState.rankingStats?.bestRank && cloudProg.rankingStats?.bestRank) 
+            ? Math.min(localState.rankingStats.bestRank, cloudProg.rankingStats.bestRank)
+            : (localState.rankingStats?.bestRank || cloudProg.rankingStats?.bestRank || null),
+        seasonsWon: Math.max(localState.rankingStats?.seasonsWon || 0, cloudProg.rankingStats?.seasonsWon || 0),
+        seasonsParticipated: Math.max(localState.rankingStats?.seasonsParticipated || 0, cloudProg.rankingStats?.seasonsParticipated || 0),
+        rewardsClaimedCount: Math.max(localState.rankingStats?.rewardsClaimedCount || 0, cloudProg.rankingStats?.rewardsClaimedCount || 0)
+    };
 
     // Inventario: Preservar las cantidades más altas acumuladas
     const mergedShield = Math.max(Number(localState.inventory?.shield) || 0, Number(cloudInv.shield) || 0);
@@ -243,6 +296,10 @@ export function reconcileAndMerge(cloudData, localState) {
         globalHints: mergedHints,
         lives: 3,
         userLevel: mergedUserLevel,
+        rankingPoints: mergedRankingPoints,
+        historicRankingPoints: mergedHistoricRankingPoints,
+        currentSeasonId: activeSeasonId,
+        rankingStats: mergedRankingStats,
         equippedAvatar: ((localState.equippedAvatar === 'cube' ? 'cubo' : localState.equippedAvatar) || (cloudCust.equippedAvatar === 'cube' ? 'cubo' : cloudCust.equippedAvatar)) || 'cubo',
         equippedSkin: localState.equippedSkin || cloudCust.equippedSkin || 'standard',
         equippedBadge: localState.equippedBadge || cloudCust.equippedBadge || '',
@@ -296,6 +353,12 @@ function applyMergedStateToApp(mergedState) {
         const persistVip = Boolean(window.state.isRealVip || (localLegacyBypass && !window.state.isGlobalVip));
         localStorage.setItem(STORAGE_PREFIX + 'vip_bypass_purchased', persistVip);
         localStorage.setItem(STORAGE_PREFIX + 'inventory', JSON.stringify(window.state.inventory));
+        localStorage.setItem(STORAGE_PREFIX + 'ranking_points', window.state.rankingPoints || 0);
+        localStorage.setItem(STORAGE_PREFIX + 'historic_ranking_points', window.state.historicRankingPoints || 0);
+        localStorage.setItem(STORAGE_PREFIX + 'current_season_id', window.state.currentSeasonId || getActiveSeasonId());
+        if (window.state.rankingStats) {
+            localStorage.setItem(STORAGE_PREFIX + 'ranking_stats', JSON.stringify(window.state.rankingStats));
+        }
     } catch (e) {
         console.warn("Aviso al persistir estado reconciliado en localStorage:", e);
     }

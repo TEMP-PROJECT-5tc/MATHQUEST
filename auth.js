@@ -546,6 +546,28 @@ function renderAuthenticatedProfile(user) {
         }
     }
 
+    // Refrescar métricas del Perfil Competitivo de Ranking
+    const rankBadgeEl = document.getElementById('auth-stat-ranking-points-badge');
+    const rankEl = document.getElementById('auth-stat-rank');
+    const bestRankEl = document.getElementById('auth-stat-best-rank');
+    const seasonsEl = document.getElementById('auth-stat-seasons');
+    const seasonsWonEl = document.getElementById('auth-stat-seasons-won');
+    const rewardsClaimedEl = document.getElementById('auth-stat-rewards-claimed');
+
+    const rankingPts = Number(s.rankingPoints) || 0;
+    const stats = s.rankingStats || {};
+
+    if (rankBadgeEl) rankBadgeEl.textContent = `${rankingPts} pts`;
+    if (bestRankEl) bestRankEl.textContent = stats.bestRank ? `#${stats.bestRank}` : 'Sin clasificar';
+    if (seasonsEl) seasonsEl.textContent = stats.seasonsParticipated || 0;
+    if (seasonsWonEl) seasonsWonEl.textContent = `${stats.seasonsWon || 0} 🥇`;
+    if (rewardsClaimedEl) rewardsClaimedEl.textContent = `${stats.rewardsClaimedCount || 0} 🎁`;
+
+    // Posición estimada o actual en ranking semanal
+    if (rankEl) {
+        rankEl.textContent = rankingPts > 0 ? (stats.bestRank ? `#${stats.bestRank}` : '#Top') : 'Sin clasificar';
+    }
+
     // Gestión del Panel de Administrador VIP (yeanfranco44@gmail.com)
     const adminPanel = document.getElementById('admin-vip-panel');
     const isAdmin = Boolean(user && user.email === 'yeanfranco44@gmail.com');

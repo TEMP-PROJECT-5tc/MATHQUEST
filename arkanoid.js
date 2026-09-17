@@ -1033,7 +1033,8 @@
     canvas.addEventListener('mousemove', (e) => {
         if (!isPlaying) return;
         const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
+        const scaleX = rect.width ? (canvas.width / rect.width) : 1;
+        const mouseX = (e.clientX - rect.left) * scaleX;
         paddle.x = mouseX - paddle.width / 2;
         if (paddle.x < 0) paddle.x = 0;
         if (paddle.x + paddle.width > canvas.width) paddle.x = canvas.width - paddle.width;
@@ -1051,7 +1052,8 @@
         if (!isPlaying || !e.touches[0]) return;
         e.preventDefault();
         const rect = canvas.getBoundingClientRect();
-        const touchX = e.touches[0].clientX - rect.left;
+        const scaleX = rect.width ? (canvas.width / rect.width) : 1;
+        const touchX = (e.touches[0].clientX - rect.left) * scaleX;
         paddle.x = touchX - paddle.width / 2;
         if (paddle.x < 0) paddle.x = 0;
         if (paddle.x + paddle.width > canvas.width) paddle.x = canvas.width - paddle.width;

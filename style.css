@@ -46,8 +46,14 @@
     --shadow-premium: 0 8px 30px rgba(15, 23, 42, 0.08);
 }
 
-* {
+html {
     box-sizing: border-box;
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+}
+
+*, *::before, *::after {
+    box-sizing: inherit;
     margin: 0;
     padding: 0;
     transition: background-color 0.25s ease, border-color 0.25s ease;
@@ -58,7 +64,35 @@ body {
     background-color: var(--color-bg);
     color: var(--color-text);
     min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    max-width: 100vw;
     overflow-x: hidden;
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Fluid Canvas Base Rules */
+canvas {
+    max-width: 100%;
+    height: auto;
+}
+
+#slider-canvas,
+#tetris-canvas,
+#snake-canvas,
+#arkanoid-canvas,
+#ahorcado-canvas,
+#rush-canvas,
+#builder-canvas,
+#escape-canvas,
+#duel-canvas {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    box-sizing: border-box;
 }
 
 #confetti-canvas {
@@ -6043,7 +6077,542 @@ body {
     padding-top: 12px;
 }
 
-@media (max-width: 640px) {
+/* ==========================================================================
+   MATHQUEST V3 — ARQUITECTURA RESPONSIVE INTEGRAL & ADAPTABILIDAD MULTIDISPOSITIVO
+   Teléfonos móviles pequeños (<=480px), móviles estándar (<=768px),
+   tablets (768px-1024px), laptops y monitores de escritorio (>1024px).
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. TABLETS Y PANTALLAS MEDIANAS (Max-width: 1024px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+    .app-container {
+        max-width: 95%;
+        padding: 0 16px;
+        margin: 20px auto;
+    }
+
+    .app-header {
+        padding: 12px 20px;
+    }
+
+    .game-layout {
+        grid-template-columns: 260px 1fr;
+        gap: 16px;
+    }
+
+    .shop-items-container {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+
+    .achievements-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+
+    .welcome-info h1 {
+        font-size: 1.85rem;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   2. TELÉFONOS MÓVILES Y TABLETS VERTICALES (Max-width: 768px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+    /* Contenedor y Tarjetas */
+    .app-container {
+        max-width: 100%;
+        margin: 12px auto;
+        padding: 0 clamp(8px, 3vw, 14px);
+    }
+
+    .card {
+        padding: clamp(14px, 3.5vw, 20px);
+        border-radius: 16px;
+        margin-bottom: 16px;
+        border-width: 2px;
+    }
+
+    /* Cabecera / Navegación */
+    .app-header {
+        padding: 10px 12px;
+        flex-wrap: wrap;
+        row-gap: 8px;
+        column-gap: 12px;
+    }
+
+    .logo {
+        font-size: clamp(1.25rem, 4.5vw, 1.55rem);
+        gap: 6px;
+    }
+
+    .logo-mascot-img {
+        width: 32px;
+        height: 32px;
+    }
+
+    .user-stats {
+        order: 3;
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        padding-top: 4px;
+        border-top: 1px solid var(--color-border);
+    }
+
+    .stat-pill {
+        padding: 4px 8px;
+        font-size: 0.8rem;
+        gap: 4px;
+    }
+
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .header-btn {
+        min-width: 38px;
+        min-height: 38px;
+        padding: 6px 10px;
+        font-size: 0.85rem;
+    }
+
+    /* Banner de Bienvenida y Mateo */
+    .welcome-banner {
+        flex-direction: column-reverse;
+        text-align: center;
+        gap: 14px;
+        padding: 18px 14px;
+    }
+
+    .welcome-info h1 {
+        font-size: clamp(1.35rem, 5vw, 1.8rem);
+    }
+
+    .welcome-info p {
+        font-size: clamp(0.85rem, 3vw, 1rem);
+        max-width: 100%;
+    }
+
+    .mateo-mascot-container {
+        width: 120px;
+        margin: 0 auto;
+    }
+
+    .mateo-bubble {
+        position: static;
+        width: auto;
+        max-width: 100%;
+        margin-bottom: 8px;
+        box-shadow: none;
+    }
+
+    .mateo-bubble::after {
+        display: none;
+    }
+
+    .mateo-avatar {
+        width: 68px;
+        height: 68px;
+    }
+
+    /* Racha Semanal */
+    .streak-calendar-header {
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .streak-flame-icon {
+        font-size: 2rem;
+    }
+
+    .streak-info-text h3 {
+        font-size: 1.05rem;
+    }
+
+    .streak-days-grid {
+        gap: 4px;
+        padding: 8px 4px;
+    }
+
+    .streak-day-cell {
+        padding: 6px 2px;
+        border-radius: 8px;
+    }
+
+    .streak-day-cell .day-label {
+        font-size: 0.68rem;
+        margin-bottom: 4px;
+    }
+
+    .streak-day-cell .day-flame {
+        font-size: 1.15rem;
+    }
+
+    /* Selector de Avatares */
+    .avatar-grid {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .avatar-option {
+        width: 60px;
+        height: 60px;
+    }
+
+    /* Pestañas del Hub */
+    .hub-tabs-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        margin-bottom: 18px;
+    }
+
+    #tab-btn-path {
+        grid-column: span 3;
+    }
+
+    .tab-btn {
+        padding: 9px 6px;
+        font-size: 0.86rem;
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    /* Selector de Temas */
+    .topic-selector-container {
+        flex-direction: column;
+        gap: 6px;
+        padding: 6px;
+        margin-bottom: 18px;
+    }
+
+    .topic-selector-btn {
+        padding: 10px;
+        font-size: 0.9rem;
+        text-align: center;
+    }
+
+    /* Ruta Duolingo y Nodos */
+    .duolingo-path {
+        gap: 24px;
+        padding: 14px 0;
+    }
+
+    .path-node {
+        width: 68px;
+        height: 68px;
+        font-size: 1.85rem;
+        border-width: 4px;
+        box-shadow: 0 4px 0 var(--color-border);
+    }
+
+    .node-pos-0 { transform: translateX(-26px); }
+    .node-pos-0:active { transform: translateX(-26px) translateY(3px); }
+
+    .node-pos-1 { transform: translateX(26px); }
+    .node-pos-1:active { transform: translateX(26px) translateY(3px); }
+
+    .node-pos-2 { transform: translateX(-14px); }
+    .node-pos-2:active { transform: translateX(-14px) translateY(3px); }
+
+    .node-pos-3 { transform: translateX(14px); }
+    .node-pos-3:active { transform: translateX(14px) translateY(3px); }
+
+    .node-pos-4 { transform: translateX(0); }
+    .node-pos-4:active { transform: translateY(3px); }
+
+    .node-pos-5 { transform: translateX(-26px); }
+    .node-pos-5:active { transform: translateX(-26px) translateY(3px); }
+
+    /* Layout General de Juegos */
+    .game-layout {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .game-sidebar {
+        order: 2;
+        gap: 12px;
+        padding: 14px 12px;
+    }
+
+    .game-canvas-area {
+        order: 1;
+        min-height: auto;
+        padding: clamp(8px, 2.5vw, 16px);
+        border-radius: 16px;
+    }
+
+    .canvas-container {
+        width: 100%;
+        max-width: 100%;
+        border-width: 3px;
+        border-radius: 12px;
+    }
+
+    /* Canvases Fluidos */
+    canvas,
+    #slider-canvas,
+    #tetris-canvas,
+    #snake-canvas,
+    #arkanoid-canvas,
+    #ahorcado-canvas,
+    #rush-canvas,
+    #builder-canvas,
+    #escape-canvas,
+    #duel-canvas {
+        max-width: 100% !important;
+        height: auto !important;
+        display: block;
+        margin: 0 auto;
+    }
+
+    /* Sudoku 9x9 */
+    .sudoku-container {
+        width: 100%;
+        max-width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .sudoku-board-9x9 {
+        width: 100%;
+        max-width: min(370px, 94vw);
+        aspect-ratio: 1 / 1;
+        grid-template-columns: repeat(9, minmax(0, 1fr));
+        grid-template-rows: repeat(9, minmax(0, 1fr));
+        gap: 1.5px;
+        padding: 3px;
+        border-radius: 10px;
+    }
+
+    .sudoku-cell {
+        aspect-ratio: 1 / 1;
+        font-size: clamp(0.9rem, 3.8vw, 1.25rem);
+    }
+
+    .sudoku-numpad-9x9 {
+        width: 100%;
+        max-width: min(370px, 94vw);
+        gap: 4px;
+    }
+
+    .sudoku-numpad-9x9 .sudoku-num-btn {
+        min-height: 44px;
+        padding: 8px 4px;
+        font-size: 1.05rem;
+    }
+
+    .btn-clear-9x9 {
+        min-height: 42px;
+        font-size: 0.95rem;
+    }
+
+    /* Tres en Raya (Suma 15) */
+    .tres-container {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+    }
+
+    #tres-board {
+        width: 100%;
+        max-width: min(320px, 90vw);
+        aspect-ratio: 1 / 1;
+        gap: 6px;
+    }
+
+    .board-cell {
+        aspect-ratio: 1 / 1;
+        font-size: clamp(1.4rem, 6vw, 2.2rem);
+    }
+
+    .numbers-selector-grid,
+    .tres-num-selector {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+        width: 100%;
+        max-width: 320px;
+        margin: 0 auto;
+    }
+
+    .num-choice-btn,
+    .tres-num-btn {
+        min-height: 44px;
+        font-size: 1.1rem;
+        font-weight: 800;
+        touch-action: manipulation;
+    }
+
+    /* Ahorcado */
+    #ahorcado-canvas {
+        max-width: 180px;
+        height: auto;
+    }
+
+    .ahorcado-word-display {
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: center;
+    }
+
+    .ahorcado-letter-slot {
+        min-width: 28px;
+        height: 38px;
+        font-size: 1.15rem;
+        margin: 2px;
+    }
+
+    .ahorcado-keyboard {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        justify-content: center;
+        max-width: 100%;
+    }
+
+    .ahorcado-key-btn {
+        min-width: 30px;
+        height: 40px;
+        font-size: 0.95rem;
+        padding: 2px;
+        touch-action: manipulation;
+    }
+
+    /* Controles Táctiles (D-Pad) */
+    .touch-controller {
+        margin-top: 10px;
+        gap: 6px;
+    }
+
+    .touch-row {
+        gap: 6px;
+    }
+
+    .ctrl-btn {
+        width: 52px;
+        height: 48px;
+        font-size: 1.15rem;
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    .ctrl-spacer {
+        width: 52px;
+        height: 48px;
+    }
+
+    /* Constructor Matemático */
+    .builder-grid-wrapper {
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 6px;
+    }
+
+    .builder-quarry-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .builder-piece {
+        touch-action: manipulation;
+        padding: 6px 10px;
+        min-width: 60px;
+    }
+
+    /* Math Escape y Duelo */
+    .duel-combat-control-panel {
+        width: 100%;
+    }
+
+    .duel-answers-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .escape-bottom-controls {
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+    }
+
+    /* Modales Universales, Auth y VIP */
+    .modal-overlay {
+        padding: clamp(8px, 2vw, 16px);
+    }
+
+    .modal-card,
+    .payment-modal-card,
+    .account-modal-card,
+    .vip-checkout-card,
+    .streak-modal-card {
+        width: 100%;
+        max-width: min(480px, 96vw);
+        padding: clamp(16px, 4vw, 24px);
+        max-height: 88vh;
+        max-height: 88dvh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 16px;
+    }
+
+    .auth-social-buttons {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    /* Formularios amigables e inputs sin zoom automático en iOS */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="tel"],
+    input[type="number"],
+    select,
+    textarea {
+        font-size: 16px !important;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Tienda y Logros en móvil */
+    .shop-items-container {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .achievements-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .achievement-card {
+        padding: 16px;
+    }
+
+    /* Ajustes */
+    .settings-control-row {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px 0;
+    }
+
+    /* Tarjetas VIP */
     .vip-benefits-grid {
         grid-template-columns: 1fr;
     }
@@ -6057,6 +6626,1149 @@ body {
         width: 100%;
         text-align: center;
     }
+
+    .vip-card-banner {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+
+    .vip-security-row {
+        flex-direction: column;
+        text-align: center;
+        gap: 4px;
+    }
+
+    .vip-phone-number-row {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+
+    .btn-copy-phone {
+        width: 100%;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   3. TELÉFONOS MÓVILES PEQUEÑOS (Max-width: 480px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 480px) {
+    .app-header {
+        padding: 8px 10px;
+    }
+
+    .logo {
+        font-size: 1.25rem;
+    }
+
+    .logo-mascot-img {
+        width: 28px;
+        height: 28px;
+    }
+
+    .user-stats {
+        gap: 4px;
+    }
+
+    .stat-pill {
+        padding: 3px 6px;
+        font-size: 0.76rem;
+    }
+
+    /* Pestañas del Hub en pantallas estrechas */
+    .hub-tabs-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    #tab-btn-path {
+        grid-column: span 2;
+    }
+
+    /* Nodos Duolingo ajustados para que el zig-zag no toque bordes */
+    .path-node {
+        width: 62px;
+        height: 62px;
+        font-size: 1.65rem;
+    }
+
+    .node-pos-0 { transform: translateX(-20px); }
+    .node-pos-0:active { transform: translateX(-20px) translateY(3px); }
+
+    .node-pos-1 { transform: translateX(20px); }
+    .node-pos-1:active { transform: translateX(20px) translateY(3px); }
+
+    .node-pos-2 { transform: translateX(-10px); }
+    .node-pos-2:active { transform: translateX(-10px) translateY(3px); }
+
+    .node-pos-3 { transform: translateX(10px); }
+    .node-pos-3:active { transform: translateX(10px) translateY(3px); }
+
+    .node-pos-4 { transform: translateX(0); }
+
+    .node-pos-5 { transform: translateX(-20px); }
+    .node-pos-5:active { transform: translateX(-20px) translateY(3px); }
+
+    /* Sudoku 9x9 ultra adaptable */
+    .sudoku-board-9x9 {
+        max-width: 96vw;
+        padding: 2px;
+        gap: 1px;
+    }
+
+    .sudoku-cell {
+        font-size: clamp(0.85rem, 3.2vw, 1.1rem);
+    }
+
+    .sudoku-numpad-9x9 {
+        max-width: 96vw;
+    }
+
+    .sudoku-numpad-9x9 .sudoku-num-btn {
+        padding: 6px 2px;
+        font-size: 0.98rem;
+    }
+
+    /* Auth modal botones sociales */
+    .auth-social-buttons {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-tab-btn {
+        padding: 6px 8px;
+        font-size: 0.82rem;
+    }
+
+    /* Botones de acción */
+    .btn {
+        padding: 10px 14px;
+        font-size: 0.92rem;
+    }
+
+    .btn-large {
+        padding: 12px 18px;
+        font-size: 1rem;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   4. ORIENTACIÓN HORIZONTAL EN TELÉFONOS (Landscape)
+   -------------------------------------------------------------------------- */
+@media (max-height: 520px) and (orientation: landscape) {
+    .app-header {
+        position: static;
+        padding: 6px 14px;
+    }
+
+    .app-container {
+        margin: 8px auto;
+    }
+
+    .game-layout {
+        grid-template-columns: 240px 1fr;
+        gap: 12px;
+    }
+
+    .game-sidebar {
+        order: 1;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .game-canvas-area {
+        order: 2;
+    }
+
+    .canvas-container canvas,
+    #slider-canvas,
+    #tetris-canvas,
+    #snake-canvas,
+    #arkanoid-canvas,
+    #rush-canvas,
+    #escape-canvas,
+    #duel-canvas {
+        max-height: 72vh !important;
+        width: auto !important;
+        max-width: 100% !important;
+    }
+
+    .modal-card,
+    .payment-modal-card,
+    .account-modal-card,
+    .vip-checkout-card {
+        max-height: 85vh;
+        max-height: 85dvh;
+        padding: 14px;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   5. DISPOSITIVOS TÁCTILES (Hover: None & Pointer: Coarse)
+   -------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------
+   6. SISTEMA DE RANKING COMPETITIVO GLOBAL
+   -------------------------------------------------------------------------- */
+.ranking-screen-container {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 24px;
+}
+
+/* Banner de Temporada y Cabecera */
+.ranking-season-banner {
+    position: relative;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+    border: 1px solid rgba(250, 204, 21, 0.25);
+    border-radius: 16px;
+    padding: 20px 24px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 15px rgba(250, 204, 21, 0.1);
+    overflow: hidden;
+}
+
+.ranking-season-banner::after {
+    content: '🏆';
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 5rem;
+    opacity: 0.08;
+    pointer-events: none;
+}
+
+.ranking-banner-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.ranking-badge-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.ranking-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ranking-status-pill.online {
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+}
+
+.ranking-status-pill.offline {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.35);
+}
+
+.ranking-countdown-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 6px 14px;
+    border-radius: 24px;
+    font-size: 0.85rem;
+    color: #e2e8f0;
+}
+
+.ranking-countdown-time {
+    font-family: monospace;
+    font-weight: 800;
+    color: #facc15;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+}
+
+.ranking-banner-details h2 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #f8fafc;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ranking-banner-details p {
+    font-size: 0.88rem;
+    color: #94a3b8;
+    line-height: 1.5;
+    max-width: 680px;
+    margin: 0;
+}
+
+/* Selector de Pestaña: Semanal vs Histórico */
+.ranking-nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.ranking-type-toggle {
+    display: inline-flex;
+    background: rgba(15, 23, 42, 0.8);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ranking-toggle-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ranking-toggle-btn.active {
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+
+.ranking-toggle-btn:hover:not(.active) {
+    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.ranking-refresh-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #e2e8f0;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ranking-refresh-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+/* Podio TOP 3 Visual */
+.ranking-podium-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 14px;
+    padding: 24px 12px 8px 12px;
+    margin: 8px 0 16px 0;
+}
+
+.podium-step {
+    flex: 1;
+    max-width: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    transition: transform 0.2s ease;
+}
+
+.podium-step:hover {
+    transform: translateY(-4px);
+}
+
+.podium-crown {
+    font-size: 1.6rem;
+    margin-bottom: 2px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+    animation: floatCrown 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes floatCrown {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-4px); }
+}
+
+.podium-avatar-box {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #1e293b;
+    border: 3px solid #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    position: relative;
+    margin-bottom: 8px;
+    overflow: hidden;
+}
+
+.podium-avatar-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.podium-rank-badge {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.75rem;
+    color: #000;
+    border: 2px solid #0f172a;
+}
+
+/* Primer Lugar (Oro) */
+.podium-step.rank-1 .podium-avatar-box {
+    width: 78px;
+    height: 78px;
+    border-color: #facc15;
+    box-shadow: 0 0 20px rgba(250, 204, 21, 0.4);
+}
+.podium-step.rank-1 .podium-rank-badge {
+    background: #facc15;
+    color: #000;
+}
+.podium-step.rank-1 .podium-pedestal {
+    height: 120px;
+    background: linear-gradient(180deg, rgba(250, 204, 21, 0.25), rgba(250, 204, 21, 0.05));
+    border-top: 3px solid #facc15;
+}
+
+/* Segundo Lugar (Plata) */
+.podium-step.rank-2 .podium-avatar-box {
+    border-color: #cbd5e1;
+    box-shadow: 0 0 15px rgba(203, 213, 225, 0.3);
+}
+.podium-step.rank-2 .podium-rank-badge {
+    background: #cbd5e1;
+    color: #0f172a;
+}
+.podium-step.rank-2 .podium-pedestal {
+    height: 90px;
+    background: linear-gradient(180deg, rgba(203, 213, 225, 0.2), rgba(203, 213, 225, 0.04));
+    border-top: 3px solid #cbd5e1;
+}
+
+/* Tercer Lugar (Bronce) */
+.podium-step.rank-3 .podium-avatar-box {
+    border-color: #d97706;
+    box-shadow: 0 0 15px rgba(217, 119, 6, 0.3);
+}
+.podium-step.rank-3 .podium-rank-badge {
+    background: #d97706;
+    color: #fff;
+}
+.podium-step.rank-3 .podium-pedestal {
+    height: 70px;
+    background: linear-gradient(180deg, rgba(217, 119, 6, 0.2), rgba(217, 119, 6, 0.04));
+    border-top: 3px solid #d97706;
+}
+
+.podium-player-name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 2px;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.podium-player-points {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #facc15;
+    margin-bottom: 8px;
+}
+
+.podium-pedestal {
+    width: 100%;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    padding-top: 8px;
+    color: #94a3b8;
+    font-size: 1.1rem;
+    font-weight: 900;
+}
+
+/* Tabla de Posiciones y Lista */
+.ranking-table-card {
+    background: var(--color-surface, #1e293b);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.ranking-table-header {
+    display: grid;
+    grid-template-columns: 60px 1fr 100px 90px 110px;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ranking-table-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.ranking-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 100px 90px 110px;
+    padding: 12px 16px;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.15s ease;
+    font-size: 0.88rem;
+}
+
+.ranking-row:last-child {
+    border-bottom: none;
+}
+
+.ranking-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.ranking-row.is-current-user {
+    background: rgba(37, 99, 235, 0.12);
+    border-left: 3px solid #3b82f6;
+}
+
+.ranking-row.is-current-user:hover {
+    background: rgba(37, 99, 235, 0.18);
+}
+
+.rank-cell-pos {
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #cbd5e1;
+}
+
+.rank-cell-pos.top-1 { color: #facc15; font-size: 1.05rem; }
+.rank-cell-pos.top-2 { color: #cbd5e1; font-size: 1rem; }
+.rank-cell-pos.top-3 { color: #d97706; font-size: 0.95rem; }
+
+.rank-cell-player {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    overflow: hidden;
+}
+
+.rank-player-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #0f172a;
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.rank-player-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.rank-player-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.rank-player-name {
+    font-weight: 700;
+    color: #f8fafc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rank-you-badge {
+    background: #2563eb;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 8px;
+    text-transform: uppercase;
+}
+
+.rank-cell-level {
+    font-size: 0.82rem;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.rank-cell-wins {
+    font-size: 0.82rem;
+    color: #cbd5e1;
+    font-weight: 600;
+}
+
+.rank-cell-points {
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #facc15;
+    text-align: right;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+/* Tarjeta Fija del Jugador ("Mi Posición") */
+.ranking-user-dock-card {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+    border: 1.5px solid #3b82f6;
+    border-radius: 16px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.ranking-user-dock-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.ranking-user-dock-pos-box {
+    text-align: center;
+    padding: 4px 12px;
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 10px;
+}
+
+.ranking-user-dock-pos-box .label {
+    display: block;
+    font-size: 0.68rem;
+    color: #93c5fd;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.ranking-user-dock-pos-box .val {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #ffffff;
+}
+
+.ranking-user-dock-profile {
+    display: flex;
+    flex-direction: column;
+}
+
+.ranking-user-dock-name {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ranking-user-dock-subtitle {
+    font-size: 0.78rem;
+    color: #94a3b8;
+}
+
+.ranking-user-dock-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.ranking-user-dock-stat {
+    text-align: right;
+}
+
+.ranking-user-dock-stat .label {
+    display: block;
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+.ranking-user-dock-stat .val {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #facc15;
+}
+
+/* Modal de Recompensas de Temporada */
+.ranking-reward-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 16px;
+    animation: fadeInModal 0.25s ease-out;
+}
+
+.ranking-reward-card {
+    background: linear-gradient(145deg, #1e293b, #0f172a);
+    border: 2px solid #facc15;
+    border-radius: 20px;
+    padding: 28px 24px;
+    max-width: 440px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(250, 204, 21, 0.25);
+    position: relative;
+}
+
+.reward-chest-animation {
+    font-size: 4rem;
+    margin-bottom: 12px;
+    animation: bounceChest 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes bounceChest {
+    0% { transform: translateY(0) scale(1); }
+    100% { transform: translateY(-8px) scale(1.05); }
+}
+
+.ranking-reward-card h3 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #f8fafc;
+    margin-bottom: 6px;
+}
+
+.ranking-reward-card p {
+    font-size: 0.88rem;
+    color: #94a3b8;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.reward-prizes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.reward-prize-box {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.reward-prize-icon {
+    font-size: 1.8rem;
+}
+
+.reward-prize-val {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #facc15;
+}
+
+.reward-prize-lbl {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+/* Estados Visuales del Ranking: Cargando, Vacío, Error y Banner Invitado */
+.ranking-state-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    background: var(--color-surface, #1e293b);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    text-align: center;
+    gap: 12px;
+    min-height: 220px;
+}
+
+.ranking-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(255, 255, 255, 0.15);
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.ranking-state-msg {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0;
+}
+
+.ranking-state-sub {
+    font-size: 0.88rem;
+    color: #94a3b8;
+    max-width: 420px;
+    margin: 0;
+}
+
+.ranking-guest-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+    border: 1.5px dashed rgba(59, 130, 246, 0.4);
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+}
+
+.ranking-guest-msg {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #93c5fd;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Adaptación Responsiva para Móviles */
+@media (max-width: 640px) {
+    .ranking-season-banner {
+        padding: 16px;
+    }
+
+    .ranking-banner-details h2 {
+        font-size: 1.15rem;
+    }
+
+    .ranking-podium-wrapper {
+        gap: 8px;
+        padding: 16px 4px 4px 4px;
+    }
+
+    .podium-avatar-box {
+        width: 52px;
+        height: 52px;
+        font-size: 1.4rem;
+    }
+
+    .podium-step.rank-1 .podium-avatar-box {
+        width: 64px;
+        height: 64px;
+    }
+
+    .podium-player-name {
+        font-size: 0.78rem;
+    }
+
+    .podium-player-points {
+        font-size: 0.75rem;
+    }
+
+    .podium-step.rank-1 .podium-pedestal { height: 90px; }
+    .podium-step.rank-2 .podium-pedestal { height: 70px; }
+    .podium-step.rank-3 .podium-pedestal { height: 50px; }
+
+    .ranking-table-header {
+        grid-template-columns: 44px 1fr 85px;
+    }
+
+    .ranking-table-header span:nth-child(3),
+    .ranking-table-header span:nth-child(4) {
+        display: none;
+    }
+
+    .ranking-row {
+        grid-template-columns: 44px 1fr 85px;
+        padding: 10px 12px;
+    }
+
+    .ranking-row .rank-cell-level,
+    .ranking-row .rank-cell-wins {
+        display: none;
+    }
+
+    .ranking-user-dock-card {
+        padding: 12px 14px;
+    }
+
+    .ranking-user-dock-left {
+        gap: 10px;
+    }
+
+    .ranking-user-dock-pos-box .val {
+        font-size: 1.05rem;
+    }
+}
+
+/* Insignias de motivación y diferencia de puntos */
+.ranking-diff-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #93c5fd;
+    white-space: nowrap;
+}
+
+.ranking-diff-badge.leader {
+    background: rgba(250, 204, 21, 0.15);
+    border-color: rgba(250, 204, 21, 0.4);
+    color: #facc15;
+}
+
+/* Tarjeta de Objetivos de Temporada */
+.ranking-objectives-card {
+    background: var(--color-surface, #1e293b);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 16px 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ranking-objectives-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ranking-objectives-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ranking-objectives-progress-tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    padding: 3px 10px;
+    border-radius: 9999px;
+    border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.ranking-objectives-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+}
+
+.ranking-objective-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    font-size: 0.82rem;
+    color: #94a3b8;
+    transition: all 0.2s ease;
+}
+
+.ranking-objective-item.completed {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #f8fafc;
+}
+
+.ranking-objective-check {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: transparent;
+    flex-shrink: 0;
+}
+
+.ranking-objective-item.completed .ranking-objective-check {
+    background: #10b981;
+    border-color: #10b981;
+    color: #ffffff;
+    font-weight: 900;
+}
+
+/* Lista de Historial de Temporadas */
+.ranking-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.ranking-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px 16px;
+    gap: 12px;
+}
+
+.ranking-history-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ranking-history-icon {
+    font-size: 1.8rem;
+}
+
+.ranking-history-season {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #93c5fd;
+    text-transform: uppercase;
+}
+
+.ranking-history-pos {
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: #f8fafc;
+}
+
+.ranking-history-right {
+    text-align: right;
+}
+
+.ranking-history-coins {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #facc15;
+}
+
+.ranking-history-points {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+/* Notificación sutil de motivación */
+.ranking-motivation-toast {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 10000;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
+    border: 1.5px solid #38bdf8;
+    border-radius: 12px;
+    padding: 10px 16px;
+    color: #ffffff;
+    font-size: 0.88rem;
+    font-weight: 700;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transform: translateY(-20px);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ranking-motivation-toast.visible {
+    transform: translateY(0);
+    opacity: 1;
 }
 
 

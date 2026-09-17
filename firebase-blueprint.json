@@ -19,6 +19,24 @@
       },
       "required": ["uid"]
     },
+    "SeasonClaim": {
+      "title": "SeasonClaim",
+      "description": "Registro de recompensa de temporada reclamada por el usuario",
+      "type": "object",
+      "properties": {
+        "seasonId": { "type": "string" },
+        "claimedAt": { "type": "number" },
+        "rank": { "type": "number" },
+        "points": { "type": "number" },
+        "coinsAwarded": { "type": "number" },
+        "tier": { "type": "string" },
+        "tierTitle": { "type": "string" },
+        "badge": { "type": "string" },
+        "badgeName": { "type": "string" },
+        "titleReward": { "type": "string" }
+      },
+      "required": ["seasonId", "claimedAt", "rank", "coinsAwarded", "tier"]
+    },
     "GlobalConfig": {
       "title": "GlobalConfig",
       "description": "Configuración global compartida del sistema MathQuest",
@@ -40,12 +58,46 @@
         "status": { "type": "string" }
       },
       "required": ["uid", "amount", "status"]
+    },
+    "RankingPlayer": {
+      "title": "RankingPlayer",
+      "description": "Registro público de puntuación competitiva de un jugador en el ranking",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "avatar": { "type": "string" },
+        "rankingPoints": { "type": "number" },
+        "levelsCompleted": { "type": "number" },
+        "userLevel": { "type": "number" },
+        "stars": { "type": "number" },
+        "lastUpdated": { "type": "number" },
+        "rewardClaimed": { "type": "boolean" },
+        "badge": { "type": "string" }
+      },
+      "required": ["displayName", "rankingPoints"]
+    },
+    "RankingSeason": {
+      "title": "RankingSeason",
+      "description": "Información y estado de una temporada competitiva",
+      "type": "object",
+      "properties": {
+        "seasonId": { "type": "string" },
+        "name": { "type": "string" },
+        "startDate": { "type": "number" },
+        "endDate": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["seasonId", "startDate", "endDate"]
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "User",
       "description": "Documentos privados de progreso y estado VIP por usuario"
+    },
+    "/users/{userId}/seasonClaims/{seasonId}": {
+      "schema": "SeasonClaim",
+      "description": "Registro de recompensas de temporadas ya reclamadas para prevenir duplicados"
     },
     "/config/{configDoc}": {
       "schema": "GlobalConfig",
@@ -54,6 +106,22 @@
     "/payments/{paymentId}": {
       "schema": "Payment",
       "description": "Registros de compras y comprobantes de usuarios"
+    },
+    "/rankingSeasons/{seasonId}": {
+      "schema": "RankingSeason",
+      "description": "Documento con metadatos de la temporada competitiva"
+    },
+    "/rankingSeasons/{seasonId}/players/{userId}": {
+      "schema": "RankingPlayer",
+      "description": "Registro competitivo público semanal del jugador para la temporada"
+    },
+    "/globalRanking/records/players/{userId}": {
+      "schema": "RankingPlayer",
+      "description": "Registro competitivo público histórico global del jugador"
+    },
+    "/rankingGlobal/{userId}": {
+      "schema": "RankingPlayer",
+      "description": "Colección raíz del ranking global histórico del jugador"
     }
   }
 }

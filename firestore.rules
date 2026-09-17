@@ -31,9 +31,26 @@ service cloud.firestore {
       allow update: if request.auth != null && (isAdmin() || (request.auth.uid == userId && vipUnchanged()));
       allow delete: if isAdmin();
     }
-    
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+
+    // Recompensas de Temporada Reclamadas (Inmutables contra reclamos duplicados)
+    match /users/{userId}/seasonClaims/{seasonId} {
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow create: if request.auth != null && (
+        isAdmin() || (
+          request.auth.uid == userId &&
+          !exists(/databases/$(database)/documents/users/$(userId)/seasonClaims/$(seasonId)) &&
+          request.resource.data.seasonId == seasonId &&
+          request.resource.data.coinsAwarded is number &&
+          (request.resource.data.coinsAwarded in [50, 100, 150, 250, 500, 750, 1000]) &&
+          request.resource.data.rank is number &&
+          request.resource.data.rank >= 1 &&
+          request.resource.data.tier is string &&
+          (request.resource.data.tier in ['top1', 'top2', 'top3', 'top10', 'top25', 'top50', 'participant']) &&
+          (!('email' in request.resource.data)) &&
+          (!('token' in request.resource.data))
+        )
+      );
+      allow update, delete: if isAdmin();
     }
 
     // Configuración global compartida
@@ -46,6 +63,84 @@ service cloud.firestore {
     match /payments/{paymentId} {
       allow read: if request.auth != null && (request.auth.uid == resource.data.uid || isAdmin());
       allow write: if isAdmin();
+    }
+
+    // Reglas de Ranking Semanal y Temporadas
+    match /rankingSeasons/{seasonId} {
+      // Lectura pública de información de la temporada (nombre, fechas, estado)
+      allow read: if true;
+      // Solo el administrador puede crear o modificar temporadas
+      allow write: if isAdmin();
+    }
+
+    match /rankingSeasons/{seasonId}/players/{userId} {
+      // Lectura pública de la tabla de clasificación semanal (sin PII)
+      allow read: if true;
+      
+      // Validación estricta anti-exploit en creación y actualización:
+      // 1. Dueño del registro autenticado o admin
+      // 2. rankingPoints debe ser numérico positivo
+      // 3. Incremento controlado por actualización (anti-hack)
+      // 4. No se permite inclusión de emails, tokens ni credenciales
+      allow create: if request.auth != null && (
+        isAdmin() || (
+          request.auth.uid == userId &&
+          request.resource.data.rankingPoints is number &&
+          request.resource.data.rankingPoints >= 0 &&
+          request.resource.data.rankingPoints <= 100000 &&
+          (!('email' in request.resource.data)) &&
+          (!('token' in request.resource.data))
+        )
+      );
+      allow update: if request.auth != null && (
+        isAdmin() || (
+          request.auth.uid == userId &&
+          request.resource.data.rankingPoints is number &&
+          request.resource.data.rankingPoints >= resource.data.rankingPoints &&
+          request.resource.data.rankingPoints <= resource.data.rankingPoints + 200 &&
+          (!('email' in request.resource.data)) &&
+          (!('token' in request.resource.data))
+        )
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Reglas de Ranking General Histórico (Colección raíz rankingGlobal)
+    match /rankingGlobal/{userId} {
+      allow read: if true;
+      allow create: if request.auth != null && (
+        isAdmin() || (
+          request.auth.uid == userId &&
+          request.resource.data.rankingPoints is number &&
+          request.resource.data.rankingPoints >= 0 &&
+          request.resource.data.rankingPoints <= 1000000 &&
+          (!('email' in request.resource.data))
+        )
+      );
+      allow update: if request.auth != null && (
+        isAdmin() || (
+          request.auth.uid == userId &&
+          request.resource.data.rankingPoints is number &&
+          request.resource.data.rankingPoints >= resource.data.rankingPoints &&
+          request.resource.data.rankingPoints <= resource.data.rankingPoints + 200 &&
+          (!('email' in request.resource.data))
+        )
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Compatibilidad con ruta histórica secundaria
+    match /globalRanking/records/players/{userId} {
+      allow read: if true;
+      allow create, update: if request.auth != null && (
+        isAdmin() || (
+          request.auth.uid == userId &&
+          request.resource.data.rankingPoints is number &&
+          request.resource.data.rankingPoints >= 0 &&
+          (!('email' in request.resource.data))
+        )
+      );
+      allow delete: if isAdmin();
     }
   }
 }

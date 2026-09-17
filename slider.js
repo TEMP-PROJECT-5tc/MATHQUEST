@@ -658,8 +658,10 @@
     // Captura de movimientos del mouse
     canvas.addEventListener('mousemove', (e) => {
         const rect = canvas.getBoundingClientRect();
-        mousePos.x = e.clientX - rect.left;
-        mousePos.y = e.clientY - rect.top;
+        const scaleX = rect.width ? (canvas.width / rect.width) : 1;
+        const scaleY = rect.height ? (canvas.height / rect.height) : 1;
+        mousePos.x = (e.clientX - rect.left) * scaleX;
+        mousePos.y = (e.clientY - rect.top) * scaleY;
     });
 
     canvas.addEventListener('mousedown', () => { isBoosting = true; });
@@ -667,10 +669,13 @@
 
     // Touch móvil
     canvas.addEventListener('touchmove', (e) => {
+        if (!e.touches[0]) return;
         const rect = canvas.getBoundingClientRect();
-        mousePos.x = e.touches[0].clientX - rect.left;
-        mousePos.y = e.touches[0].clientY - rect.top;
-    });
+        const scaleX = rect.width ? (canvas.width / rect.width) : 1;
+        const scaleY = rect.height ? (canvas.height / rect.height) : 1;
+        mousePos.x = (e.touches[0].clientX - rect.left) * scaleX;
+        mousePos.y = (e.touches[0].clientY - rect.top) * scaleY;
+    }, { passive: true });
 
     canvas.addEventListener('touchstart', () => { isBoosting = true; });
     canvas.addEventListener('touchend', () => { isBoosting = false; });

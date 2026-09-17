@@ -6,6 +6,42 @@
    ========================================================================== */
 
 // --------------------------------------------------------------------------
+// Configuración Centralizada de Juegos Ocultos / Desactivados de la Interfaz
+// (Cambio temporal y completamente reversible. Para reactivar cualquiera de estos
+// juegos, simplemente elimínalo de este Set y se mostrará de inmediato).
+// --------------------------------------------------------------------------
+const HIDDEN_GAMES = new Set([
+    'snake',
+    'tetris',
+    'arkanoid'
+]);
+
+function syncHiddenGamesStyles() {
+    if (typeof document === 'undefined') return;
+    let styleEl = document.getElementById('dynamic-hidden-games-style');
+    if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'dynamic-hidden-games-style';
+        document.head.appendChild(styleEl);
+    }
+    if (!HIDDEN_GAMES || HIDDEN_GAMES.size === 0) {
+        styleEl.textContent = '';
+        return;
+    }
+    const selectors = Array.from(HIDDEN_GAMES).map(g => `.path-node[data-game="${g}"], #screen-${g}`).join(', ');
+    styleEl.textContent = `${selectors} { display: none !important; }`;
+}
+
+// Ejecutar sincronización de estilos de forma inmediata
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', syncHiddenGamesStyles);
+    } else {
+        syncHiddenGamesStyles();
+    }
+}
+
+// --------------------------------------------------------------------------
 // 1. Estado Global de la Aplicación
 // --------------------------------------------------------------------------
 const state = {
@@ -21,9 +57,22 @@ const state = {
     equippedAvatar: 'cubo',
     equippedSkin: 'standard',
     equippedBadge: '',
+    unlockedBadges: [],
+    equippedTitle: '',
+    unlockedTitles: [],
     unlockedSkins: ['standard'],
     unlockedLevels: ['snake-1', 'slider-1', 'tetris-1', 'arkanoid-1', 'sudoku-1', 'ahorcado-1', 'tres-1'],
     
+    // Sistema de Ranking Competitivo Global
+    rankingPoints: 0,
+    historicRankingPoints: 0,
+    rankingStats: {
+        bestRank: null,
+        seasonsWon: 0,
+        seasonsParticipated: 0,
+        rewardsClaimedCount: 0
+    },
+
     // VIP Premium Monetización
     vipBypassPurchased: false,
 
@@ -165,6 +214,35 @@ function loadStateFromStorage() {
             if (savedInventory) {
                 state.inventory = JSON.parse(savedInventory);
             }
+
+            // Cargar datos de Ranking Competitivo
+            if (localStorage.getItem(STORAGE_PREFIX + 'ranking_points')) {
+                state.rankingPoints = parseInt(localStorage.getItem(STORAGE_PREFIX + 'ranking_points')) || 0;
+            }
+            if (localStorage.getItem(STORAGE_PREFIX + 'historic_ranking_points')) {
+                state.historicRankingPoints = parseInt(localStorage.getItem(STORAGE_PREFIX + 'historic_ranking_points')) || 0;
+            }
+            if (localStorage.getItem(STORAGE_PREFIX + 'ranking_stats')) {
+                try {
+                    state.rankingStats = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'ranking_stats'));
+                } catch(e) {}
+            }
+            if (localStorage.getItem(STORAGE_PREFIX + 'unlocked_badges')) {
+                try {
+                    state.unlockedBadges = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'unlocked_badges')) || [];
+                } catch(e) {}
+            }
+            if (localStorage.getItem(STORAGE_PREFIX + 'unlocked_titles')) {
+                try {
+                    state.unlockedTitles = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'unlocked_titles')) || [];
+                } catch(e) {}
+            }
+            if (localStorage.getItem(STORAGE_PREFIX + 'equipped_title')) {
+                state.equippedTitle = localStorage.getItem(STORAGE_PREFIX + 'equipped_title') || '';
+            }
+            if (localStorage.getItem(STORAGE_PREFIX + 'current_season_id')) {
+                state.currentSeasonId = localStorage.getItem(STORAGE_PREFIX + 'current_season_id') || '';
+            }
         }
         
         // Cargar Tema
@@ -189,10 +267,19 @@ function saveStateToStorage() {
         localStorage.setItem(STORAGE_PREFIX + 'equipped_avatar', state.equippedAvatar);
         localStorage.setItem(STORAGE_PREFIX + 'equipped_skin', state.equippedSkin);
         localStorage.setItem(STORAGE_PREFIX + 'equipped_badge', state.equippedBadge);
+        localStorage.setItem(STORAGE_PREFIX + 'equipped_title', state.equippedTitle || '');
+        localStorage.setItem(STORAGE_PREFIX + 'unlocked_badges', JSON.stringify(state.unlockedBadges || []));
+        localStorage.setItem(STORAGE_PREFIX + 'unlocked_titles', JSON.stringify(state.unlockedTitles || []));
         localStorage.setItem(STORAGE_PREFIX + 'unlocked_skins', JSON.stringify(state.unlockedSkins));
         localStorage.setItem(STORAGE_PREFIX + 'unlocked_levels', JSON.stringify(state.unlockedLevels));
         localStorage.setItem(STORAGE_PREFIX + 'vip_bypass_purchased', state.vipBypassPurchased);
         localStorage.setItem(STORAGE_PREFIX + 'inventory', JSON.stringify(state.inventory));
+        localStorage.setItem(STORAGE_PREFIX + 'ranking_points', state.rankingPoints || 0);
+        localStorage.setItem(STORAGE_PREFIX + 'historic_ranking_points', state.historicRankingPoints || 0);
+        localStorage.setItem(STORAGE_PREFIX + 'current_season_id', state.currentSeasonId || '');
+        if (state.rankingStats) {
+            localStorage.setItem(STORAGE_PREFIX + 'ranking_stats', JSON.stringify(state.rankingStats));
+        }
 
         // Sincronización automática con la cuenta de Firebase y Cloud Firestore (si está autenticado)
         if (window.MathQuestCloudSave && typeof window.MathQuestCloudSave.triggerDebouncedSave === 'function') {
@@ -899,6 +986,12 @@ function awardCoins(isLevelCompletion, level) {
         state.userLevel++;
     }
 
+    // Otorgar puntos de Ranking Competitivo Global de forma segura y controlada
+    if (isLevelCompletion && window.MathQuestRanking && typeof window.MathQuestRanking.awardLevelPoints === 'function') {
+        const activeGame = state.activeGameScreen || 'general';
+        window.MathQuestRanking.awardLevelPoints(activeGame, level, { isLevelCompletion: true });
+    }
+
     updateHeaderStats();
     saveStateToStorage();
     
@@ -1042,7 +1135,18 @@ const MEDALS_CATALOG = [
     { key: 'geometry_medal', name: 'Medalla Geométrica 📐', desc: 'Otorgada al superar el Nivel 5 de Math-Tetris.', condition: () => state.unlockedLevels.includes('tetris-5') },
     { key: 'arkanoid_medal', name: 'Medalla Rompeladrillos 🚀', desc: 'Otorgada al superar el Nivel 5 de Math-Arkanoid.', condition: () => state.unlockedLevels.includes('arkanoid-5') },
     { key: 'logic_medal', name: 'Medalla de la Lógica 🧠', desc: 'Otorgada al superar el Nivel 5 de Sudoku, Ahorcado y Tres en Raya.', condition: () => state.unlockedLevels.includes('sudoku-5') && state.unlockedLevels.includes('ahorcado-5') && state.unlockedLevels.includes('tres-5') },
-    { key: 'champion_medal', name: 'Campeón MathQuest 🏅', desc: 'Completa absolutamente todos los 55 niveles de la plataforma.', condition: () => state.unlockedLevels.length >= 55 }
+    { key: 'champion_medal', name: 'Campeón MathQuest 🏅', desc: 'Completa absolutamente todos los 55 niveles de la plataforma.', condition: () => state.unlockedLevels.length >= 55 },
+    // Logros Competitivos de Ranking Global
+    { key: 'rank_champion', name: 'Campeón de Temporada 🏆', desc: 'Conquista el puesto #1 en una temporada competitiva.', condition: () => Boolean((state.rankingStats?.seasonsWon && state.rankingStats.seasonsWon >= 1) || state.unlockedBadges?.includes('🏆')) },
+    { key: 'rank_subchampion', name: 'Subcampeón de Temporada 🥈', desc: 'Alcanza el puesto #2 en una temporada competitiva.', condition: () => Boolean((state.rankingStats?.bestRank && state.rankingStats.bestRank <= 2) || state.unlockedBadges?.includes('🥈')) },
+    { key: 'rank_top3', name: 'Podio Élite 🥉', desc: 'Sube al podio (Top 3) en una temporada competitiva.', condition: () => Boolean((state.rankingStats?.bestRank && state.rankingStats.bestRank <= 3) || state.unlockedBadges?.includes('🥉')) },
+    { key: 'rank_top10', name: 'Gran Maestro Top 10 ⭐', desc: 'Alcanza el TOP 10 en una temporada del ranking competitivo.', condition: () => Boolean((state.rankingStats?.bestRank && state.rankingStats.bestRank <= 10) || state.unlockedBadges?.includes('⭐')) },
+    { key: 'rank_top25', name: 'Élite Top 25 🎖️', desc: 'Alcanza el TOP 25 en una temporada competitiva.', condition: () => Boolean((state.rankingStats?.bestRank && state.rankingStats.bestRank <= 25) || state.unlockedBadges?.includes('🎖️')) },
+    { key: 'rank_top50', name: 'Destacado Top 50 🏅', desc: 'Alcanza el TOP 50 en una temporada competitiva.', condition: () => Boolean((state.rankingStats?.bestRank && state.rankingStats.bestRank <= 50) || state.unlockedBadges?.includes('🏅')) },
+    { key: 'rank_participant', name: 'Participante Activo 🎯', desc: 'Completa una temporada competitiva sumando al menos 100 puntos.', condition: () => Boolean(state.unlockedBadges?.includes('🎯') || (state.rankingStats?.seasonsParticipated && state.rankingStats.seasonsParticipated >= 1)) },
+    { key: 'rank_veteran', name: 'Veterano Competitivo 🔥', desc: 'Compite en al menos 5 temporadas de MathQuest.', condition: () => Boolean(state.rankingStats?.seasonsParticipated && state.rankingStats.seasonsParticipated >= 5) },
+    { key: 'rank_1000pts', name: 'Maestro de Puntos ⭐', desc: 'Consigue 1,000 rankingPoints en una temporada.', condition: () => (Number(state.rankingPoints) >= 1000 || Number(state.historicRankingPoints) >= 1000) },
+    { key: 'rank_5000pts', name: 'Leyenda Histórica 👑', desc: 'Acumula 5,000 rankingPoints históricos globales.', condition: () => (Number(state.historicRankingPoints) >= 5000) }
 ];
 
 function checkAndUnlockAchievements() {
@@ -1082,6 +1186,17 @@ function renderAchievements() {
             else if (medal.key === 'geometry_medal') emoji = '📐';
             else if (medal.key === 'arkanoid_medal') emoji = '🚀';
             else if (medal.key === 'logic_medal') emoji = '🧠';
+            else if (medal.key === 'champion_medal') emoji = '🏅';
+            else if (medal.key === 'rank_champion') emoji = '🏆';
+            else if (medal.key === 'rank_subchampion') emoji = '🥈';
+            else if (medal.key === 'rank_top3') emoji = '🥉';
+            else if (medal.key === 'rank_top10') emoji = '⭐';
+            else if (medal.key === 'rank_top25') emoji = '🎖️';
+            else if (medal.key === 'rank_top50') emoji = '🏅';
+            else if (medal.key === 'rank_participant') emoji = '🎯';
+            else if (medal.key === 'rank_veteran') emoji = '🔥';
+            else if (medal.key === 'rank_1000pts') emoji = '⭐';
+            else if (medal.key === 'rank_5000pts') emoji = '👑';
             else emoji = '🏅';
         }
 
@@ -1438,7 +1553,32 @@ function updateHeaderStats() {
     }
 }
 
+function updateTopicHeadersVisibility() {
+    const algebraDesc = document.querySelector('#path-topic-algebra .path-section-header p');
+    if (algebraDesc) {
+        if (HIDDEN_GAMES.has('snake')) {
+            algebraDesc.textContent = 'Completa los niveles de Slither y Cálculo Rush para ganar la medalla Maestro del Álgebra 🪐';
+        } else {
+            algebraDesc.textContent = 'Completa los 5 niveles de cada juego para ganar la medalla Maestro del Álgebra 🪐';
+        }
+    }
+
+    const geometryHeader = document.querySelector('#path-topic-geometry .path-section-header');
+    if (geometryHeader) {
+        const titleEl = geometryHeader.querySelector('h3');
+        const descEl = geometryHeader.querySelector('p');
+        if (HIDDEN_GAMES.has('tetris') && HIDDEN_GAMES.has('arkanoid')) {
+            if (titleEl) titleEl.textContent = 'Planeta Geometría y Físicas: Constructor Matemático';
+            if (descEl) descEl.textContent = 'Completa los 5 niveles de Constructor Matemático para ganar la medalla Pro de la Geometría 📐';
+        } else {
+            if (titleEl) titleEl.textContent = 'Planeta Geometría y Físicas: Suma de Ángulos y Rompeladrillos';
+            if (descEl) descEl.textContent = 'Completa los 5 niveles de Tetris y Math-Arkanoid para ganar la medalla Pro de la Geometría 📐';
+        }
+    }
+}
+
 function renderDuolingoPath() {
+    syncHiddenGamesStyles();
     const nodes = document.querySelectorAll('.path-node');
     const hasVip = (window.MathQuestVIP && typeof window.MathQuestVIP.checkVipStatus === 'function')
         ? window.MathQuestVIP.checkVipStatus()
@@ -1447,9 +1587,21 @@ function renderDuolingoPath() {
     nodes.forEach(node => {
         const game = node.getAttribute('data-game');
         const level = node.getAttribute('data-level');
-        const nodeKey = `${game}-${level}`;
 
-        const isUnlocked = hasVip || (Array.isArray(state.unlockedLevels) && state.unlockedLevels.includes(nodeKey));
+        if (HIDDEN_GAMES.has(game)) {
+            node.style.setProperty('display', 'none', 'important');
+            node.setAttribute('aria-hidden', 'true');
+            node.setAttribute('tabindex', '-1');
+            return;
+        } else {
+            node.style.removeProperty('display');
+            node.removeAttribute('aria-hidden');
+            node.removeAttribute('tabindex');
+        }
+
+        const nodeKey = `${game}-${level}`;
+        const isAccessibleDefault = (game === 'builder' && String(level) === '1' && HIDDEN_GAMES.has('arkanoid'));
+        const isUnlocked = hasVip || isAccessibleDefault || (Array.isArray(state.unlockedLevels) && state.unlockedLevels.includes(nodeKey));
         
         if (isUnlocked) {
             node.classList.remove('locked');
@@ -1459,11 +1611,29 @@ function renderDuolingoPath() {
             node.setAttribute('title', `Nivel ${level} Bloqueado`);
         }
     });
+
+    // Realinear matemáticamente el zig-zag continuo de los nodos visibles en cada ruta
+    document.querySelectorAll('.topic-path-container .duolingo-path').forEach(pathEl => {
+        const visibleNodes = Array.from(pathEl.querySelectorAll('.path-node')).filter(n => {
+            const g = n.getAttribute('data-game');
+            return !HIDDEN_GAMES.has(g);
+        });
+
+        visibleNodes.forEach((node, idx) => {
+            for (let p = 0; p <= 5; p++) {
+                node.classList.remove(`node-pos-${p}`);
+            }
+            node.classList.add(`node-pos-${idx % 6}`);
+        });
+    });
+
+    updateTopicHeadersVisibility();
 }
 
 function setupHubTabNavigation() {
     const tabs = {
         'path': { btn: 'tab-btn-path', view: 'hub-path-view' },
+        'ranking': { btn: 'tab-btn-ranking', view: 'hub-ranking-view' },
         'shop': { btn: 'tab-btn-shop', view: 'hub-shop-view' },
         'achievements': { btn: 'tab-btn-achievements', view: 'hub-achievements-view' },
         'settings': { btn: 'tab-btn-settings', view: 'hub-settings-view' }
@@ -1485,6 +1655,9 @@ function setupHubTabNavigation() {
                 btn.classList.add('active');
                 document.getElementById(config.view).classList.remove('hidden');
 
+                if (key === 'ranking' && window.MathQuestRanking && typeof window.MathQuestRanking.renderRankingView === 'function') {
+                    window.MathQuestRanking.renderRankingView();
+                }
                 if (key === 'shop') renderShop();
                 if (key === 'achievements') renderAchievements();
             });
@@ -1531,6 +1704,14 @@ function setupHubTabNavigation() {
 // 11. Lanzamiento de Videojuegos y Ruteo de Eventos
 // --------------------------------------------------------------------------
 function launchGame(game, level, isCustom = false) {
+    if (HIDDEN_GAMES.has(game)) {
+        console.warn(`[MathQuest] El juego '${game}' está temporalmente desactivado.`);
+        if (typeof window.showToast === 'function') {
+            window.showToast('ℹ️ Este juego está temporalmente fuera de rotación.');
+        }
+        return;
+    }
+
     SoundEngine.playClick();
     
     // Detener de forma limpia cualquier juego previo activo
@@ -1626,14 +1807,19 @@ document.addEventListener('click', (e) => {
     const node = e.target.closest('.path-node');
     if (node) {
         e.preventDefault();
+        const game = node.getAttribute('data-game');
+        const level = node.getAttribute('data-level');
+
+        if (HIDDEN_GAMES.has(game)) {
+            return;
+        }
+
         if (node.classList.contains('locked')) {
             SoundEngine.playWrong();
             window.showToast("🔒 Este nivel está bloqueado. ¡Completa los niveles anteriores o adquiere el Pase VIP!");
             return;
         }
 
-        const game = node.getAttribute('data-game');
-        const level = node.getAttribute('data-level');
         if (game && level) {
             launchGame(game, level);
         }
@@ -1965,6 +2151,11 @@ function initMathQuestApp() {
     setupSettingsListeners();
     setupVipBypassBilling();
     
+    // Inicializar Sistema de Ranking Competitivo Global
+    if (window.MathQuestRanking && typeof window.MathQuestRanking.init === 'function') {
+        window.MathQuestRanking.init();
+    }
+
     // Configurar estado visual inicial de música
     MusicEngine.updateUiState();
 
@@ -2040,9 +2231,14 @@ window.activatePremiumVipPass = activatePremiumVipPass;
 window.activateStreakDay = activateStreakDay;
 window.updateStreakCalendar = updateStreakCalendar;
 window.checkStreakValidity = checkStreakValidity;
+window.HIDDEN_GAMES = HIDDEN_GAMES;
+window.syncHiddenGamesStyles = syncHiddenGamesStyles;
 
 window.MathQuestApp = {
     state,
+    HIDDEN_GAMES,
+    isGameHidden: (game) => HIDDEN_GAMES.has(game),
+    syncHiddenGamesStyles,
     SoundEngine,
     MusicEngine,
     renderLaTeX,
