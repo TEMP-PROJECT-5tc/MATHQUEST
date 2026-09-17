@@ -12,8 +12,23 @@
  * 8. Firestore sincroniza en tiempo real con la app del usuario y desbloquea todos los niveles.
  */
 
-import { doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+import { doc, onSnapshot, setDoc, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import { db, auth } from './firebase.js';
+
+// Catálogo completo de los 55 niveles de MathQuest (11 juegos x 5 niveles)
+export const ALL_55_LEVELS = [
+    'snake-1', 'snake-2', 'snake-3', 'snake-4', 'snake-5',
+    'slider-1', 'slider-2', 'slider-3', 'slider-4', 'slider-5',
+    'rush-1', 'rush-2', 'rush-3', 'rush-4', 'rush-5',
+    'tetris-1', 'tetris-2', 'tetris-3', 'tetris-4', 'tetris-5',
+    'arkanoid-1', 'arkanoid-2', 'arkanoid-3', 'arkanoid-4', 'arkanoid-5',
+    'builder-1', 'builder-2', 'builder-3', 'builder-4', 'builder-5',
+    'sudoku-1', 'sudoku-2', 'sudoku-3', 'sudoku-4', 'sudoku-5',
+    'ahorcado-1', 'ahorcado-2', 'ahorcado-3', 'ahorcado-4', 'ahorcado-5',
+    'tres-1', 'tres-2', 'tres-3', 'tres-4', 'tres-5',
+    'escape-1', 'escape-2', 'escape-3', 'escape-4', 'escape-5',
+    'duel-1', 'duel-2', 'duel-3', 'duel-4', 'duel-5'
+];
 
 // Configuración centralizada para Yape y WhatsApp
 const env = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
@@ -127,23 +142,94 @@ export function isIndividualVipActive(data) {
 
 /**
  * Función de Administrador: Activa o desactiva el VIP de un usuario individual en Firestore
- * Guarda el booleano 'vip: true' o 'vip: false' en users/{uid}
+ * Admite UID de Firestore o correo electrónico.
+ * Cuando se activa, desbloquea de inmediato los 55 niveles en la nube y en la sesión actual.
  */
-export async function setUserVipStatus(targetUid, active) {
-    if (!targetUid || typeof targetUid !== 'string' || !targetUid.trim()) {
-        throw new Error("Debes proporcionar un UID de usuario válido.");
+export async function setUserVipStatus(targetIdentifier, active) {
+    if (!targetIdentifier || typeof targetIdentifier !== 'string' || !targetIdentifier.trim()) {
+        throw new Error("Debes proporcionar un UID o correo electrónico de usuario válido.");
     }
-    const cleanUid = targetUid.trim();
+    const cleanId = targetIdentifier.trim();
     const boolVal = Boolean(active);
-    const userDocRef = doc(db, 'users', cleanUid);
     
-    await setDoc(userDocRef, {
+    let resolvedUid = cleanId;
+
+    // Si el administrador introdujo un correo en lugar de un UID directo
+    if (cleanId.includes('@')) {
+        try {
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, where('email', '==', cleanId.toLowerCase()));
+            const querySnap = await getDocs(q);
+            if (!querySnap.empty) {
+                resolvedUid = querySnap.docs[0].id;
+                console.log(`👑 Admin: Correo ${cleanId} localizado -> UID ${resolvedUid}`);
+            } else {
+                console.warn(`Aviso: No se halló usuario registrado con correo ${cleanId}. Usando identificador directo.`);
+            }
+        } catch (e) {
+            console.warn("Aviso en consulta por correo en users:", e.message);
+        }
+    }
+
+    const userDocRef = doc(db, 'users', resolvedUid);
+    
+    const updatePayload = {
         vip: boolVal,
         updatedAt: Date.now()
-    }, { merge: true });
+    };
 
-    console.log(`👑 Admin: Estado VIP de ${cleanUid} guardado como: ${boolVal}`);
-    return true;
+    if (boolVal) {
+        // Otorgar acceso total a los 55 niveles en el perfil de Firestore del usuario
+        updatePayload.progression = {
+            unlockedLevels: ALL_55_LEVELS
+        };
+        updatePayload.security = {
+            vipBypassPurchased: true
+        };
+    } else {
+        updatePayload.security = {
+            vipBypassPurchased: false
+        };
+    }
+    
+    await setDoc(userDocRef, updatePayload, { merge: true });
+    console.log(`👑 Admin: Estado VIP de ${resolvedUid} guardado como: ${boolVal} con 55 niveles sincronizados.`);
+
+    // Si el usuario modificado es el usuario actualmente activo en el navegador:
+    const currentUser = auth.currentUser;
+    const isTargetCurrent = currentUser && (
+        resolvedUid === currentUser.uid ||
+        cleanId.toLowerCase() === (currentUser.email || '').toLowerCase()
+    );
+
+    if (isTargetCurrent) {
+        currentVipState.active = boolVal;
+        currentVipState.status = boolVal ? 'confirmed' : 'none';
+        currentVipState.method = 'admin_grant';
+
+        if (!window.state) window.state = {};
+        window.state.vipBypassPurchased = boolVal;
+        window.state.isRealVip = boolVal;
+
+        if (boolVal) {
+            if (!Array.isArray(window.state.unlockedLevels)) {
+                window.state.unlockedLevels = [];
+            }
+            ALL_55_LEVELS.forEach(lvl => {
+                if (!window.state.unlockedLevels.includes(lvl)) {
+                    window.state.unlockedLevels.push(lvl);
+                }
+            });
+            try {
+                localStorage.setItem('mq3_unlocked_levels', JSON.stringify(window.state.unlockedLevels));
+                localStorage.setItem('mq3_vip_bypass_purchased', 'true');
+            } catch(e) {}
+        }
+
+        updateEffectiveVipState();
+    }
+
+    return { resolvedUid, active: boolVal };
 }
 
 /**
@@ -275,6 +361,22 @@ export function updateEffectiveVipState() {
         active: currentVipState.active,
         isGlobal: isGlobalVipActive
     };
+
+    // Si tiene VIP activo, desbloquear automáticamente todos los 55 niveles en el estado de la app
+    if (hasVip || window.state.vipBypassPurchased || window.state.isRealVip) {
+        if (!Array.isArray(window.state.unlockedLevels)) {
+            window.state.unlockedLevels = [];
+        }
+        ALL_55_LEVELS.forEach(lvl => {
+            if (!window.state.unlockedLevels.includes(lvl)) {
+                window.state.unlockedLevels.push(lvl);
+            }
+        });
+        try {
+            localStorage.setItem('mq3_unlocked_levels', JSON.stringify(window.state.unlockedLevels));
+            localStorage.setItem('mq3_vip_bypass_purchased', 'true');
+        } catch(e) {}
+    }
 
     // Actualizar interfaz del juego sin recargar
     if (typeof window.updateHeaderStats === 'function') {

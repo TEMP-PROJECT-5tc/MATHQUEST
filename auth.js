@@ -776,13 +776,32 @@ function setupAuthEventListeners() {
             btnSelfToggle.disabled = true;
             btnSelfToggle.textContent = 'Guardando...';
             try {
+                const targetState = !hasMyVip;
                 if (window.MathQuestVIP?.setUserVipStatus) {
-                    await window.MathQuestVIP.setUserVipStatus(currentUser.uid, !hasMyVip);
+                    await window.MathQuestVIP.setUserVipStatus(currentUser.uid, targetState);
                 }
+                
+                // Si se activa, forzar desbloqueo total e inmediato de los 55 niveles en el juego
+                if (targetState) {
+                    if (typeof window.activatePremiumVipPass === 'function') {
+                        window.activatePremiumVipPass({ confirmed: true });
+                    } else if (window.MathQuestVIP?.updateEffectiveVipState) {
+                        window.MathQuestVIP.updateEffectiveVipState();
+                    }
+                } else {
+                    if (window.state) {
+                        window.state.vipBypassPurchased = false;
+                        window.state.isRealVip = false;
+                    }
+                    if (window.MathQuestVIP?.updateEffectiveVipState) {
+                        window.MathQuestVIP.updateEffectiveVipState();
+                    }
+                }
+
                 const feedback = document.getElementById('admin-action-feedback');
                 if (feedback) {
-                    feedback.textContent = `Tu VIP fue ${!hasMyVip ? 'ACTIVADO ⭐' : 'DESACTIVADO ❌'}`;
-                    feedback.style.color = !hasMyVip ? '#10b981' : '#f59e0b';
+                    feedback.textContent = `Tu VIP fue ${targetState ? 'ACTIVADO ⭐ (¡55 niveles desbloqueados!)' : 'DESACTIVADO ❌'}`;
+                    feedback.style.color = targetState ? '#10b981' : '#f59e0b';
                 }
             } catch (err) {
                 alert("Error al actualizar VIP: " + err.message);
@@ -799,23 +818,41 @@ function setupAuthEventListeners() {
     const feedback = document.getElementById('admin-action-feedback');
 
     async function handleTargetUserVip(active) {
-        const targetUid = uidInput?.value?.trim();
-        if (!targetUid) {
-            alert("Por favor introduce el UID del usuario.");
+        const targetInputVal = uidInput?.value?.trim();
+        if (!targetInputVal) {
+            alert("Por favor introduce el UID o correo del usuario.");
             return;
         }
         if (btnActivate) btnActivate.disabled = true;
         if (btnDeactivate) btnDeactivate.disabled = true;
         if (feedback) {
-            feedback.textContent = 'Actualizando en Firestore...';
+            feedback.textContent = 'Buscando usuario y sincronizando en Firestore...';
             feedback.style.color = '#94a3b8';
         }
         try {
+            let res = null;
             if (window.MathQuestVIP?.setUserVipStatus) {
-                await window.MathQuestVIP.setUserVipStatus(targetUid, active);
+                res = await window.MathQuestVIP.setUserVipStatus(targetInputVal, active);
             }
+
+            // Si el objetivo es el mismo usuario logueado actualmente
+            const isSelf = currentUser && (
+                (res && res.resolvedUid === currentUser.uid) ||
+                targetInputVal === currentUser.uid ||
+                targetInputVal.toLowerCase() === (currentUser.email || '').toLowerCase()
+            );
+
+            if (isSelf && active) {
+                if (typeof window.activatePremiumVipPass === 'function') {
+                    window.activatePremiumVipPass({ confirmed: true });
+                } else if (window.MathQuestVIP?.updateEffectiveVipState) {
+                    window.MathQuestVIP.updateEffectiveVipState();
+                }
+            }
+
+            const displayLabel = (res && res.resolvedUid) ? `${res.resolvedUid.slice(0, 10)}...` : `${targetInputVal.slice(0, 12)}...`;
             if (feedback) {
-                feedback.textContent = `✓ Usuario ${targetUid.slice(0, 10)}... VIP ${active ? 'ACTIVADO ⭐' : 'DESACTIVADO ❌'}`;
+                feedback.textContent = `✓ Usuario ${displayLabel} VIP ${active ? 'ACTIVADO ⭐ (¡55 niveles desbloqueados!)' : 'DESACTIVADO ❌'}`;
                 feedback.style.color = active ? '#10b981' : '#ef4444';
             }
             if (uidInput) uidInput.value = '';

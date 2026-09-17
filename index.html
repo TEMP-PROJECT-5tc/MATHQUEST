@@ -23,10 +23,10 @@
 
     <!-- Configuración inicial de juegos desactivados (sincronizado dinámicamente con HIDDEN_GAMES en app.js) -->
     <style id="dynamic-hidden-games-style">
-        .path-node[data-game="snake"],
+        .path-node[data-game="slider"],
         .path-node[data-game="tetris"],
         .path-node[data-game="arkanoid"],
-        #screen-snake,
+        #screen-slider,
         #screen-tetris,
         #screen-arkanoid {
             display: none !important;
@@ -234,10 +234,10 @@
 
                 <!-- CONTENEDORES DE RUTAS POR TEMA (5 Niveles por juego) -->
                 
-                <!-- 1. RUTA ÁLGEBRA Y ARITMÉTICA (Snake & Slither) -->
+                <!-- 1. RUTA ÁLGEBRA Y ARITMÉTICA (Snake & Cálculo Rush) -->
                 <div id="path-topic-algebra" class="topic-path-container">
                     <div class="path-section-header algebra-header">
-                        <h3>Planeta Álgebra y Aritmética: Ecuaciones y Fracciones</h3>
+                        <h3>Planeta Álgebra y Aritmética: Ecuaciones y Cálculo</h3>
                         <p>Completa los 5 niveles de cada juego para ganar la medalla **Maestro del Álgebra** 🪐</p>
                     </div>
                     <div class="duolingo-path">
@@ -605,7 +605,7 @@
 
                     <!-- Sección de Skins -->
                     <div class="shop-category card">
-                        <h3>🐍 Aspectos / Skins de Serpiente (Snake & Slither)</h3>
+                        <h3>🐍 Aspectos / Skins de Serpiente (Snake)</h3>
                         <div class="shop-items-container" id="shop-container-skins">
                             <!-- Inyectado dinámicamente -->
                         </div>
@@ -2144,12 +2144,12 @@
                         </button>
                     </div>
 
-                    <!-- 2. Activar/Desactivar VIP a otro usuario por UID -->
+                    <!-- 2. Activar/Desactivar VIP a otro usuario por UID o Correo -->
                     <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px;">
-                        Activar o desactivar a cualquier usuario (UID de Firestore):
+                        Activar o desactivar VIP (pega el UID o Correo del usuario):
                     </div>
                     <div style="display: flex; gap: 6px; margin-bottom: 6px;">
-                        <input type="text" id="admin-target-uid-input" placeholder="Pega el UID del usuario..." class="auth-input" style="font-size: 0.8rem; padding: 6px 10px; flex: 1; min-height: 36px;" />
+                        <input type="text" id="admin-target-uid-input" placeholder="Pega el UID o Correo (ej. usuario@gmail.com)..." class="auth-input" style="font-size: 0.8rem; padding: 6px 10px; flex: 1; min-height: 36px;" />
                     </div>
                     <div style="display: flex; gap: 6px;">
                         <button id="btn-admin-activate-user-vip" class="btn btn-sm btn-success" type="button" style="flex: 1; padding: 6px 8px; font-size: 0.75rem; font-weight: 700; background: #10b981; border: none; color: #fff;">

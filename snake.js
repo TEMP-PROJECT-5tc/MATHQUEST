@@ -499,8 +499,11 @@
             appState.unlockedLevels.push(nextLevelKey);
         }
 
-        if (level === 5 && !appState.unlockedLevels.includes('slider-1')) {
-            appState.unlockedLevels.push('slider-1');
+        if (level === 5) {
+            const nextGame = (window.HIDDEN_GAMES && window.HIDDEN_GAMES.has('slider')) ? 'rush-1' : 'slider-1';
+            if (!appState.unlockedLevels.includes(nextGame)) {
+                appState.unlockedLevels.push(nextGame);
+            }
         }
 
         getSoundEngine().playFanfare();

@@ -5,6 +5,7 @@
    ========================================================================== */
 
 import { db, doc, getDoc, setDoc } from './firebase.js';
+import { ALL_55_LEVELS } from './vip-payment.js';
 
 // Prefijo de almacenamiento local existente en MathQuest V3
 const STORAGE_PREFIX = 'mq3_';
@@ -289,6 +290,15 @@ export function reconcileAndMerge(cloudData, localState) {
     // Membresía VIP: Si la nube individual lo confirma, es VIP Real. Si el VIP Global está activo, concede acceso
     const hasVipAccess = isCloudVipActive || isGlobalVipActive || localLegacyBypass;
 
+    // Si tiene acceso VIP (individual o global), garantizar el desbloqueo incondicional de los 55 niveles
+    if (hasVipAccess) {
+        ALL_55_LEVELS.forEach(lvl => {
+            if (!mergedLevels.includes(lvl)) {
+                mergedLevels.push(lvl);
+            }
+        });
+    }
+
     return {
         streak: mergedStreak,
         stars: mergedStars,
@@ -347,10 +357,20 @@ function applyMergedStateToApp(mergedState) {
         localStorage.setItem(STORAGE_PREFIX + 'equipped_skin', window.state.equippedSkin);
         localStorage.setItem(STORAGE_PREFIX + 'equipped_badge', window.state.equippedBadge);
         localStorage.setItem(STORAGE_PREFIX + 'unlocked_skins', JSON.stringify(window.state.unlockedSkins));
+        if (window.state.vipBypassPurchased || window.state.isRealVip || window.state.isGlobalVip) {
+            if (!Array.isArray(window.state.unlockedLevels)) {
+                window.state.unlockedLevels = [];
+            }
+            ALL_55_LEVELS.forEach(lvl => {
+                if (!window.state.unlockedLevels.includes(lvl)) {
+                    window.state.unlockedLevels.push(lvl);
+                }
+            });
+        }
         localStorage.setItem(STORAGE_PREFIX + 'unlocked_levels', JSON.stringify(window.state.unlockedLevels));
         // Persistir vip_bypass_purchased como 'true' solo si el usuario tiene VIP individual confirmado o bypass local legacy
         // NUNCA persistir VIP Global como compra local individual
-        const persistVip = Boolean(window.state.isRealVip || (localLegacyBypass && !window.state.isGlobalVip));
+        const persistVip = Boolean(window.state.isRealVip || (window.state.vipBypassPurchased && !window.state.isGlobalVip));
         localStorage.setItem(STORAGE_PREFIX + 'vip_bypass_purchased', persistVip);
         localStorage.setItem(STORAGE_PREFIX + 'inventory', JSON.stringify(window.state.inventory));
         localStorage.setItem(STORAGE_PREFIX + 'ranking_points', window.state.rankingPoints || 0);

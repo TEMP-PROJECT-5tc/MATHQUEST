@@ -11,7 +11,7 @@
 // juegos, simplemente elimínalo de este Set y se mostrará de inmediato).
 // --------------------------------------------------------------------------
 const HIDDEN_GAMES = new Set([
-    'snake',
+    'slider',
     'tetris',
     'arkanoid'
 ]);
@@ -183,6 +183,11 @@ function loadStateFromStorage() {
             state.unlockedSkins = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'unlocked_skins')) || ['standard'];
             state.unlockedLevels = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'unlocked_levels')) || ['snake-1', 'slider-1', 'tetris-1', 'arkanoid-1', 'sudoku-1', 'ahorcado-1', 'tres-1'];
             
+            // Garantizar que Snake nivel 1 esté siempre desbloqueado
+            if (!state.unlockedLevels.includes('snake-1')) {
+                state.unlockedLevels.push('snake-1');
+            }
+
             // Migrar niveles viejos de balanza a tres para no bloquear al usuario
             state.unlockedLevels = state.unlockedLevels.map(lvl => lvl.replace('balanza-', 'tres-'));
             if (!state.unlockedLevels.includes('tres-1')) {
@@ -193,7 +198,7 @@ function loadStateFromStorage() {
             }
 
             // Migración progresiva segura para nuevos juegos (desbloqueo de sucesores retroactivos)
-            if (state.unlockedLevels.includes('slider-5') && !state.unlockedLevels.includes('rush-1')) {
+            if ((state.unlockedLevels.includes('snake-5') || state.unlockedLevels.includes('slider-5')) && !state.unlockedLevels.includes('rush-1')) {
                 state.unlockedLevels.push('rush-1');
             }
             if (state.unlockedLevels.includes('arkanoid-5') && !state.unlockedLevels.includes('builder-1')) {
@@ -207,8 +212,18 @@ function loadStateFromStorage() {
             }
 
             state.vipBypassPurchased = localStorage.getItem(STORAGE_PREFIX + 'vip_bypass_purchased') === 'true';
-            // El desbloqueo visual y de juego para VIP (global o individual) es dinámico mediante renderDuolingoPath()
-            // para no contaminar permanentemente el progreso guardado si el acceso global se desactiva.
+            // Si el pase VIP local o confirmado está activo, asegurar todos los 55 niveles en memoria
+            if (state.vipBypassPurchased) {
+                const allGames = ['snake', 'slider', 'rush', 'tetris', 'arkanoid', 'builder', 'sudoku', 'ahorcado', 'tres', 'escape', 'duel'];
+                allGames.forEach(g => {
+                    for (let l = 1; l <= 5; l++) {
+                        const k = `${g}-${l}`;
+                        if (!state.unlockedLevels.includes(k)) {
+                            state.unlockedLevels.push(k);
+                        }
+                    }
+                });
+            }
 
             const savedInventory = localStorage.getItem(STORAGE_PREFIX + 'inventory');
             if (savedInventory) {
@@ -966,6 +981,7 @@ function awardCoins(isLevelCompletion, level) {
 
         // Desbloqueo progresivo del siguiente juego al superar el Nivel 5 de un predecesor
         const successors = {
+            'snake-5': 'rush-1',
             'slider-5': 'rush-1',
             'arkanoid-5': 'builder-1',
             'builder-5': 'escape-1',
@@ -1010,7 +1026,7 @@ const SHOP_CATALOG = {
     ],
     powerups: [
         { key: 'hint', name: 'Pista Global 💡', desc: 'Añade una pista a tu mochila para usar en juego.', price: 40, icon: '💡', type: 'inventory' },
-        { key: 'shield', name: 'Súper Escudo 🛡️', desc: 'Te protege de 1 choque en Snake o Slither.', price: 60, icon: '🛡️', type: 'inventory' },
+        { key: 'shield', name: 'Súper Escudo 🛡️', desc: 'Te protege de 1 choque en Snake.', price: 60, icon: '🛡️', type: 'inventory' },
         { key: 'freeze', name: 'Congelador ❄️', desc: 'Ralentiza velocidad por 10s en Tetris o Snake.', price: 50, icon: '⏱️', type: 'inventory' }
     ]
 };
@@ -1131,7 +1147,7 @@ window.equipSkin = function(key) {
 // 7. Salón de Logros y Medallas por Mérito
 // --------------------------------------------------------------------------
 const MEDALS_CATALOG = [
-    { key: 'algebra_medal', name: 'Medalla de Álgebra 🪐', desc: 'Otorgada al superar el Nivel 5 de Snake y Slither.', condition: () => state.unlockedLevels.includes('snake-5') && state.unlockedLevels.includes('slider-5') },
+    { key: 'algebra_medal', name: 'Medalla de Álgebra 🪐', desc: 'Otorgada al superar el Nivel 5 de Snake y Cálculo Rush.', condition: () => state.unlockedLevels.includes('snake-5') && (state.unlockedLevels.includes('rush-5') || state.unlockedLevels.includes('slider-5')) },
     { key: 'geometry_medal', name: 'Medalla Geométrica 📐', desc: 'Otorgada al superar el Nivel 5 de Math-Tetris.', condition: () => state.unlockedLevels.includes('tetris-5') },
     { key: 'arkanoid_medal', name: 'Medalla Rompeladrillos 🚀', desc: 'Otorgada al superar el Nivel 5 de Math-Arkanoid.', condition: () => state.unlockedLevels.includes('arkanoid-5') },
     { key: 'logic_medal', name: 'Medalla de la Lógica 🧠', desc: 'Otorgada al superar el Nivel 5 de Sudoku, Ahorcado y Tres en Raya.', condition: () => state.unlockedLevels.includes('sudoku-5') && state.unlockedLevels.includes('ahorcado-5') && state.unlockedLevels.includes('tres-5') },
@@ -1556,7 +1572,9 @@ function updateHeaderStats() {
 function updateTopicHeadersVisibility() {
     const algebraDesc = document.querySelector('#path-topic-algebra .path-section-header p');
     if (algebraDesc) {
-        if (HIDDEN_GAMES.has('snake')) {
+        if (HIDDEN_GAMES.has('slider') && !HIDDEN_GAMES.has('snake')) {
+            algebraDesc.textContent = 'Completa los niveles de Snake y Cálculo Rush para ganar la medalla Maestro del Álgebra 🪐';
+        } else if (HIDDEN_GAMES.has('snake') && !HIDDEN_GAMES.has('slider')) {
             algebraDesc.textContent = 'Completa los niveles de Slither y Cálculo Rush para ganar la medalla Maestro del Álgebra 🪐';
         } else {
             algebraDesc.textContent = 'Completa los 5 niveles de cada juego para ganar la medalla Maestro del Álgebra 🪐';
@@ -1580,9 +1598,12 @@ function updateTopicHeadersVisibility() {
 function renderDuolingoPath() {
     syncHiddenGamesStyles();
     const nodes = document.querySelectorAll('.path-node');
-    const hasVip = (window.MathQuestVIP && typeof window.MathQuestVIP.checkVipStatus === 'function')
-        ? window.MathQuestVIP.checkVipStatus()
-        : (Boolean(state.isRealVip && state.vipBypassPurchased) || Boolean(state.isGlobalVip));
+    const hasVip = Boolean(
+        (window.MathQuestVIP && typeof window.MathQuestVIP.checkVipStatus === 'function' && window.MathQuestVIP.checkVipStatus()) ||
+        state.isRealVip ||
+        state.vipBypassPurchased ||
+        state.isGlobalVip
+    );
 
     nodes.forEach(node => {
         const game = node.getAttribute('data-game');
@@ -1814,7 +1835,14 @@ document.addEventListener('click', (e) => {
             return;
         }
 
-        if (node.classList.contains('locked')) {
+        const hasVipAccess = Boolean(
+            (window.MathQuestVIP && typeof window.MathQuestVIP.checkVipStatus === 'function' && window.MathQuestVIP.checkVipStatus()) ||
+            state.isRealVip ||
+            state.vipBypassPurchased ||
+            state.isGlobalVip
+        );
+
+        if (node.classList.contains('locked') && !hasVipAccess) {
             SoundEngine.playWrong();
             window.showToast("🔒 Este nivel está bloqueado. ¡Completa los niveles anteriores o adquiere el Pase VIP!");
             return;
